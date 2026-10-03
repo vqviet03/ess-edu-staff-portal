@@ -1,0 +1,53 @@
+name: Deploy dev to GitHub Pages
+on:
+  push:
+    branches: [dev]
+permissions:
+  contents: read
+concurrency:
+  group: github-pages-dev
+  cancel-in-progress: false
+jobs:
+  checks:
+    uses: ./.github/workflows/checks.yml
+  package:
+    needs: checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      NEXT_TELEMETRY_DISABLED: "1"
+      NEXT_PUBLIC_USE_MOCK: ${{ vars.NEXT_PUBLIC_USE_MOCK || 'true' }}
+      NEXT_PUBLIC_API_BASE_URL: ${{ vars.NEXT_PUBLIC_API_BASE_URL }}
+      NEXT_PUBLIC_API_TIMEOUT_MS: ${{ vars.NEXT_PUBLIC_API_TIMEOUT_MS || '15000' }}
+      NEXT_PUBLIC_BASE_PATH: ${{ vars.PAGES_BASE_PATH || format('/{0}', github.event.repository.name) }}
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: static-export
+          path: out
+      - uses: actions/checkout@v4
+        if: vars.NEXT_PUBLIC_USE_MOCK == 'false'
+      - uses: actions/setup-node@v4
+        if: vars.NEXT_PUBLIC_USE_MOCK == 'false'
+        with:
+          node-version: "24"
+          cache: npm
+      - run: npm ci
+        if: vars.NEXT_PUBLIC_USE_MOCK == 'false'
+      - run: test -n "$NEXT_PUBLIC_API_BASE_URL" && npm run build
+        if: vars.NEXT_PUBLIC_USE_MOCK == 'false'
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: out
+  deploy:
+    needs: package
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/deploy-pages@v4
+        id: deployment
