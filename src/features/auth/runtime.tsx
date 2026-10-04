@@ -1,18 +1,20 @@
 "use client";
 import { useEffect, type ReactNode } from "react";
+import { useStore } from "react-redux";
 import { useRouter } from "next/navigation";
 import { useMeQuery } from "@/api/api";
-import { useAppDispatch, useAppSelector } from "@/store";
+import { type RootState, useAppDispatch, useAppSelector } from "@/store";
 import { restore, signedOut, verified } from "@/store/auth";
 import { expired, readSession } from "./storage";
 import { Feedback, Shell } from "@/shared/ui";
 export function AuthRuntime() {
+  const store = useStore<RootState>();
   const dispatch = useAppDispatch(),
     auth = useAppSelector((s) => s.auth);
   const me = useMeQuery(undefined, { skip: auth.status !== "validating" });
   useEffect(() => {
-    dispatch(restore(readSession()));
-  }, [dispatch]);
+    if (store.getState().auth.status === "booting") dispatch(restore(readSession()));
+  }, [dispatch, store]);
   useEffect(() => {
     if (me.data && auth.status === "validating") dispatch(verified(me.data));
   }, [me.data, auth.status, dispatch]);

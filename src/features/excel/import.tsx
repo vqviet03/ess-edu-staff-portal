@@ -153,7 +153,7 @@ export function ExcelImport() {
                   setError("");
                   const blob = await template(a.id).unwrap();
                   const { download } = await import("./workbook");
-                  download(blob, `LearnLeaf_${a.id}.xlsx`);
+                  download(blob, `ESS_${a.id}.xlsx`);
                 } catch (e) {
                   setError(errorMessage(e));
                 }
@@ -303,7 +303,7 @@ export function ExcelImport() {
                           await import("./workbook");
                         download(
                           await errorWorkbook(data.errors),
-                          "LearnLeaf_loi_import.xlsx",
+                          "ESS_loi_import.xlsx",
                         );
                       } catch (e) {
                         setError(errorMessage(e));

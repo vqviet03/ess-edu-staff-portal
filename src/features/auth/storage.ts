@@ -1,4 +1,5 @@
 import type { AuthSession } from "@/types";
+import { apiConfiguration } from "@/api/config";
 export const SESSION_KEY = "learnleaf.staff.auth";
 export function expired(session: AuthSession) {
   let until = Date.parse(session.expiresAt);
@@ -18,8 +19,10 @@ export function readSession(): AuthSession | null {
   try {
     const raw = sessionStorage.getItem(SESSION_KEY);
     if (!raw) return null;
-    const s = JSON.parse(raw) as AuthSession;
-    if (s.accessToken && s.teacher?.id && !expired(s)) return s;
+    const s = JSON.parse(raw) as AuthSession & {apiMock?: boolean; apiBaseUrl?: string};
+    const valid = typeof s?.accessToken === "string" && s.accessToken.length > 0 && typeof s.expiresAt === "string" && typeof s.teacher?.id === "string" && s.teacher.id.length > 0 && typeof s.teacher.name === "string";
+    const correctBackend = s?.apiMock === undefined || (s.apiMock === apiConfiguration.mock && s.apiBaseUrl === apiConfiguration.baseUrl);
+    if (valid && correctBackend && (apiConfiguration.mock || !s.accessToken.startsWith("demo-")) && !expired(s)) return s;
     sessionStorage.removeItem(SESSION_KEY);
     return null;
   } catch {
@@ -31,7 +34,7 @@ export function readSession(): AuthSession | null {
 }
 export function writeSession(session: AuthSession | null) {
   try {
-    if (session) sessionStorage.setItem(SESSION_KEY, JSON.stringify(session));
+    if (session) sessionStorage.setItem(SESSION_KEY, JSON.stringify({...session, apiMock: apiConfiguration.mock, apiBaseUrl: apiConfiguration.baseUrl}));
     else sessionStorage.removeItem(SESSION_KEY);
   } catch {}
 }

@@ -23,9 +23,13 @@ export type WorkStatus = "DRAFT" | "COMPLETED";
 export interface Teacher {
   id: string;
   name: string;
+  teacherCode?: string;
+  roles?: ("TEACHER" | "ADMIN")[];
+  permissions?: string[];
 }
 export interface AuthSession {
   accessToken: string;
+  tokenType?: "Bearer";
   expiresAt: string;
   teacher: Teacher;
 }

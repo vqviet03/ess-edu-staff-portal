@@ -7,7 +7,7 @@
     "build": "next build",
     "typecheck": "tsc --noEmit",
     "lint": "eslint . --max-warnings=0",
-    "test": "tsx --test tests/*.test.ts",
+    "test": "tsx --import ./tests/setup.mjs --test tests/*.test.ts",
     "test:e2e": "playwright test",
     "preview": "node scripts/preview.mjs"
   },

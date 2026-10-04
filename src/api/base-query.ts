@@ -5,62 +5,75 @@ import {
   type FetchBaseQueryError,
 } from "@reduxjs/toolkit/query";
 import type { AuthState } from "@/store/auth";
-import { createMockAdapter } from "@/mock/adapter";
 import { requestHeaders } from "./headers";
+import { apiConfiguration, resolveApiConfiguration } from "./config";
+import { expired } from "@/features/auth/storage";
 type Query = BaseQueryFn<string | FetchArgs, unknown, FetchBaseQueryError>;
-export const useMock = process.env.NEXT_PUBLIC_USE_MOCK !== "false";
+export const useMock = apiConfiguration.mock;
 export function createAppBaseQuery(config: {
   mock: boolean;
   url?: string;
   timeout?: number;
+  configurationError?: string | null;
   mockAdapter?: Query;
   fetchFn?: NonNullable<Parameters<typeof fetchBaseQuery>[0]>["fetchFn"];
 }): Query {
+  const resolved = resolveApiConfiguration(String(config.mock), config.url, config.timeout ?? 15000);
+  let mock = config.mockAdapter;
   const real = fetchBaseQuery({
-      baseUrl: config.url,
+      baseUrl: resolved.baseUrl,
       fetchFn: config.fetchFn,
-      timeout:
-        Number.isFinite(config.timeout) && config.timeout! > 0
-          ? config.timeout
-          : 15000,
-      prepareHeaders: (headers, { getState }) => {
+      timeout: resolved.timeout,
+      prepareHeaders: (headers, { getState, arg }) => {
         const auth = (getState() as { auth: AuthState }).auth;
-        if (auth.session)
+        const path = typeof arg === "string" ? arg : arg.url;
+        if (auth.session && !["/auth/login", "/auth/link/exchange"].includes(path))
           headers.set("Authorization", `Bearer ${auth.session.accessToken}`);
+        else headers.delete("Authorization");
+        headers.set("Accept", "application/json");
         return headers;
       },
-    }),
-    mock = config.mockAdapter ?? createMockAdapter();
+    });
   return async (args, api, options) => {
     const request = typeof args === "string" ? { url: args } : args;
-    if (!config.mock && !config.url)
+    if (config.configurationError || resolved.error)
       return {
         error: {
           status: "CUSTOM_ERROR",
-          error: "Chưa cấu hình NEXT_PUBLIC_API_BASE_URL cho API thật.",
+          error: "Chưa cấu hình API.",
+          data: {error: {code: "CONFIGURATION_ERROR", message: "Hệ thống chưa sẵn sàng. Vui lòng liên hệ trung tâm."}},
         },
       };
     const headers = requestHeaders(request.headers),
       auth = (api.getState() as { auth: AuthState }).auth;
-    if (config.mock && auth.session)
-      headers.set("Authorization", `Bearer ${auth.session.accessToken}`);
-    const result = config.mock
-      ? await mock({ ...request, headers }, api, options)
-      : await real(request, api, options);
-    if (result.error?.status === 401 && auth.session) {
-      api.dispatch({
-        type: "auth/signedOut",
-        payload: "Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.",
-      });
-      api.dispatch({ type: "staffApi/resetApiState" });
+    const publicRequest = ["/auth/login", "/auth/link/exchange"].includes(request.url) || (config.mock && request.url === "/demo/reset");
+    const originalToken = auth.session?.accessToken;
+    const currentToken = () => (api.getState() as { auth: AuthState }).auth.session?.accessToken;
+    const endSession = () => {
+      if (auth.session && currentToken() === originalToken) {
+        api.dispatch({type: "auth/signedOut", payload: "Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại."});
+        api.dispatch({type: "staffApi/resetApiState"});
+      }
+    };
+    if (!publicRequest && (!auth.session?.accessToken || expired(auth.session))) {
+      endSession();
+      return {error: {status: 401, data: {error: {code: "TOKEN_EXPIRED", message: "Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại."}}}};
     }
+    if (config.mock && auth.session && !publicRequest)
+      headers.set("Authorization", `Bearer ${auth.session.accessToken}`);
+    if (config.mock && !mock) mock = (await import("@/mock/adapter")).createMockAdapter();
+    const result = config.mock
+      ? await mock!({ ...request, headers }, api, options)
+      : await real(request, api, options);
+    if (result.error?.status === 401 && !publicRequest) endSession();
     return result;
   };
 }
 export const baseQuery = createAppBaseQuery({
   mock: useMock,
-  url: process.env.NEXT_PUBLIC_API_BASE_URL,
-  timeout: Number(process.env.NEXT_PUBLIC_API_TIMEOUT_MS ?? 15000),
+  url: apiConfiguration.baseUrl,
+  timeout: apiConfiguration.timeout,
+  configurationError: apiConfiguration.error,
 });
 export function errorMessage(error: unknown): string {
   if (error instanceof Error) return error.message;
