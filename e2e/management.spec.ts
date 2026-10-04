@@ -13,6 +13,10 @@ async function confirmPreview(
   page: Page,
   reason = "Xác nhận kiểm thử nghiệp vụ",
 ) {
+  const button = page.getByRole("button", {
+    name: /Xác nhận cập nhật \d+ bản ghi/,
+  });
+  await expect(button).toBeVisible();
   const checks = page.getByRole("checkbox");
   for (const c of await checks.all())
     if (
@@ -23,9 +27,9 @@ async function confirmPreview(
       await c.check();
   const reasonField = page.getByLabel(/Lý do thay đổi|Lý do \/ ghi chú/);
   await reasonField.fill(reason);
-  await page
-    .getByRole("button", { name: /Xác nhận cập nhật \d+ bản ghi/ })
-    .click();
+  await expect(button).toBeEnabled();
+  await button.click();
+  await expect(button).toHaveCount(0);
 }
 test.beforeEach(async ({ page }) => {
   if (process.env.NEXT_PUBLIC_USE_MOCK !== "true")

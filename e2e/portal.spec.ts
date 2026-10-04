@@ -18,7 +18,7 @@ test("đăng nhập, reload, theme, deep links và 401", async ({ page }) => {
   page.on("pageerror", (e) => errors.push(e.message));
   await page.goto("class/?classId=class-green");
   await expect(
-    page.getByRole("heading", { name: "Đăng nhập giảng viên" }),
+    page.getByRole("heading", { name: "Đăng nhập ESS Staff" }),
   ).toBeVisible();
   await page.getByLabel("ID giảng viên").fill("wrong");
   await page.getByLabel("Mật khẩu", { exact: true }).fill("wrong");
@@ -62,7 +62,7 @@ test("đăng nhập, reload, theme, deep links và 401", async ({ page }) => {
   }, process.env.NEXT_PUBLIC_USE_MOCK === "true");
   await page.goto("home/");
   await expect(
-    page.getByRole("heading", { name: "Đăng nhập giảng viên" }),
+    page.getByRole("heading", { name: "Đăng nhập ESS Staff" }),
   ).toBeVisible();
   expect(
     await page.evaluate(() => sessionStorage.getItem("learnleaf.staff.auth")),
