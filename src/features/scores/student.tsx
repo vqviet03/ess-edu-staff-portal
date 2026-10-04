@@ -1,4 +1,5 @@
 "use client";
+import { ReadOnlyNotice } from "@/features/access/hooks";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
@@ -26,12 +27,14 @@ import { Card, Feedback, NavButton, Title } from "@/shared/ui";
 import { useScoreContext } from "./context";
 import { ScoreInput } from "./fields";
 function StudentForm({
+  editable,
   student,
   students,
   result,
   assessment,
   context,
 }: {
+  editable:boolean;
   student: Student;
   students: Student[];
   result: StudentResult;
@@ -55,7 +58,7 @@ function StudentForm({
   });
   const values = useWatch({ control }) as StudentResult,
     total = calculate(values, assessment.skills),
-    locked = state.isLoading || assessment.status === "COMPLETED";
+    locked = !editable || state.isLoading || assessment.status === "COMPLETED";
   useUnsaved(isDirty);
   const next = students[students.findIndex((s) => s.id === student.id) + 1];
   const submit = (advance: boolean) =>
@@ -303,14 +306,16 @@ export function StudentScore() {
   return (
     <>
       <Title
-        title="Nhập điểm học sinh"
+        title={q.canEdit?"Nhập điểm học sinh":"Báo cáo học sinh · Chỉ xem"}
         subtitle={a.name}
         actions={
           <NavButton href={route("/scores/", q.context)}>← Bảng điểm</NavButton>
         }
       />
+      <ReadOnlyNotice editable={q.canEdit && s.status==="ACTIVE"}/>
       <StudentForm
         key={a.id + ":" + a.schemaVersion + ":" + s.id}
+        editable={q.canEdit && s.status==="ACTIVE"}
         student={s}
         students={q.students}
         assessment={a}

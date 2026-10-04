@@ -1,7 +1,7 @@
 "use client";
 import type { ReactNode } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useStore } from "react-redux";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
@@ -18,6 +18,7 @@ import { type RootState, useAppDispatch, useAppSelector } from "@/store";
 import { signedOut } from "@/store/auth";
 import { useLogoutMutation, useResetDemoMutation } from "@/api/api";
 import { errorMessage, useMock } from "@/api/base-query";
+import { useWorkspace } from "@/features/access/hooks";
 import { confirmLeave } from "./unsaved";
 export function Feedback({
   loading,
@@ -149,6 +150,8 @@ export function Progress({
   );
 }
 export function Shell({ children }: { children: ReactNode }) {
+  const workspace = useWorkspace(),
+    pathname = usePathname();
   const { mode, setMode } = usePreferences(),
     auth = useAppSelector((s) => s.auth),
     dispatch = useAppDispatch(),
@@ -158,8 +161,11 @@ export function Shell({ children }: { children: ReactNode }) {
   const signOut = async () => {
     if (!confirmLeave()) return;
     const token = store.getState().auth.session?.accessToken;
-    try { await logout().unwrap(); } catch { /* Always clear the browser session if revocation cannot reach the backend. */ }
-    finally {
+    try {
+      await logout().unwrap();
+    } catch {
+      /* Always clear the browser session if revocation cannot reach the backend. */
+    } finally {
       if (store.getState().auth.session?.accessToken === token) {
         dispatch(signedOut());
         router.replace("/login/");
@@ -176,104 +182,197 @@ export function Shell({ children }: { children: ReactNode }) {
         minHeight: "100vh",
       }}
     >
-      <Stack
-        component="header"
-        direction="row"
-        useFlexGap
+      <Box
         sx={{
-          ...{ mb: { xs: 3, md: 4 } },
-          alignItems: "center",
-          justifyContent: "space-between",
-          flexWrap: "wrap",
-          gap: 1,
+          display: {
+            md:
+              workspace.selected === "manager" &&
+              auth.status === "authenticated"
+                ? "grid"
+                : "block",
+          },
+          gridTemplateColumns: "216px minmax(0,1fr)",
+          gap: 3,
+          alignItems: "start",
         }}
       >
-        <Typography
-          component={Link}
-          href={auth.status === "authenticated" ? "/home/" : "/login/"}
-          sx={{
-            fontSize: 20,
-            fontWeight: 700,
-            color: "primary.main",
-            textDecoration: "none",
-          }}
-        >
-          ◈ ESS
-        </Typography>
-        <Stack
-          direction="row"
-          useFlexGap
-          sx={{
-            alignItems: "center",
-            gap: 1,
-            flexWrap: "wrap",
-          }}
-        >
-          <TextField select label="Ngôn ngữ" value="vi" sx={{ width: 125 }}>
-            <MenuItem value="vi">Tiếng Việt</MenuItem>
-          </TextField>
-          <TextField
-            select
-            label="Giao diện"
-            value={mode}
-            onChange={(e) => setMode(e.target.value as typeof mode)}
-            sx={{ width: 150 }}
-          >
-            <MenuItem value="light">Sáng</MenuItem>
-            <MenuItem value="dark">Tối</MenuItem>
-            <MenuItem value="system">Theo hệ thống</MenuItem>
-          </TextField>
-          {auth.status === "authenticated" && (
-            <>
+        {auth.status === "authenticated" &&
+          workspace.selected === "manager" && (
+            <Paper
+              component="aside"
+              sx={{ p: 2, position: { md: "sticky" }, top: 24 }}
+            >
               <Typography
-                variant="body2"
-                color="text.secondary"
-                sx={{ display: { xs: "none", sm: "block" } }}
+                sx={{ fontWeight: 700, fontSize: 21 }}
+                color="primary"
               >
-                {auth.session?.teacher.roles?.includes("ADMIN") ? "Quản trị viên" : "Giảng viên"} · {auth.session?.teacher.name}
+                ESS / STAFF
               </Typography>
-              <Button
-                loading={logoutState.isLoading}
-                onClick={signOut}
+              <Typography variant="caption" color="text.secondary">
+                Không gian làm việc
+              </Typography>
+              <Stack
+                component="nav"
+                aria-label="Menu quản lý"
+                direction={{ xs: "row", md: "column" }}
+                sx={{
+                  gap: 0.5,
+                  mt: 2,
+                  overflowX: { xs: "auto", md: "visible" },
+                }}
               >
-                Đăng xuất
-              </Button>
-            </>
+                {[
+                  ["Tổng quan", "/home/"],
+                  ["Học sinh", "/manage/list/?entity=students"],
+                  ["Giảng viên", "/manage/list/?entity=teachers"],
+                  ["Lớp học", "/manage/list/?entity=classes"],
+                  ["Tài khoản", "/manage/list/?entity=accounts"],
+                  ["Nhãn phụ trách", "/manage/list/?entity=labels"],
+                  ["Cảnh báo", "/manage/warnings/"],
+                  ["Nhật ký", "/manage/audit/"],
+                ].map(([label, href]) => (
+                  <Button
+                    component={Link}
+                    key={href}
+                    href={href}
+                    sx={{
+                      justifyContent: "flex-start",
+                      whiteSpace: "nowrap",
+                      flexShrink: 0,
+                    }}
+                  >
+                    {label}
+                  </Button>
+                ))}
+              </Stack>
+            </Paper>
           )}
-          {useMock && (
-            <Button
-              disabled={isLoading}
-              onClick={async () => {
-                if (
-                  confirmLeave() &&
-                  window.confirm("Khôi phục dữ liệu demo ban đầu và đăng xuất?")
-                ) {
-                  try {
-                    await reset().unwrap();
-                    dispatch(signedOut());
-                    router.replace("/login/");
-                  } catch (e) {
-                    window.alert(errorMessage(e));
-                  }
-                }
+        <Box sx={{ minWidth: 0 }}>
+          <Stack
+            component="header"
+            direction="row"
+            useFlexGap
+            sx={{
+              ...{ mb: { xs: 3, md: 4 } },
+              alignItems: "center",
+              justifyContent: "space-between",
+              flexWrap: "wrap",
+              gap: 1,
+            }}
+          >
+            <Typography
+              component={Link}
+              href={auth.status === "authenticated" ? "/home/" : "/login/"}
+              sx={{
+                fontSize: 20,
+                fontWeight: 700,
+                color: "primary.main",
+                textDecoration: "none",
               }}
             >
-              Reset demo
-            </Button>
-          )}
-        </Stack>
-      </Stack>
-      <Box component="main">{children}</Box>
-      <Typography
-        component="footer"
-        variant="caption"
-        color="text.secondary"
-        sx={{ display: "block", mt: 4 }}
-      >
-        {useMock
-          ? "Bản demo · Dữ liệu giả lập được lưu trên thiết bị này."
-          : "ESS · Cổng thông tin giảng viên"}
-      </Typography>
+              {workspace.selected === "manager"
+                ? "Staff Portal / Quản lý"
+                : "◈ ESS"}
+            </Typography>
+            <Stack
+              direction="row"
+              useFlexGap
+              sx={{
+                alignItems: "center",
+                gap: 1,
+                flexWrap: "wrap",
+              }}
+            >
+              {auth.status === "authenticated" &&
+                workspace.allowed.length > 1 && (
+                  <TextField
+                    select
+                    label="Không gian"
+                    value={workspace.selected ?? ""}
+                    sx={{ width: 145 }}
+                    onChange={(e) => {
+                      if (confirmLeave()) {
+                        workspace.choose(
+                          e.target.value as "manager" | "teacher",
+                        );
+                        if (pathname.startsWith("/manage/"))
+                          router.push("/home/");
+                      }
+                    }}
+                  >
+                    <MenuItem value="manager">Quản lý</MenuItem>
+                    <MenuItem value="teacher">Giảng viên</MenuItem>
+                  </TextField>
+                )}
+              <TextField select label="Ngôn ngữ" value="vi" sx={{ width: 125 }}>
+                <MenuItem value="vi">Tiếng Việt</MenuItem>
+              </TextField>
+              <TextField
+                select
+                label="Giao diện"
+                value={mode}
+                onChange={(e) => setMode(e.target.value as typeof mode)}
+                sx={{ width: 150 }}
+              >
+                <MenuItem value="light">Sáng</MenuItem>
+                <MenuItem value="dark">Tối</MenuItem>
+                <MenuItem value="system">Theo hệ thống</MenuItem>
+              </TextField>
+              {auth.status === "authenticated" && (
+                <>
+                  <Typography
+                    variant="body2"
+                    color="text.secondary"
+                    sx={{ display: { xs: "none", sm: "block" } }}
+                  >
+                    {auth.session?.teacher.roles?.includes("MANAGER")
+                      ? "Quản lý"
+                      : "Giảng viên"}{" "}
+                    · {auth.session?.teacher.name}
+                  </Typography>
+                  <Button loading={logoutState.isLoading} onClick={signOut}>
+                    Đăng xuất
+                  </Button>
+                </>
+              )}
+              {useMock && (
+                <Button
+                  disabled={isLoading}
+                  onClick={async () => {
+                    if (
+                      confirmLeave() &&
+                      window.confirm(
+                        "Khôi phục dữ liệu demo ban đầu và đăng xuất?",
+                      )
+                    ) {
+                      try {
+                        await reset().unwrap();
+                        dispatch(signedOut());
+                        router.replace("/login/");
+                      } catch (e) {
+                        window.alert(errorMessage(e));
+                      }
+                    }
+                  }}
+                >
+                  Reset demo
+                </Button>
+              )}
+            </Stack>
+          </Stack>
+          <Box component="main">{children}</Box>
+          <Typography
+            component="footer"
+            variant="caption"
+            color="text.secondary"
+            sx={{ display: "block", mt: 4 }}
+          >
+            {useMock
+              ? "Bản demo · Dữ liệu giả lập được lưu trên thiết bị này."
+              : "ESS · Cổng thông tin giảng viên"}
+          </Typography>
+        </Box>
+      </Box>
     </Box>
   );
 }

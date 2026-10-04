@@ -55,7 +55,7 @@ export const studentInput = z.object({
           v <= new Date().toISOString().slice(0, 10)),
       "Ngày sinh không hợp lệ",
     ),
-  status: z.enum(["ACTIVE", "INACTIVE"]),
+  status: z.enum(["ACTIVE", "PAUSED", "INACTIVE"]),
 });
 export const sessionInput = z.object({
   name: z.string().trim().min(1, "Nhập tên phiên").max(120),

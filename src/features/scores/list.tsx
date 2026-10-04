@@ -1,4 +1,5 @@
 "use client";
+import { ReadOnlyNotice } from "@/features/access/hooks";
 import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
 import Box from "@mui/material/Box";
@@ -38,7 +39,7 @@ export function Scores() {
   return (
     <>
       <Title
-        title="Nhập nhanh theo bảng"
+        title={q.canEdit?"Nhập nhanh theo bảng":"Bảng điểm · Chỉ xem"}
         subtitle={`${a.name} · ${a.skills.length} kỹ năng · Schema v${a.schemaVersion}`}
         actions={
           <>
@@ -54,6 +55,7 @@ export function Scores() {
           </>
         }
       />
+      <ReadOnlyNotice editable={q.canEdit}/>
       {!q.students.length ? (
         <Feedback empty="Lớp chưa có học sinh." />
       ) : (
@@ -123,6 +125,7 @@ export function Scores() {
             {(desktop || showTable || loaded) && (
               <ScoreTable
                 key={a.id + ":" + a.schemaVersion}
+                editable={q.canEdit}
                 assessment={a}
                 students={q.students}
                 results={q.results}

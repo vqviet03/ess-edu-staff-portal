@@ -1,8 +1,9 @@
 "use client";
+import { useClassCapabilities } from "@/features/access/hooks";
 import { useSearchParams } from "next/navigation";
 import {
   useClassQuery,
-  useStudentsQuery,
+  useHistoricalStudentsQuery,
   useSessionsQuery,
   useAssessmentQuery,
   useResultsQuery,
@@ -15,8 +16,9 @@ export function useScoreContext() {
       assessmentId: params.get("assessmentId") ?? "",
     },
     ready = Object.values(context).every(Boolean);
+  const permissions=useClassCapabilities(context.classId);
   const c = useClassQuery(context.classId, { skip: !ready }),
-    students = useStudentsQuery(context.classId, { skip: !ready }),
+    students = useHistoricalStudentsQuery(context.classId, { skip: !ready }),
     sessions = useSessionsQuery(context.classId, { skip: !ready }),
     assessment = useAssessmentQuery(context.assessmentId, { skip: !ready }),
     results = useResultsQuery(context.assessmentId, { skip: !ready });
@@ -27,6 +29,7 @@ export function useScoreContext() {
       !sessions.currentData.some((s) => s.id === context.sessionId));
   return {
     context,
+    canEdit:permissions.editLearning,
     studentId: params.get("studentId"),
     class: c.currentData,
     students: students.currentData ?? [],
@@ -34,7 +37,7 @@ export function useScoreContext() {
     results: results.currentData ?? [],
     loading:
       ready &&
-      (c.isLoading ||
+      (permissions.loading || c.isLoading ||
         (c.isFetching && !c.currentData) ||
         students.isLoading ||
         (students.isFetching && !students.currentData) ||
@@ -45,7 +48,7 @@ export function useScoreContext() {
         results.isLoading ||
         (results.isFetching && !results.currentData)),
     error:
-      c.error ||
+      permissions.error || c.error ||
       students.error ||
       sessions.error ||
       assessment.error ||
@@ -56,6 +59,7 @@ export function useScoreContext() {
         ? "Bài đánh giá / phiên không thuộc lớp đã chọn."
         : undefined,
     retry: () => {
+      void permissions.retry();
       void c.refetch();
       void students.refetch();
       void sessions.refetch();

@@ -110,7 +110,7 @@ export function ExcelImport() {
   const a = q.assessment;
   if (!a) return <Feedback empty="Không có bài đánh giá." />;
   const busy = t.isFetching || p.isLoading || c.isLoading,
-    locked = a.status === "COMPLETED";
+    locked = !q.canEdit || a.status === "COMPLETED";
   return (
     <>
       <Title
@@ -129,7 +129,7 @@ export function ExcelImport() {
         {message && <Alert severity="success">{message}</Alert>}
         {locked && (
           <Alert severity="info">
-            Bài đã hoàn thành. Chuyển về nháp trước khi import.
+            Chỉ xem: quyền giảng viên/phân công hoặc trạng thái bài chưa cho phép import.
           </Alert>
         )}
         <Card>

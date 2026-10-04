@@ -102,7 +102,7 @@ export function StudentEditor({
               name="status"
               control={control}
               render={({ field }) => (
-                <TextField select label="Trạng thái" {...field}>
+                <TextField disabled select label="Trạng thái" helperText="Thay đổi trạng thái tại Quản lý với preview ảnh hưởng" {...field}>
                   <MenuItem value="ACTIVE">Đang học</MenuItem>
                   <MenuItem value="INACTIVE">Ngừng học</MenuItem>
                 </TextField>

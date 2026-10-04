@@ -21,6 +21,15 @@ import {
   validateResult,
 } from "@/utils/scores";
 import { seed, type Database } from "./fixtures";
+import {
+  management,
+  actor,
+  assertLearning,
+  accessFor,
+  managementRequest,
+  ManagementError,
+} from "./management-engine";
+import { accountStaff } from "@/features/management/models";
 import { requestHeaders } from "@/api/headers";
 export const MOCK_KEY = "learnleaf.staff.mock.v1";
 interface StoragePort {
@@ -65,6 +74,14 @@ const checked = <T>(
   return p.data;
 };
 const id = () => crypto.randomUUID();
+const passwordHash = async (value: string) =>
+  Array.from(
+    new Uint8Array(
+      await crypto.subtle.digest("SHA-256", new TextEncoder().encode(value)),
+    ),
+  )
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
 function object(value: unknown): Record<string, unknown> {
   if (!value || typeof value !== "object" || Array.isArray(value))
     return fail(422, "INVALID_BODY", "Payload không hợp lệ.");
@@ -122,6 +139,7 @@ export function createMockAdapter(
         return { data: { data: { reset: true } } };
       }
       const db = structuredClone(read());
+      const managed = management(db);
       const headers = requestHeaders(req.headers);
       const token = headers.get("Authorization")?.replace(/^Bearer /, "");
       const envelope = (data: unknown, meta?: unknown) => ({
@@ -129,7 +147,28 @@ export function createMockAdapter(
       });
       if (path === "/auth/login" && method === "POST") {
         const b = object(body);
-        if (b.teacherId !== "GV0001" || b.password !== "Demo123!")
+        const account = managed.accounts.find(
+          (a) =>
+            a.loginId === b.teacherId &&
+            a.kind === "STAFF" &&
+            a.status === "ACTIVE",
+        );
+        const profile = managed.teachers.find(
+          (t) => t.id === account?.profileId && t.status === "ACTIVE",
+        );
+        if (
+          !account ||
+          !profile ||
+          (managed.passwordHashes?.[account.id]
+            ? (await passwordHash(String(b.password))) !==
+              managed.passwordHashes[account.id]
+            : b.password !==
+              (["GV0001", "MG0001", "BOTH0001", "GV0002"].includes(
+                account.loginId,
+              )
+                ? "Demo123!"
+                : null))
+        )
           return fail(
             401,
             "INVALID_CREDENTIALS",
@@ -138,7 +177,7 @@ export function createMockAdapter(
         const session: AuthSession = {
           accessToken: `demo-${id()}`,
           expiresAt: new Date(Date.now() + 3600000).toISOString(),
-          teacher: { id: "GV0001", name: "Nguyễn Minh Anh" },
+          teacher: accountStaff(account!, profile!),
         };
         db.tokens[session.accessToken] = session;
         save(db);
@@ -148,19 +187,73 @@ export function createMockAdapter(
         const code = object(body).code;
         if (code === "expired-demo")
           return fail(410, "CODE_EXPIRED", "Liên kết đã hết hạn.");
-        if (code !== "teacher-demo")
+        if (
+          !["teacher-demo", "manager-demo", "dual-demo"].includes(String(code))
+        )
           return fail(400, "INVALID_CODE", "Mã đăng nhập không hợp lệ.");
-        if (db.usedCodes.includes(code))
+        if (db.usedCodes.includes(String(code)))
           return fail(410, "CODE_USED", "Liên kết đã được sử dụng.");
-        db.usedCodes.push(code);
+        db.usedCodes.push(String(code));
         const session: AuthSession = {
           accessToken: `demo-${id()}`,
           expiresAt: new Date(Date.now() + 3600000).toISOString(),
-          teacher: { id: "GV0001", name: "Nguyễn Minh Anh" },
+          teacher: actor(
+            db,
+            code === "manager-demo"
+              ? "MG0001"
+              : code === "dual-demo"
+                ? "BOTH0001"
+                : "GV0001",
+          ),
         };
         db.tokens[session.accessToken] = session;
         save(db);
         return envelope(session);
+      }
+      if (path === "/auth/activate" && method === "POST") {
+        const b = object(body),
+          item = managed.activations[String(b.code)];
+        if (!item || item.used || Date.parse(item.expiresAt) <= Date.now())
+          return fail(
+            410,
+            "ACTIVATION_EXPIRED",
+            "Link không hợp lệ, hết hạn hoặc đã dùng.",
+          );
+        if (
+          typeof b.password !== "string" ||
+          b.password.length < 10 ||
+          b.password.length > 128
+        )
+          return fail(422, "PASSWORD_INVALID", "Mật khẩu từ 10 đến 128 ký tự.");
+        const account = managed.accounts.find((a) => a.id === item.accountId)!;
+        if (account.status === "LOCKED")
+          return fail(403, "ACCOUNT_LOCKED", "Tài khoản bị khóa.");
+        item.used = true;
+        account.status = "ACTIVE";
+        account.updatedAt = new Date().toISOString();
+        account.version++;
+        managed.revision++;
+        for (const [jwt, session] of Object.entries(db.tokens))
+          if (
+            account.kind === "STAFF" &&
+            session.teacher.id === account.profileId
+          )
+            delete db.tokens[jwt];
+        managed.audit.unshift({
+          id: id(),
+          at: account.updatedAt,
+          actorId: account.profileId,
+          action: "ACCOUNT_ACTIVATED",
+          entity: "accounts",
+          ids: [account.id],
+          reason: "Kích hoạt qua link dùng một lần",
+          changes: [{ id: account.id, fields: ["status"] }],
+        });
+        (managed.passwordHashes ??= {})[account.id] = await passwordHash(
+          b.password,
+        );
+        save(db);
+        return envelope({ activated: true });
       }
       if (
         !token ||
@@ -168,11 +261,29 @@ export function createMockAdapter(
         Date.parse(db.tokens[token].expiresAt) <= Date.now()
       )
         return fail(401, "UNAUTHORIZED", "Phiên đăng nhập đã hết hạn.");
-      if (path === "/auth/me") return envelope(db.tokens[token].teacher);
+      const staff = actor(db, db.tokens[token].teacher.id);
+      if (path === "/auth/me") return envelope(staff);
+      const managedResponse = await managementRequest(
+        db,
+        staff,
+        { ...req, headers },
+        save,
+      );
+      if (managedResponse) return managedResponse;
+      const accessMatch = path.match(/^\/classes\/([^/]+)\/access$/);
+      if (accessMatch)
+        return envelope(
+          accessFor(db, staff, decodeURIComponent(accessMatch[1])),
+        );
+      const learningSave = () => {
+        managed.revision++;
+        save(db);
+      };
+
       if (path === "/auth/logout" && method === "POST") {
         delete db.tokens[token];
         save(db);
-        return envelope({loggedOut: true});
+        return envelope({ loggedOut: true });
       }
       const classView = (c: Class) => ({
         ...c,
@@ -181,9 +292,13 @@ export function createMockAdapter(
           db.sessions.filter((s) => s.classId === c.id),
         ).length,
       });
-      const classCheck = (classId: string) =>
-        db.classes.find((c) => c.id === classId) ??
-        fail(403, "FORBIDDEN", "Bạn không có quyền truy cập lớp này.");
+      const classCheck = (classId: string) => {
+        assertLearning(db, staff, classId);
+        return (
+          db.classes.find((c) => c.id === classId) ??
+          fail(404, "NOT_FOUND", "Lớp không tồn tại.")
+        );
+      };
       const sessionCheck = (sessionId: string) => {
         const s =
           db.sessions.find((s) => s.id === sessionId) ??
@@ -209,6 +324,11 @@ export function createMockAdapter(
           status = p.get("status");
         const rows = db.classes.filter(
           (c) =>
+            accessFor(db, staff, c.id).canView &&
+            (p.get("workspace") !== "teacher" ||
+              managed.assignments.some(
+                (a) => a.teacherId === staff.id && a.classId === c.id,
+              )) &&
             (!status || c.status === status) &&
             `${c.name} ${c.code}`.toLocaleLowerCase("vi").includes(search),
         );
@@ -223,7 +343,33 @@ export function createMockAdapter(
       if (m) {
         const c = classCheck(decodeURIComponent(m[1])),
           students = db.students[c.id];
-        if (method === "GET") return envelope(students);
+        if (method === "GET") {
+          if (
+            new URLSearchParams(req.url.split("?")[1]).get("includeHistory") ===
+            "true"
+          )
+            return envelope(
+              managed.enrollments
+                .filter((e) => e.classId === c.id)
+                .flatMap((e) => {
+                  const p = managed.students.find((s) => s.id === e.studentId);
+                  return p
+                    ? [
+                        {
+                          id: p.id,
+                          name: p.fullName,
+                          nickname: p.nickname,
+                          dateOfBirth: p.dateOfBirth,
+                          status: e.status === "ACTIVE" ? p.status : "INACTIVE",
+                          version: p.version,
+                        },
+                      ]
+                    : [];
+                }),
+            );
+          return envelope(students);
+        }
+        assertLearning(db, staff, c.id, true);
         const b = object(body),
           student =
             students.find((s) => s.id === m![2]) ??
@@ -234,6 +380,12 @@ export function createMockAdapter(
             "VERSION_CONFLICT",
             "Thông tin học sinh đã thay đổi. Tải lại trước khi sửa.",
           );
+        if (b.status !== student.status)
+          return fail(
+            422,
+            "STATUS_PREVIEW_REQUIRED",
+            "Đổi trạng thái học sinh phải dùng luồng quản lý preview/commit.",
+          );
         const parsed = checked(studentInput, {
           ...b,
           dateOfBirth: b.dateOfBirth ?? "",
@@ -243,7 +395,19 @@ export function createMockAdapter(
           dateOfBirth: parsed.dateOfBirth || null,
           version: student.version + 1,
         });
-        save(db);
+        const profile = managed.students.find((s) => s.id === student.id);
+        if (profile)
+          Object.assign(profile, {
+            fullName: student.name,
+            nickname: student.nickname,
+            dateOfBirth: student.dateOfBirth,
+            version: student.version,
+            updatedAt: new Date().toISOString(),
+          });
+        for (const list of Object.values(db.students))
+          for (const linked of list)
+            if (linked.id === student.id) Object.assign(linked, student);
+        learningSave();
         return envelope(student);
       }
       m = path.match(/^\/classes\/([^/]+)\/sessions$/);
@@ -251,6 +415,7 @@ export function createMockAdapter(
         const c = classCheck(m[1]);
         if (method === "GET")
           return envelope(db.sessions.filter((s) => s.classId === c.id));
+        assertLearning(db, staff, c.id, true);
         const parsed = checked(sessionInput, body);
         if (parsed.status !== "DRAFT")
           return fail(
@@ -262,7 +427,7 @@ export function createMockAdapter(
           return fail(422, "INVALID_UNIT", "Unit vượt số Unit của lớp.");
         const s = { ...parsed, id: id(), classId: c.id, version: 1 };
         db.sessions.push(s);
-        save(db);
+        learningSave();
         return envelope(s);
       }
       m = path.match(/^\/sessions\/([^/]+)$/);
@@ -275,6 +440,7 @@ export function createMockAdapter(
             "VERSION_CONFLICT",
             "Phiên đã thay đổi. Tải lại trước khi sửa.",
           );
+        assertLearning(db, staff, s.classId, true);
         const parsed = checked(sessionInput, { ...s, ...b });
         if (
           parsed.unitNumber &&
@@ -282,7 +448,7 @@ export function createMockAdapter(
         )
           return fail(422, "INVALID_UNIT", "Unit vượt số Unit của lớp.");
         Object.assign(s, parsed, { version: s.version + 1 });
-        save(db);
+        learningSave();
         return envelope(s);
       }
       m = path.match(/^\/sessions\/([^/]+)\/assessments$/);
@@ -290,6 +456,7 @@ export function createMockAdapter(
         const s = sessionCheck(m[1]);
         if (method === "GET")
           return envelope(db.assessments.filter((a) => a.sessionId === s.id));
+        assertLearning(db, staff, s.classId, true);
         const parsed = checked(schemaInput, body),
           a: Assessment = {
             ...parsed,
@@ -303,13 +470,14 @@ export function createMockAdapter(
         db.results[a.id] = db.students[s.classId].map((student) =>
           emptyResult(student.id, a.skills),
         );
-        save(db);
+        learningSave();
         return envelope(a);
       }
       m = path.match(/^\/assessments\/([^/]+)$/);
       if (m) {
         const a = assessmentCheck(m[1]);
         if (method === "GET") return envelope(a);
+        assertLearning(db, staff, sessionCheck(a.sessionId).classId, true);
         const b = object(body);
         if (b.version !== a.version || b.schemaVersion !== a.schemaVersion)
           return fail(
@@ -390,7 +558,7 @@ export function createMockAdapter(
           status: nextStatus,
           version: a.version + 1,
         });
-        save(db);
+        learningSave();
         return envelope(a);
       }
       m = path.match(/^\/assessments\/([^/]+)\/results(?:\/(.+))?$/);
@@ -399,6 +567,7 @@ export function createMockAdapter(
           s = sessionCheck(a.sessionId),
           rows = db.results[a.id];
         if (method === "GET") return envelope(rows);
+        assertLearning(db, staff, s.classId, true);
         if (a.status === "COMPLETED")
           return fail(
             403,
@@ -461,13 +630,13 @@ export function createMockAdapter(
                 e instanceof Error ? e.message : "Lỗi lưu dòng";
             }
           }
-          save(db);
+          learningSave();
           return envelope({ saved, rowErrors });
         }
         if (m[2] !== object(body).studentId)
           return fail(422, "INVALID_STUDENT", "ID học sinh không khớp.");
         const saved = apply(body);
-        save(db);
+        learningSave();
         return envelope(saved);
       }
       m = path.match(/^\/assessments\/([^/]+)\/excel-template$/);
@@ -488,6 +657,7 @@ export function createMockAdapter(
       if (m) {
         const a = assessmentCheck(m[1]),
           s = sessionCheck(a.sessionId);
+        assertLearning(db, staff, sessionCheck(a.sessionId).classId, true);
         if (a.status === "COMPLETED")
           return fail(403, "ASSESSMENT_LOCKED", "Bài đánh giá đã khóa.");
         if (!(body instanceof FormData) || !(body.get("file") instanceof Blob))
@@ -524,7 +694,7 @@ export function createMockAdapter(
           assessmentId: a.id,
           schemaVersion: a.schemaVersion,
         };
-        save(db);
+        learningSave();
         return envelope(preview);
       }
       m = path.match(/^\/assessments\/([^/]+)\/import\/commit$/);
@@ -534,6 +704,7 @@ export function createMockAdapter(
           key = headers.get("Idempotency-Key");
         if (!key)
           return fail(422, "IDEMPOTENCY_REQUIRED", "Thiếu Idempotency-Key.");
+        assertLearning(db, staff, sessionCheck(a.sessionId).classId, true);
         const previous = db.commits[key];
         if (previous) {
           if (previous.previewId !== b.previewId || previous.mode !== b.mode)
@@ -544,6 +715,7 @@ export function createMockAdapter(
             );
           return envelope(previous.data);
         }
+        assertLearning(db, staff, sessionCheck(a.sessionId).classId, true);
         if (a.status === "COMPLETED")
           return fail(403, "ASSESSMENT_LOCKED", "Bài đánh giá đã khóa.");
         const item =
@@ -587,12 +759,12 @@ export function createMockAdapter(
           mode: String(b.mode),
           data,
         };
-        save(db);
+        learningSave();
         return envelope(data);
       }
       return fail(404, "NOT_FOUND", "Endpoint không tồn tại.");
     } catch (e) {
-      if (e instanceof MockFailure)
+      if (e instanceof MockFailure || e instanceof ManagementError)
         return {
           error: {
             status: e.status,
@@ -601,7 +773,7 @@ export function createMockAdapter(
                 code: e.code,
                 message: e.message,
                 fieldErrors: e.fieldErrors,
-                rowErrors: e.rowErrors,
+                rowErrors: "rowErrors" in e ? e.rowErrors : undefined,
               },
             },
           },

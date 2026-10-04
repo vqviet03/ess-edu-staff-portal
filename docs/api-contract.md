@@ -7,7 +7,7 @@ Base URL công khai từ NEXT_PUBLIC_API_BASE_URL, ví dụ `https://api.example
 Nguồn types: [src/types/index.ts](../src/types/index.ts).
 
 ```ts
-Teacher = {id:string,name:string,teacherCode?:string,roles?:Array<"TEACHER"|"ADMIN">,permissions?:string[]}
+Teacher = {id:string,name:string,teacherCode?:string,roles?:Array<"TEACHER"|"MANAGER">,permissions?:string[]}
 Class = {id,code,name,schedule,status:'ACTIVE'|'COMPLETED'|'PAUSED',studentCount,totalUnits,completedUnits}
 Student = {id,name,nickname,dateOfBirth:string|null,status:'ACTIVE'|'INACTIVE',version:number}
 Session = {id,classId,name,unitNumber:number|null,date,note,status:'DRAFT'|'COMPLETED',version:number}
@@ -37,7 +37,7 @@ Tên/note/nhận xét là Unicode, giữ newline. Họ tên và tên phiên/bài
 {"data":{"accessToken":"<jwt>","expiresAt":"2026-10-03T10:00:00Z","teacher":{"id":"teacher-1","name":"Nguyễn Minh Anh"}}}
 ```
 
-Mọi endpoint ngoài login/exchange yêu cầu `Authorization: Bearer <accessToken>`. JWT trong sessionStorage; không lưu mật khẩu. Backend kiểm chữ ký, issuer/audience, exp, trạng thái tài khoản, vai trò TEACHER/ADMIN cùng permission tương ứng và quyền lớp qua chuỗi session/assessment/student. Logout thu hồi session server và luôn xóa phiên/cache phía browser; lỗi mạng chưa đảm bảo server nhận thu hồi, session vẫn hết hạn theo JWT. 401 xóa phiên/cache, về login; 403 hiển thị không có quyền, không logout. Không tự refresh token hoặc retry mutation.
+Mọi endpoint ngoài login/exchange yêu cầu `Authorization: Bearer <accessToken>`. JWT trong sessionStorage; không lưu mật khẩu. Backend kiểm chữ ký, issuer/audience, exp, trạng thái tài khoản, vai trò TEACHER/MANAGER cùng permission tương ứng và quyền lớp qua chuỗi session/assessment/student. Logout thu hồi session server và luôn xóa phiên/cache phía browser; lỗi mạng chưa đảm bảo server nhận thu hồi, session vẫn hết hạn theo JWT. 401 xóa phiên/cache, về login; 403 hiển thị không có quyền, không logout. Không tự refresh token hoặc retry mutation.
 
 Link frontend `/<basePath>/login/link/#code=<code>`; code xóa khỏi URL ngay. Backend tạo code ngẫu nhiên đủ entropy, hạn ngắn, lưu hash, consume nguyên tử một lần, ràng buộc teacher/expiry; invalid400, expired/used410. Không log code/token/password ở frontend/backend/proxy; password/JWT không nằm URL. Thực thi rate limits chống dò credential/code. Exchange không gọi lặp bởi StrictMode. Frontend không gửi link hay tạo code.
 
@@ -133,3 +133,8 @@ Commit validate lại toàn bộ trong một DB transaction: quyền, preview kh
 | 500 | INTERNAL_ERROR | Lỗi server; không lộ stack/secret |
 
 Timeout NEXT_PUBLIC_API_TIMEOUT_MS mặc định15s, hợp lệ 1–120000ms, không tự retry mutation. API thật mặc định; mode mock cần bật rõ ràng, không fallback. Root API URL tự thêm /v1. Production build thiếu/sai cấu hình bị từ chối. CORS allow origin chính xác `https://vqviet03.github.io` (origin không gồm /repo), custom domain nếu có, local development `http://localhost:3000`. Methods GET,POST,PATCH,PUT,OPTIONS; allowed headers Authorization,Content-Type,Idempotency-Key; expose Content-Disposition,Retry-After. Bearer không cần cookie credentials. JWT signing secret chỉ backend; dùng TLS DB, không dùng role admin cho runtime. Frontend guard, protected Excel sheets, fixture access checks không thay backend authorization. /demo/reset chỉ mock, không triển khai public backend thật.
+
+
+## Mở rộng Quản lý
+
+Xem [management-api-contract.md](management-api-contract.md) cho endpoint/models mới, MANAGER/TEACHER, access theo lớp, lifecycle, preview/commit, selection FILTER, Excel hồ sơ, activation và audit. `teacher` trong auth response là StaffIdentity để giữ tương thích tên field; profile/account có trạng thái riêng. Backend ESS cũ thiếu access mới chỉ cho frontend đọc; không tự nâng role ADMIN hoặc suy ra quyền sửa từ JWT.

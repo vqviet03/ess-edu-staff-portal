@@ -1,4 +1,5 @@
 "use client";
+import { ReadOnlyNotice } from "@/features/access/hooks";
 import { useState } from "react";
 import Alert from "@mui/material/Alert";
 import Button from "@mui/material/Button";
@@ -54,7 +55,7 @@ export function AssessmentDetail() {
       >
         <StatusChip status={a.status} />
         <Button
-          disabled={state.isLoading}
+          disabled={!q.canEdit || state.isLoading}
           onClick={async () => {
             if (
               !confirmLeave() ||
@@ -85,12 +86,13 @@ export function AssessmentDetail() {
           {error}
         </Alert>
       )}
+      <ReadOnlyNotice editable={q.canEdit}/>
       <Card>
         <SchemaEditor
           key={a.version}
           initial={{ name: a.name, type: a.type, skills: a.skills }}
           results={q.results}
-          locked={a.status === "COMPLETED"}
+          locked={!q.canEdit || a.status === "COMPLETED"}
           busy={state.isLoading}
           submit={async (values, confirmed) => {
             await update({
