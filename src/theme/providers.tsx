@@ -8,6 +8,7 @@ import {
   type ReactNode,
 } from "react";
 import { Provider } from "react-redux";
+import { setupListeners } from "@reduxjs/toolkit/query";
 import { AppRouterCacheProvider } from "@mui/material-nextjs/v16-appRouter";
 import { createTheme, ThemeProvider } from "@mui/material/styles";
 import CssBaseline from "@mui/material/CssBaseline";
@@ -21,9 +22,10 @@ const Preferences = createContext<{
 }>({ mode: "system", setMode: () => {} });
 export const usePreferences = () => useContext(Preferences);
 export function Providers({ children }: { children: ReactNode }) {
-  const [store] = useState(makeStore),
+  const [store] = useState(() => makeStore()),
     [mode, setChoice] = useState<Mode>("system"),
     [systemDark, setSystemDark] = useState(false);
+  useEffect(() => setupListeners(store.dispatch), [store]);
   useEffect(() => {
     try {
       const saved = localStorage.getItem("learnleaf.theme");

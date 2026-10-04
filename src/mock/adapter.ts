@@ -169,6 +169,11 @@ export function createMockAdapter(
       )
         return fail(401, "UNAUTHORIZED", "Phiên đăng nhập đã hết hạn.");
       if (path === "/auth/me") return envelope(db.tokens[token].teacher);
+      if (path === "/auth/logout" && method === "POST") {
+        delete db.tokens[token];
+        save(db);
+        return envelope({loggedOut: true});
+      }
       const classView = (c: Class) => ({
         ...c,
         studentCount: db.students[c.id]?.length ?? 0,

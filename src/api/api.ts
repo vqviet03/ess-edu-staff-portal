@@ -18,9 +18,12 @@ const unwrap = <T>(r: Envelope<T>) => r.data;
 const tags = (type: "Students" | "Sessions" | "Results", id: string) => [
   { type, id },
 ];
-export const api = createApi({
+export const createStaffApi = (query = baseQuery) => createApi({
   reducerPath: "staffApi",
-  baseQuery,
+  baseQuery: query,
+  refetchOnFocus: true,
+  refetchOnReconnect: true,
+  refetchOnMountOrArgChange: 30,
   tagTypes: [
     "Auth",
     "Classes",
@@ -38,6 +41,10 @@ export const api = createApi({
     exchange: b.mutation<AuthSession, { code: string }>({
       query: (body) => ({ url: "/auth/link/exchange", method: "POST", body }),
       transformResponse: unwrap<AuthSession>,
+    }),
+    logout: b.mutation<{loggedOut: boolean}, void>({
+      query: () => ({url: "/auth/logout", method: "POST"}),
+      transformResponse: unwrap<{loggedOut: boolean}>,
     }),
     me: b.query<Teacher, void>({
       query: () => "/auth/me",
@@ -237,9 +244,11 @@ export const api = createApi({
     }),
   }),
 });
+export const api = createStaffApi();
 export const {
   useLoginMutation,
   useExchangeMutation,
+  useLogoutMutation,
   useMeQuery,
   useClassesQuery,
   useClassQuery,

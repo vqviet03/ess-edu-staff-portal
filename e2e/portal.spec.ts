@@ -1,5 +1,7 @@
 import { test, expect, type Page } from "@playwright/test";
 import { Workbook } from "exceljs";
+import { installHttpFixture } from "./support/http-fixture";
+test.beforeEach(async ({page}) => { if (process.env.NEXT_PUBLIC_USE_MOCK !== "true") await installHttpFixture(page); });
 const context =
   "classId=class-green&sessionId=session-3&assessmentId=assessment-seven";
 async function login(page: Page) {
@@ -46,11 +48,18 @@ test("đăng nhập, reload, theme, deep links và 401", async ({ page }) => {
     await page.reload();
     await expect(page.locator("main h1")).toBeVisible();
   }
-  await page.evaluate(() => {
-    const db = JSON.parse(localStorage.getItem("learnleaf.staff.mock.v1")!);
-    db.tokens = {};
-    localStorage.setItem("learnleaf.staff.mock.v1", JSON.stringify(db));
-  });
+  await page.evaluate((mock) => {
+    if (mock) {
+      const db = JSON.parse(localStorage.getItem("learnleaf.staff.mock.v1")!);
+      db.tokens = {};
+      localStorage.setItem("learnleaf.staff.mock.v1", JSON.stringify(db));
+    } else {
+      const key = "learnleaf.staff.auth";
+      const session = JSON.parse(sessionStorage.getItem(key)!);
+      session.accessToken = "invalid";
+      sessionStorage.setItem(key, JSON.stringify(session));
+    }
+  }, process.env.NEXT_PUBLIC_USE_MOCK === "true");
   await page.goto("home/");
   await expect(
     page.getByRole("heading", { name: "Đăng nhập giảng viên" }),

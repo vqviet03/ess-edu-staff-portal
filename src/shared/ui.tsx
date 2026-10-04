@@ -2,6 +2,7 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useStore } from "react-redux";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
@@ -13,9 +14,9 @@ import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import { usePreferences } from "@/theme/providers";
-import { useAppDispatch, useAppSelector } from "@/store";
+import { type RootState, useAppDispatch, useAppSelector } from "@/store";
 import { signedOut } from "@/store/auth";
-import { useResetDemoMutation } from "@/api/api";
+import { useLogoutMutation, useResetDemoMutation } from "@/api/api";
 import { errorMessage, useMock } from "@/api/base-query";
 import { confirmLeave } from "./unsaved";
 export function Feedback({
@@ -152,6 +153,19 @@ export function Shell({ children }: { children: ReactNode }) {
     auth = useAppSelector((s) => s.auth),
     dispatch = useAppDispatch(),
     router = useRouter();
+  const store = useStore<RootState>();
+  const [logout, logoutState] = useLogoutMutation();
+  const signOut = async () => {
+    if (!confirmLeave()) return;
+    const token = store.getState().auth.session?.accessToken;
+    try { await logout().unwrap(); } catch { /* Always clear the browser session if revocation cannot reach the backend. */ }
+    finally {
+      if (store.getState().auth.session?.accessToken === token) {
+        dispatch(signedOut());
+        router.replace("/login/");
+      }
+    }
+  };
   const [reset, { isLoading }] = useResetDemoMutation();
   return (
     <Box
@@ -184,7 +198,7 @@ export function Shell({ children }: { children: ReactNode }) {
             textDecoration: "none",
           }}
         >
-          ◈ LearnLeaf
+          ◈ ESS
         </Typography>
         <Stack
           direction="row"
@@ -216,15 +230,11 @@ export function Shell({ children }: { children: ReactNode }) {
                 color="text.secondary"
                 sx={{ display: { xs: "none", sm: "block" } }}
               >
-                Giảng viên · {auth.session?.teacher.name}
+                {auth.session?.teacher.roles?.includes("ADMIN") ? "Quản trị viên" : "Giảng viên"} · {auth.session?.teacher.name}
               </Typography>
               <Button
-                onClick={() => {
-                  if (confirmLeave()) {
-                    dispatch(signedOut());
-                    router.replace("/login/");
-                  }
-                }}
+                loading={logoutState.isLoading}
+                onClick={signOut}
               >
                 Đăng xuất
               </Button>
@@ -262,7 +272,7 @@ export function Shell({ children }: { children: ReactNode }) {
       >
         {useMock
           ? "Bản demo · Dữ liệu giả lập được lưu trên thiết bị này."
-          : "LearnLeaf · Cổng thông tin giảng viên"}
+          : "ESS · Cổng thông tin giảng viên"}
       </Typography>
     </Box>
   );

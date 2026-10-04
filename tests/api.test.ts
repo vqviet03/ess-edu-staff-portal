@@ -301,6 +301,7 @@ test("mock mode không gọi API thật và dữ liệu rỗng được hỗ tr�
   const db = h.db();
   db.classes = [];
   h.write(db);
+  h.runtime.getState = () => ({auth: {session: {accessToken: "demo-test", expiresAt: new Date(Date.now() + 60000).toISOString(), teacher}, status: "authenticated", message: null}});
   const query = createAppBaseQuery({
     mock: true,
     mockAdapter: async (args) =>
