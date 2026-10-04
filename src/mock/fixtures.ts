@@ -8,8 +8,10 @@ import {
   type StudentResult,
   type ImportPreview,
 } from "@/types";
+import { managementSeed, type ManagementDatabase } from "./management-fixtures";
 import { emptyResult } from "@/utils/scores";
 export interface Database {
+  management?: ManagementDatabase;
   classes: Class[];
   students: Record<string, Student[]>;
   sessions: Session[];
@@ -188,4 +190,16 @@ export function seed(): Database {
     previews: {},
     commits: {},
   };
+}
+
+// Empty-group fixture keeps a manager available while no students exist.
+export function seedEmptyStudents(): Database {
+  const db = seed();
+  for (const id of Object.keys(db.students)) db.students[id] = [];
+  db.management = managementSeed(db);
+  db.management.students = [];
+  db.management.enrollments = [];
+  for (const id of Object.keys(db.results)) db.results[id] = [];
+  db.classes = db.classes.map((c) => ({ ...c, studentCount: 0 }));
+  return db;
 }

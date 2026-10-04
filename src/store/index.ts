@@ -1,12 +1,13 @@
 import { configureStore, createListenerMiddleware } from "@reduxjs/toolkit";
 import { useDispatch, useSelector } from "react-redux";
+import { workspaceSlice } from "./workspace";
 import { api } from "@/api/api";
 import { authSlice, signedIn, signedOut, verified } from "./auth";
 import { writeSession } from "@/features/auth/storage";
 export function makeStore(service = api) {
   const listener = createListenerMiddleware();
   const store = configureStore({
-    reducer: { auth: authSlice.reducer, [service.reducerPath]: service.reducer },
+    reducer: { auth: authSlice.reducer, workspace: workspaceSlice.reducer, [service.reducerPath]: service.reducer },
     middleware: (g) =>
       g({
         serializableCheck: {

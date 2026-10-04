@@ -39,7 +39,7 @@ export function Login() {
     <Shell>
       <Box sx={{ maxWidth: 440, mx: "auto", pt: { xs: 0, md: 4 } }}>
         <Title
-          title="Đăng nhập giảng viên"
+          title="Đăng nhập ESS Staff"
           subtitle="Quản lý lớp học, đánh giá và theo dõi tiến bộ của học sinh."
         />
         <Card>
@@ -56,7 +56,7 @@ export function Login() {
             {auth.message && <Alert severity="info">{auth.message}</Alert>}
             {error && <Alert severity="error">{errorMessage(error)}</Alert>}
             <TextField
-              label="ID giảng viên"
+              label="ID giảng viên / quản lý"
               autoComplete="username"
               {...register("teacherId")}
               error={!!errors.teacherId}
@@ -94,7 +94,8 @@ export function Login() {
         </Card>
         {useMock && (
           <Alert severity="info" sx={{ mt: 2 }}>
-            Demo: GV0001 / Demo123!
+            Demo: GV0001 (giảng viên), MG0001 (quản lý), BOTH0001 (hai vai trò).
+            Mật khẩu: Demo123!
           </Alert>
         )}
       </Box>

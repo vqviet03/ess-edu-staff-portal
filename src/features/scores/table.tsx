@@ -37,10 +37,12 @@ const sticky = (left: number) => ({
 });
 export default function ScoreTable({
   assessment,
+  editable = false,
   students,
   results,
 }: {
   assessment: Assessment;
+  editable?:boolean;
   students: Student[];
   results: StudentResult[];
 }) {
@@ -49,12 +51,13 @@ export default function ScoreTable({
     [message, setMessage] = useState(""),
     [save, state] = useSaveBatchMutation();
   useUnsaved(Object.keys(drafts).length > 0);
-  const locked = assessment.status === "COMPLETED" || state.isLoading;
+  const locked = !editable || assessment.status === "COMPLETED" || state.isLoading;
   const read = (id: string) =>
     drafts[id] ??
     results.find((r) => r.studentId === id) ??
     emptyResult(id, assessment.skills);
   const change = (id: string, apply: (r: StudentResult) => void) => {
+    if(locked || students.find(s=>s.id===id)?.status!=="ACTIVE")return;
     setDrafts((old) => {
       const r = structuredClone(
         old[id] ??
@@ -217,7 +220,8 @@ export default function ScoreTable({
             {students.map((student) => {
               const r = read(student.id),
                 errors = validateResult(r, assessment.skills),
-                total = calculate(r, assessment.skills);
+                total = calculate(r, assessment.skills),
+                rowLocked = locked || student.status!=="ACTIVE";
               return (
                 <TableRow
                   key={student.id}
@@ -239,7 +243,7 @@ export default function ScoreTable({
                       <>
                         <Alert severity="error">{rowErrors[student.id]}</Alert>
                         <Button
-                          disabled={locked}
+                          disabled={rowLocked}
                           onClick={() => {
                             if (
                               window.confirm(
@@ -267,7 +271,7 @@ export default function ScoreTable({
                     <Checkbox
                       checked={r.attendance === "PRESENT"}
                       indeterminate={r.attendance === "UNSET"}
-                      disabled={locked}
+                      disabled={rowLocked}
                       slotProps={{
                         input: { "aria-label": "Có mặt " + student.id },
                       }}
@@ -288,7 +292,7 @@ export default function ScoreTable({
                           : "Chưa xác định"}
                     </Typography>
                     <Button
-                      disabled={locked}
+                      disabled={rowLocked}
                       onClick={() => setAttendance(student.id, "UNSET")}
                       aria-label={"Bỏ xác định " + student.id}
                     >
@@ -312,7 +316,7 @@ export default function ScoreTable({
                           max={s.maxQuestions}
                           decimal={s.allowDecimal}
                           error={errors[s.skillCode]}
-                          disabled={locked || r.attendance !== "PRESENT"}
+                          disabled={rowLocked || r.attendance !== "PRESENT"}
                           onChange={(v) =>
                             change(student.id, (d) => {
                               d.skillResults.find(
@@ -329,7 +333,7 @@ export default function ScoreTable({
                             minRows={2}
                             label={`${key === "comment" ? "Nhận xét" : "Lời khuyên"} ${skillNames[s.skillCode]} ${student.id}`}
                             value={result?.[key] ?? ""}
-                            disabled={locked}
+                            disabled={rowLocked}
                             onChange={(e) =>
                               change(student.id, (d) => {
                                 d.skillResults.find(
@@ -373,7 +377,7 @@ export default function ScoreTable({
                           label={`${i ? "Lời khuyên tổng" : "Nhận xét tổng"} ${student.id}`}
                           multiline
                           minRows={2}
-                          disabled={locked}
+                          disabled={rowLocked}
                           value={r[key]}
                           onChange={(e) =>
                             change(student.id, (d) => {

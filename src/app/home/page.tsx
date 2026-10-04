@@ -1,9 +1,9 @@
-import { Home } from "@/features/classes/home";
+import { StaffHome } from "@/features/management/home";
 import { ProtectedPage } from "@/shared/protected-page";
 export default function Page() {
   return (
     <ProtectedPage>
-      <Home />
+      <StaffHome />
     </ProtectedPage>
   );
 }

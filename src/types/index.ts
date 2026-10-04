@@ -18,13 +18,15 @@ export const skillNames: Record<SkillCode, string> = {
   WRITING: "Viết",
 };
 export type Attendance = "PRESENT" | "ABSENT" | "UNSET";
-export type Status = "ACTIVE" | "COMPLETED" | "PAUSED";
+export type Status = "DRAFT" | "ACTIVE" | "COMPLETED" | "PAUSED" | "INACTIVE";
 export type WorkStatus = "DRAFT" | "COMPLETED";
 export interface Teacher {
   id: string;
   name: string;
   teacherCode?: string;
-  roles?: ("TEACHER" | "ADMIN")[];
+  roles?: ("TEACHER" | "MANAGER")[];
+  profileStatus?: "ACTIVE" | "PAUSED" | "INACTIVE";
+  accountStatus?: "PENDING" | "ACTIVE" | "LOCKED";
   permissions?: string[];
 }
 export interface AuthSession {
@@ -48,7 +50,7 @@ export interface Student {
   name: string;
   nickname: string;
   dateOfBirth: string | null;
-  status: "ACTIVE" | "INACTIVE";
+  status: "ACTIVE" | "PAUSED" | "INACTIVE";
   version: number;
 }
 export interface Session {

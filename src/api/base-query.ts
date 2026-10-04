@@ -27,7 +27,7 @@ export function createAppBaseQuery(config: {
       prepareHeaders: (headers, { getState, arg }) => {
         const auth = (getState() as { auth: AuthState }).auth;
         const path = typeof arg === "string" ? arg : arg.url;
-        if (auth.session && !["/auth/login", "/auth/link/exchange"].includes(path))
+        if (auth.session && !["/auth/login", "/auth/link/exchange", "/auth/activate"].includes(path))
           headers.set("Authorization", `Bearer ${auth.session.accessToken}`);
         else headers.delete("Authorization");
         headers.set("Accept", "application/json");
@@ -46,7 +46,7 @@ export function createAppBaseQuery(config: {
       };
     const headers = requestHeaders(request.headers),
       auth = (api.getState() as { auth: AuthState }).auth;
-    const publicRequest = ["/auth/login", "/auth/link/exchange"].includes(request.url) || (config.mock && request.url === "/demo/reset");
+    const publicRequest = ["/auth/login", "/auth/link/exchange", "/auth/activate"].includes(request.url) || (config.mock && request.url === "/demo/reset");
     const originalToken = auth.session?.accessToken;
     const currentToken = () => (api.getState() as { auth: AuthState }).auth.session?.accessToken;
     const endSession = () => {

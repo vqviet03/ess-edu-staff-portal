@@ -1,4 +1,5 @@
 "use client";
+import { useWorkspace } from "@/features/access/hooks";
 import { useState } from "react";
 import Box from "@mui/material/Box";
 import MenuItem from "@mui/material/MenuItem";
@@ -22,11 +23,18 @@ import {
   Title,
 } from "@/shared/ui";
 export function Home() {
+  const { selected } = useWorkspace();
   const [search, setSearch] = useState(""),
     [status, setStatus] = useState(""),
     [page, setPage] = useState(0),
     [pageSize, setPageSize] = useState(10);
-  const q = useClassesQuery({ search, status, page: page + 1, pageSize }),
+  const q = useClassesQuery({
+      workspace: selected ?? "teacher",
+      search,
+      status,
+      page: page + 1,
+      pageSize,
+    }),
     rows = q.currentData?.data ?? [];
   return (
     <>

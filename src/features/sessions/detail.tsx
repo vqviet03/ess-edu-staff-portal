@@ -1,4 +1,5 @@
 "use client";
+import { ReadOnlyNotice, useClassCapabilities } from "@/features/access/hooks";
 import { useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Alert from "@mui/material/Alert";
@@ -35,6 +36,7 @@ export function SessionDetail() {
     classId = params.get("classId") ?? "",
     sessionId = params.get("sessionId") ?? "",
     ready = !!classId && !!sessionId;
+  const permissions=useClassCapabilities(classId);
   const c = useClassQuery(classId, { skip: !ready }),
     sessions = useSessionsQuery(classId, { skip: !ready }),
     list = useAssessmentsQuery(sessionId, { skip: !ready });
@@ -44,28 +46,29 @@ export function SessionDetail() {
     [create, state] = useCreateAssessmentMutation();
   if (!ready) return <Feedback empty="Thiếu classId hoặc sessionId." />;
   if (
-    c.isLoading ||
+    permissions.loading || c.isLoading ||
     (c.isFetching && !c.currentData) ||
     sessions.isLoading ||
     (sessions.isFetching && !sessions.currentData) ||
     list.isLoading ||
     (list.isFetching && !list.currentData) ||
-    c.error ||
+    permissions.error || c.error ||
     sessions.error ||
     list.error
   )
     return (
       <Feedback
         loading={
-          c.isLoading ||
+          permissions.loading || c.isLoading ||
           (c.isFetching && !c.currentData) ||
           sessions.isLoading ||
           (sessions.isFetching && !sessions.currentData) ||
           list.isLoading ||
           (list.isFetching && !list.currentData)
         }
-        error={c.error || sessions.error || list.error}
+        error={permissions.error || c.error || sessions.error || list.error}
         retry={() => {
+          void permissions.retry();
           void c.refetch();
           void sessions.refetch();
           void list.refetch();
@@ -85,13 +88,14 @@ export function SessionDetail() {
             <NavButton href={"/class/?classId=" + encodeURIComponent(classId)}>
               ← Dashboard lớp
             </NavButton>
-            <Button onClick={() => setEditing(true)}>Thông tin phiên</Button>
-            <Button variant="contained" onClick={() => setCreating(true)}>
+            <Button disabled={!permissions.editLearning} onClick={() => setEditing(true)}>Thông tin phiên</Button>
+            <Button disabled={!permissions.editLearning} variant="contained" onClick={() => setCreating(true)}>
               Tạo bài đánh giá
             </Button>
           </>
         }
       />
+      <ReadOnlyNotice editable={permissions.editLearning}/>
       <Card>
         <Stack
           sx={{
@@ -153,16 +157,16 @@ export function SessionDetail() {
                     }}
                   >
                     <NavButton href={route("/scores/", context)} primary>
-                      Nhập điểm dạng bảng
+                      {permissions.editLearning?"Nhập điểm dạng bảng":"Xem bảng điểm"}
                     </NavButton>
                     <NavButton href={route("/student-score/", context)}>
-                      Nhập từng học sinh
+                      {permissions.editLearning?"Nhập từng học sinh":"Xem từng học sinh"}
                     </NavButton>
                     <NavButton href={route("/assessment/", context)}>
-                      Sửa cấu hình
+                      {permissions.editLearning?"Sửa cấu hình":"Xem schema"}
                     </NavButton>
                     <NavButton href={route("/import/", context)}>
-                      Import Excel
+                      {permissions.editLearning?"Import Excel":"Xem file mẫu"}
                     </NavButton>
                   </Stack>
                 </Stack>
@@ -173,7 +177,7 @@ export function SessionDetail() {
       ) : (
         <Feedback empty="Chưa có bài đánh giá. Tạo bài để nhập điểm." />
       )}
-      {editing && (
+      {editing && permissions.editLearning && (
         <SessionEditor
           classId={classId}
           session={session}
@@ -185,7 +189,7 @@ export function SessionDetail() {
         />
       )}
       <Dialog
-        open={creating}
+        open={creating && permissions.editLearning}
         onClose={() => {
           if (confirmLeave()) setCreating(false);
         }}

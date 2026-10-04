@@ -1,4 +1,5 @@
 "use client";
+import { ReadOnlyNotice, useClassCapabilities } from "@/features/access/hooks";
 import { useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Box from "@mui/material/Box";
@@ -32,34 +33,36 @@ export function ClassDashboard() {
     c = useClassQuery(id, { skip: !id }),
     students = useStudentsQuery(id, { skip: !id }),
     sessions = useSessionsQuery(id, { skip: !id });
+  const permissions=useClassCapabilities(id);
   const [tab, setTab] = useState(0),
     [student, setStudent] = useState<Student | null>(null),
     [create, setCreate] = useState(false),
     [message, setMessage] = useState("");
   if (!id) return <Feedback empty="Thiếu classId. Hãy mở lớp từ trang chủ." />;
   if (
-    c.isLoading ||
+    permissions.loading || c.isLoading ||
     (c.isFetching && !c.currentData) ||
     students.isLoading ||
     (students.isFetching && !students.currentData) ||
     sessions.isLoading ||
     (sessions.isFetching && !sessions.currentData) ||
-    c.error ||
+    permissions.error || c.error ||
     students.error ||
     sessions.error
   )
     return (
       <Feedback
         loading={
-          c.isLoading ||
+          permissions.loading || c.isLoading ||
           (c.isFetching && !c.currentData) ||
           students.isLoading ||
           (students.isFetching && !students.currentData) ||
           sessions.isLoading ||
           (sessions.isFetching && !sessions.currentData)
         }
-        error={c.error || students.error || sessions.error}
+        error={permissions.error || c.error || students.error || sessions.error}
         retry={() => {
+          void permissions.retry();
           void c.refetch();
           void students.refetch();
           void sessions.refetch();
@@ -75,6 +78,7 @@ export function ClassDashboard() {
         subtitle={`${c.currentData.code} · ${c.currentData.schedule} · ${c.currentData.studentCount} học sinh`}
         actions={<NavButton href="/home/">← Danh sách lớp</NavButton>}
       />
+      <ReadOnlyNotice editable={permissions.editLearning}/>
       <Card>
         <Typography variant="h5" sx={{ mb: 2 }}>
           Tiến độ lớp
@@ -173,6 +177,7 @@ export function ClassDashboard() {
                         </TableCell>
                         <TableCell>
                           <Button
+                            disabled={!permissions.editLearning}
                             onClick={() => setStudent(s)}
                             aria-label={"Sửa " + s.name}
                           >
@@ -200,7 +205,7 @@ export function ClassDashboard() {
               }}
             >
               <Typography variant="h5">Phiên học</Typography>
-              <Button variant="contained" onClick={() => setCreate(true)}>
+              <Button disabled={!permissions.editLearning} variant="contained" onClick={() => setCreate(true)}>
                 Tạo phiên học
               </Button>
             </Stack>
@@ -258,7 +263,7 @@ export function ClassDashboard() {
           </>
         )}
       </Card>
-      {student && (
+      {student && permissions.editLearning && (
         <StudentEditor
           key={student.id}
           classId={id}
@@ -269,7 +274,7 @@ export function ClassDashboard() {
           }}
         />
       )}
-      {create && (
+      {create && permissions.editLearning && (
         <SessionEditor
           classId={id}
           totalUnits={c.currentData.totalUnits}

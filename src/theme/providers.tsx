@@ -11,8 +11,10 @@ import { Provider } from "react-redux";
 import { setupListeners } from "@reduxjs/toolkit/query";
 import { AppRouterCacheProvider } from "@mui/material-nextjs/v16-appRouter";
 import { createTheme, ThemeProvider } from "@mui/material/styles";
+import { viVN } from "@mui/material/locale";
 import CssBaseline from "@mui/material/CssBaseline";
 import { makeStore } from "@/store";
+import { WorkspaceRuntime } from "@/features/access/hooks";
 import { AuthRuntime } from "@/features/auth/runtime";
 import { UnsavedRuntime } from "@/shared/unsaved";
 type Mode = "light" | "dark" | "system";
@@ -47,66 +49,80 @@ export function Providers({ children }: { children: ReactNode }) {
   const dark = mode === "dark" || (mode === "system" && systemDark);
   const theme = useMemo(
     () =>
-      createTheme({
-        palette: {
-          mode: dark ? "dark" : "light",
-          primary: { main: dark ? "#9cdbb8" : "#287751" },
-          background: {
-            default: dark ? "#14251d" : "#f3f7f4",
-            paper: dark ? "#20372b" : "#ffffff",
+      createTheme(
+        {
+          palette: {
+            mode: dark ? "dark" : "light",
+            action: { selected: dark ? "#294535" : "#e2f1e7" },
+            primary: { main: dark ? "#9cdbb8" : "#317b58" },
+            background: {
+              default: dark ? "#14251d" : "#f4f8f5",
+              paper: dark ? "#20372b" : "#ffffff",
+            },
+            text: {
+              primary: dark ? "#e4f1e8" : "#203c30",
+              secondary: dark ? "#b4c9bb" : "#60776b",
+            },
+            divider: dark ? "#3c5546" : "#dce7df",
+            success: { main: dark ? "#a5ddb9" : "#317b58" },
           },
-          text: {
-            primary: dark ? "#e4f1e8" : "#203d2d",
-            secondary: dark ? "#b4c9bb" : "#617467",
+          typography: {
+            fontFamily: "Roboto, sans-serif",
+            fontSize: 14,
+            h4: { fontSize: "1.875rem", fontWeight: 700 },
+            h5: { fontSize: "1.25rem", fontWeight: 700 },
+            h6: { fontSize: "1.1rem", fontWeight: 700 },
+            button: { textTransform: "none", fontWeight: 600 },
           },
-          divider: dark ? "#3c5546" : "#dce6de",
-          success: { main: dark ? "#a5ddb9" : "#287751" },
-        },
-        typography: {
-          fontFamily: "Roboto, sans-serif",
-          fontSize: 14,
-          h4: { fontSize: "1.875rem", fontWeight: 700 },
-          h5: { fontSize: "1.25rem", fontWeight: 700 },
-          h6: { fontSize: "1.1rem", fontWeight: 700 },
-          button: { textTransform: "none", fontWeight: 600 },
-        },
-        shape: { borderRadius: 12 },
-        components: {
-          MuiButton: {
-            defaultProps: { disableElevation: true },
-            styleOverrides: { root: { minHeight: 44, borderRadius: 8 } },
-          },
-          MuiIconButton: {
-            styleOverrides: { root: { minWidth: 44, minHeight: 44 } },
-          },
-          MuiTextField: { defaultProps: { size: "small", fullWidth: true } },
-          MuiOutlinedInput: {
-            styleOverrides: { root: { borderRadius: 8, minHeight: 46 } },
-          },
-          MuiPaper: { defaultProps: { elevation: 0 } },
-          MuiTableCell: {
-            styleOverrides: {
-              root: {
-                borderBottom: "1px solid",
-                borderColor: dark ? "#3c5546" : "#dce6de",
-              },
-              head: {
-                fontWeight: 600,
-                background: dark ? "#294535" : "#f3f7f4",
+          shape: { borderRadius: 16 },
+          components: {
+            MuiButton: {
+              defaultProps: { disableElevation: true },
+              styleOverrides: { root: { minHeight: 44, borderRadius: 8 } },
+            },
+            MuiIconButton: {
+              styleOverrides: { root: { minWidth: 44, minHeight: 44 } },
+            },
+            MuiTextField: { defaultProps: { size: "small", fullWidth: true } },
+            MuiOutlinedInput: {
+              styleOverrides: { root: { borderRadius: 8, minHeight: 46 } },
+            },
+            MuiPaper: {
+              defaultProps: { elevation: 0 },
+              styleOverrides: {
+                root: {
+                  border: "1px solid",
+                  borderColor: dark ? "#3c5546" : "#dce7df",
+                },
               },
             },
-          },
-          MuiTab: {
-            styleOverrides: { root: { minHeight: 44, textTransform: "none" } },
-          },
-          MuiLinearProgress: {
-            styleOverrides: { root: { height: 7, borderRadius: 10 } },
-          },
-          MuiCheckbox: {
-            styleOverrides: { root: { minWidth: 44, minHeight: 44 } },
+            MuiTableCell: {
+              styleOverrides: {
+                root: {
+                  borderBottom: "1px solid",
+                  borderColor: dark ? "#3c5546" : "#dce7df",
+                },
+                head: {
+                  fontWeight: 600,
+                  background: dark ? "#294535" : "#f4f8f5",
+                },
+              },
+            },
+            MuiTab: {
+              styleOverrides: {
+                root: { minHeight: 44, textTransform: "none" },
+              },
+            },
+            MuiLinearProgress: {
+              styleOverrides: { root: { height: 7, borderRadius: 10 } },
+            },
+            MuiCheckbox: {
+              styleOverrides: { root: { minWidth: 44, minHeight: 44 } },
+            },
           },
         },
-      }),
+        viVN,
+      ),
     [dark],
   );
   return (
@@ -116,6 +132,7 @@ export function Providers({ children }: { children: ReactNode }) {
           <ThemeProvider theme={theme}>
             <CssBaseline />
             <AuthRuntime />
+            <WorkspaceRuntime />
             <UnsavedRuntime />
             {children}
           </ThemeProvider>

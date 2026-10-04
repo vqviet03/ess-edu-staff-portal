@@ -1,6 +1,6 @@
-# ESS · Cổng giảng viên
+# ESS Staff Portal
 
-Next.js App Router, TypeScript strict, MUI, Redux Toolkit/RTK Query, React Hook Form/Zod. Giao diện tiếng Việt, sáng/tối/theo hệ thống; bảng desktop và form mobile. Theo [Figma](https://www.figma.com/design/lijTH4LOpagJqMJHv6gv7w): Roboto tự host, nền #f3f7f4, xanh #287751, card bo góc. Không có API Routes, Server Actions, middleware hoặc backend trong repository.
+Next.js App Router, TypeScript strict, MUI, Redux Toolkit/RTK Query, React Hook Form/Zod. Giao diện tiếng Việt, sáng/tối/theo hệ thống; bảng desktop và form mobile. Theo [Figma](https://www.figma.com/design/lijTH4LOpagJqMJHv6gv7w): Roboto tự host, nền #f4f8f5, xanh #317b58, card bo góc. Không có API Routes, Server Actions, middleware hoặc backend trong repository.
 
 ## Chạy và thử
 
@@ -12,13 +12,13 @@ cp .env.example .env.local
 npm run dev
 ```
 
-- Mặc định gọi API thật tại `https://ess-edu-portal-api-246816830212.asia-southeast1.run.app/v1`. Backend mới cần được triển khai trước: [PR backend #1](https://github.com/vqviet03/ess-edu-api/pull/1). Bản Cloud Run hiện tại còn thiếu `/auth/me`, `/classes` và đăng nhập staff.
+- Mặc định gọi API thật tại `https://ess-edu-portal-api-246816830212.asia-southeast1.run.app/v1`. Auth và endpoint giảng viên đã hoạt động; các endpoint/quyền quản lý mới cần triển khai theo contract quản lý.
 - Tài khoản backend demo: **GV000001 / TeacherDemo123!** (email `teacher@ess.local` cũng được), lớp **ess20-a1**. Chỉ dùng trong môi trường thử nghiệm đã seed; không dùng mật khẩu demo cho tài khoản thật.
 - Để chạy offline: đặt `NEXT_PUBLIC_USE_MOCK=true`. Các hướng dẫn mock bên dưới chỉ áp dụng khi bật rõ ràng chế độ này. Mock demo: **GV0001 / Demo123!**.
 - Link demo: `http://localhost:3000/login/link/#code=teacher-demo` (dùng một lần). Thử `expired-demo` để xem lỗi hết hạn. URL đã đọc sẽ xóa fragment ngay.
 - Nút **Reset demo** khôi phục fixtures và đăng xuất, cho phép dùng lại link demo. Chỉ có trong chế độ mock.
 - Mock có delay, đăng nhập sai, token hết hạn, code đã dùng, dữ liệu rỗng, kiểm tra quyền, version conflict. Dữ liệu giả lập lưu ở localStorage của thiết bị; JWT truy cập của phiên lưu sessionStorage. Không dùng thông tin cá nhân/credential thật.
-- Seed: 3 lớp, 19 học sinh, phiên cùng Unit để kiểm tra không đếm trùng; bài 7 kỹ năng và bài 2 kỹ năng. Bon có 23.1/35 = 66%.
+- Seed: 6 lớp, 34 học sinh, 17 hồ sơ Staff, phiên cùng Unit để kiểm tra không đếm trùng; bài 7 kỹ năng và bài 2 kỹ năng. Bon có 23.1/35 = 66%.
 - Thử: đăng nhập → Juniors03 → sửa học sinh / tab Phiên học → Unit 3 → cấu hình / bảng / form từng học sinh / Excel.
 - Đánh dấu phiên hoàn thành để tăng tiến độ; tạo phiên nháp không tăng. Bài đánh giá hoàn thành khóa điểm, cần về nháp để sửa. Hoàn thành bài yêu cầu từng học sinh có đủ điểm hoặc xác nhận vắng.
 
@@ -31,9 +31,9 @@ npm run dev
 | NEXT_PUBLIC_API_TIMEOUT_MS | `15000`, thời gian chờ request |
 | NEXT_PUBLIC_BASE_PATH | Trống local/root; `/ess-edu-staff-portal` cho project Pages |
 
-Đổi `.env.local`, build lại; không sửa component. Production build thiếu/sai URL, mode hoặc timeout bị từ chối; không fallback mock. HTTP chỉ dùng localhost khi phát triển. Backend cần triển khai [contract](docs/api-contract.md), CORS cho origin Pages và quyền lớp trên mọi endpoint. Backend mới đã có đầy đủ endpoint đọc/ghi/import theo contract. Cloud Run phải deploy phiên bản từ PR backend #1 trước khi đăng nhập staff hoạt động; khi kiểm tra ngày 2026-10-04, `/v1/auth/me` và `/v1/classes` đang trả 404 và login giảng viên trả 400. Không chuyển sang các endpoint teacher cũ vì chúng không hỗ trợ bảng điểm/import. Không đưa JWT signing key, mật khẩu DB hoặc secret vào NEXT_PUBLIC_*.
+Đổi `.env.local`, build lại; không sửa component. Production build thiếu/sai URL, mode hoặc timeout bị từ chối; không fallback mock. HTTP chỉ dùng localhost khi phát triển. Backend cần triển khai [contract](docs/api-contract.md), CORS cho origin Pages và quyền lớp trên mọi endpoint. Backend hiện có các endpoint giảng viên đọc/ghi/import; quyền truy cập lớp và API quản lý mới cần bổ sung. Khi kiểm tra ngày 2026-10-04, login giảng viên và `/v1/classes` trả 200; `/v1/manager/dashboard` trả 404. Endpoint access mới chưa có nên UI giảng viên thật hiện chỉ xem khi chưa xác nhận được quyền sửa. Không chuyển sang các endpoint teacher cũ vì chúng không hỗ trợ bảng điểm/import. Không đưa JWT signing key, mật khẩu DB hoặc secret vào NEXT_PUBLIC_*.
 
-Đăng nhập mới xóa RTK Query cache để không giữ dữ liệu phiên trước. JWT cũ từ mock hoặc backend khác bị xóa khi khôi phục phiên; reload xác minh `/auth/me`. Logout gọi `POST /auth/logout` thu hồi session trên backend rồi xóa session và RTK Query cache; mạng lỗi vẫn đăng xuất tại browser. Login/link không gửi JWT cũ; phản hồi 401 đến muộn không xóa phiên mới. Models lưu thêm `teacherCode`, `roles`, `permissions` do backend trả, sẵn sàng cho tài khoản ADMIN/TEACHER cùng dùng portal.
+Đăng nhập mới xóa RTK Query cache để không giữ dữ liệu phiên trước. JWT cũ từ mock hoặc backend khác bị xóa khi khôi phục phiên; reload xác minh `/auth/me`. Logout gọi `POST /auth/logout` thu hồi session trên backend rồi xóa session và RTK Query cache; mạng lỗi vẫn đăng xuất tại browser. Login/link không gửi JWT cũ; phản hồi 401 đến muộn không xóa phiên mới. Models lưu thêm `teacherCode`, `roles`, `permissions` do backend trả, sẵn sàng cho tài khoản MANAGER/TEACHER cùng dùng portal.
 
 Mọi request, kể cả tải mẫu/file import, đi qua RTK Query. Mutations không tự retry. Tags và cache keys theo lớp/phiên/bài; version chống ghi đè. Guard client chỉ phục vụ UX; backend là nguồn xác nhận quyền và điểm cuối cùng.
 
@@ -92,4 +92,32 @@ Backend test phải cho phép CORS `http://127.0.0.1:4173`, có seed `GV000001 /
 
 ## Cấu trúc
 
-`src/features/{auth,classes,students,sessions,assessments,scores,excel}`, `types`, `api`, `store`, `mock`, `theme`, `shared`, `utils`. Model, fixtures, adapter, endpoints và UI tách riêng. `tests/` kiểm tra công thức/null/0/schema/version/mode/import nguyên tử; `e2e/` kiểm tra thao tác trình duyệt/static/mobile. [API contract](docs/api-contract.md) khớp backend ESS mới; backend cũ trên Cloud Run vẫn cần nâng cấp.
+`src/features/{auth,classes,students,sessions,assessments,scores,excel}`, `types`, `api`, `store`, `mock`, `theme`, `shared`, `utils`. Model, fixtures, adapter, endpoints và UI tách riêng. `tests/` kiểm tra công thức/null/0/schema/version/mode/import nguyên tử; `e2e/` kiểm tra thao tác trình duyệt/static/mobile. [API contract](docs/api-contract.md) mô tả nghiệp vụ giảng viên; [contract quản lý](docs/management-api-contract.md) là phần backend cần bổ sung.
+
+
+## Quản lý trong cùng ESS Staff Portal
+
+Không tạo app/auth/deployment riêng. Thiết kế [Figma](https://www.figma.com/design/FbROYl4kQMTW4XbvvShuWV?node-id=2-3004); sidebar xanh pastel, dashboard, bảng desktop/card mobile, sáng/tối/theo hệ thống. Chỉ tài khoản có cả TEACHER và MANAGER thấy switch; lựa chọn hợp lệ nhớ theo ID. Quản lý chỉ xem learning; sửa phiên/schema/điểm phải ở không gian Giảng viên và có phân công hợp lệ trong chính lớp ACTIVE.
+
+Chạy bản duyệt quản lý: `NEXT_PUBLIC_USE_MOCK=true npm run dev`. Tài khoản demo (tất cả mật khẩu `Demo123!`):
+
+| ID | Vai trò | Link đăng nhập demo dùng một lần |
+|---|---|---|
+| GV0001 | TEACHER | `/login/link/#code=teacher-demo` |
+| MG0001 | MANAGER | `/login/link/#code=manager-demo` |
+| BOTH0001 | TEACHER + MANAGER | `/login/link/#code=dual-demo` |
+| GV0002 | TEACHER (người phụ trách thứ hai) | Đăng nhập ID/password |
+
+Thêm basePath repo trước route khi chạy Pages. Reset demo giữ cơ chế cũ, xóa dữ liệu demo và đăng xuất; dữ liệu mock mutations lưu localStorage. Đây là dữ liệu công khai giả lập. Account tạo mới PENDING không nhận mật khẩu demo; cấp link kích hoạt tại profile rồi đặt mật khẩu. Mock chỉ lưu hash demo cho mật khẩu mới, không mật khẩu rõ. Backend thật phải hash bằng cơ chế phù hợp và lưu code dạng digest.
+
+Các route tĩnh mới: `/manage/list/?entity=students|teachers|classes|accounts|labels`, `/manage/profile/?entity=...&id=...`, `/manage/warnings/`, `/manage/audit/`, `/manage/grid/?entity=students|teachers`, `/manage/excel/?entity=students|teachers`, `/activate/#code=...`. Không dynamic routes hoặc rewrite.
+
+Hỗ trợ form tạo/sửa, tài khoản liên kết, lớp/enrollment/assignment và lịch sử; soft-deactivate/restore, hoàn thành lớp ngoại lệ, nhãn ngừng dùng, bulk toàn filter qua nhiều trang (server chốt preview), bảng nhập/dán nhiều dòng, template/export/import .xlsx và tải lỗi. Tất cả đi qua preview/commit có version, confirmations, reason, idempotency và audit. Ngừng/khôi phục không tự khôi phục quan hệ. Khi pause/reopen lớp phải xác nhận lại phân công. Bảng/form dùng chung validation với mock/Excel.
+
+Seed gồm lớp nhiều/ít/không có giảng viên, phân công ACTIVE/ENDED/COMPLETED, Staff một/hai vai trò, >1 trang học sinh/Staff, hai schema 7/2 kỹ năng. `seedEmptyStudents()` trong fixtures phục vụ kiểm thử nhóm rỗng; template luôn trống và ví dụ chỉ trong Instructions. Tests mô phỏng conflict, thu hồi quyền, import lỗi/atomic và replay idempotency.
+
+**Nối API quản lý thật:** đổi `NEXT_PUBLIC_USE_MOCK=false`, đặt URL và build lại như hiện tại. Contract mới ở [docs/management-api-contract.md](docs/management-api-contract.md). Cloud Run hiện có auth/teaching, nhưng `/manager/*`, `/auth/activate`, `/classes/{id}/access`, trạng thái account/profile, MANAGER và history roster cần backend bổ sung. Không fallback mock. Backend ESS cũ vẫn đăng nhập/reload và đọc lớp được; UI khóa sửa khi access chưa có. Không tự map ADMIN thành MANAGER. Triển khai contract quyền trước khi cho phép sửa/quản lý thật; frontend không thay thế kiểm tra quyền backend.
+
+Workflow Pages **giữ nguyên**: PR dev kiểm tra, không deploy; push dev sau merge mới build/deploy. Workflow hiện đang build real mặc định, vì vậy merge frontend không làm API quản lý tự xuất hiện. Preview đầy đủ quản lý bằng build mock tại local hoặc môi trường duyệt riêng đã cấu hình; không thay workflow sang mock để che API thiếu.
+
+Kiểm tra: `npm run lint`, `npm run typecheck`, `npm test`, `npm run build`; browser tests qua `npm run test:e2e` với API URL/mode/basePath giống build. CI intercept HTTP ở test process, production dùng fetchBaseQuery thật. Regression giảng viên cũ, ma trận quyền, lifecycle, bulk, version, Excel và auth có tests. Screenshots dashboard light/dark/mobile được browser test lưu trong test-results (không commit ảnh/trace).
