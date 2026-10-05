@@ -1,3 +1,4 @@
+import type { SessionDuration } from "./session-duration";
 import type { Class, Teacher } from "@/types";
 export type Role = "TEACHER" | "MANAGER";
 export type Workspace = "manager" | "teacher";
@@ -40,8 +41,15 @@ export interface Account extends Versioned {
   roles: Role[];
   status: "PENDING" | "ACTIVE" | "LOCKED";
   sessionLifetimeMinutes?: number | null;
+  sessionDuration?: SessionDuration | null;
 }
+export interface LoginHistoryEntry { loggedInAt: string; expiresAt: string; revokedAt: string | null; ipAddress: string | null; device: string | null; browser: string | null; operatingSystem: string | null }
+export interface LoginHistory { items: LoginHistoryEntry[]; total: number; page: number; pageSize: number }
 export interface AccountSessionPolicy {
+  sessionDuration: SessionDuration | null;
+  defaultLifetimeMinutes: number;
+  serverNow: string;
+  previewExpiresAt: string;
   accountId: string;
   sessionLifetimeMinutes: number | null;
   effectiveLifetimeMinutes: number;
@@ -50,6 +58,7 @@ export interface AccountSessionPolicy {
   version: number;
 }
 export interface SessionPolicyRequest {
+  sessionDuration?: SessionDuration | null;
   sessionLifetimeMinutes: number | null;
   version: number;
   reason: string;

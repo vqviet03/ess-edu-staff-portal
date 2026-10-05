@@ -17,6 +17,7 @@ import type {
   ProfileGroup,
   AuditEvent,
   AccountSessionPolicy,
+  LoginHistory,
   SessionPolicyRequest,
   SessionRevocation,
 } from "@/features/management/models";
@@ -45,6 +46,11 @@ const updated = [
 const binary = async (r: Response) => (r.ok ? r.blob() : r.json());
 export const managementApi = api.injectEndpoints({
   endpoints: (b) => ({
+    accountLoginHistory: b.query<LoginHistory, { id: string; page?: number }>({
+      query: ({ id, page = 1 }) => `/manager/accounts/${encodeURIComponent(id)}/login-history?page=${page}&pageSize=5`,
+      transformResponse: unwrap<LoginHistory>,
+      providesTags: ["Management"],
+    }),
     accountSessionPolicy: b.query<AccountSessionPolicy, string>({
       query: (id) => `/manager/accounts/${encodeURIComponent(id)}/session-policy`,
       transformResponse: unwrap<AccountSessionPolicy>,
@@ -250,6 +256,7 @@ export const managementApi = api.injectEndpoints({
 });
 export const {
   useAccountSessionPolicyQuery,
+  useAccountLoginHistoryQuery,
   useUpdateSessionPolicyMutation,
   useRevokeAccountSessionsMutation,
   useSuggestIdentifierMutation,

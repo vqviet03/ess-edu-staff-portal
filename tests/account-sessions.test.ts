@@ -55,7 +55,7 @@ test("Thời hạn riêng áp dụng cho mật khẩu/link, persist sau reload; 
 });
 test("Validation thời hạn, lý do và version conflict không thay đổi phiên", async () => {
   const h = harness(); await h.manager(); await h.login("GV0001"); const before = h.db().tokens;
-  for (const minutes of [0, -1, 43201, 2.5, "60"]) assert.equal((await h.request(policy, "PATCH", { sessionLifetimeMinutes: minutes, version: 1, reason: "Sai" })).error?.status, 422);
+  for (const minutes of [0, -1, 10000000, 2.5, "60"]) assert.equal((await h.request(policy, "PATCH", { sessionLifetimeMinutes: minutes, version: 1, reason: "Sai" })).error?.status, 422);
   assert.equal((await h.request(revoke, "POST", { version: 1, reason: "" })).error?.status, 422);
   assert.equal((await h.request(revoke, "POST", { version: 2, reason: "Cũ" })).error?.status, 409);
   assert.equal((await h.request(policy, "PATCH", { sessionLifetimeMinutes: 5, version: 2, reason: "Cũ" })).error?.status, 409); assert.deepEqual(h.db().tokens, before);
@@ -79,4 +79,16 @@ test("RTK Query xử lý 202, đợi kết quả rồi trả policy và notifica
   const h = harness(); await h.manager(); const base = createAppBaseQuery({ mock: true, mockAdapter: h.mock });
   const r = await base({ url: policy, method: "PATCH", body: { sessionLifetimeMinutes: 15, version: 1, reason: "Đổi thời hạn" } }, h.runtime, {});
   assert(!r.error, JSON.stringify(r.error)); assert.equal((r.data as Envelope<AccountSessionPolicy>).data.effectiveLifetimeMinutes, 15); assert.equal(h.db().operationEvents?.length, 1); assert(h.db().operationEvents![0].entities.includes("accounts"));
+});
+
+test("Thời hạn lịch 10 năm, metadata và lịch sử còn sau logout, quyền chỉ quản lý", async () => {
+  const h = harness(); await h.manager();
+  const p = await h.call<AccountSessionPolicy>(policy, "PATCH", { sessionLifetimeMinutes: null, sessionDuration: { years: 10, months: 0, days: 0, hours: 0, minutes: 0 }, version: 1, reason: "10 năm" });
+  assert.equal(p.sessionDuration?.years, 10);
+  const login = await h.login("GV0001"); assert(Date.parse(login.expiresAt) - Date.now() > 3650 * 86400000);
+  const url = "/manager/accounts/acc-GV0001/login-history";
+  assert.equal((await h.request(url, "GET", undefined, login.accessToken)).error?.status, 403);
+  await h.request("/auth/logout", "POST", undefined, login.accessToken);
+  const history = await h.call<{ items: { device: string; revokedAt: string | null }[]; total: number }>(url); assert.equal(history.total, 1); assert.equal(history.items[0].device, "Thiết bị demo"); assert(history.items[0].revokedAt);
+  const invalid = await h.request(policy, "PATCH", { sessionLifetimeMinutes: null, sessionDuration: { years: 10, months: 0, days: 0, hours: 0, minutes: 1 }, version: 2, reason: "Sai" }); assert.equal(invalid.error?.status, 422);
 });
