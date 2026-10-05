@@ -41,6 +41,7 @@ export interface ManagementDatabase {
   audit: AuditEvent[];
   passwordHashes?: Record<string, string>;
   lastClassNumber?: number;
+  studentSessions?: { id: string; accountId: string; expiresAt: string; revokedAt: string | null }[];
 }
 export function managementSeed(db: Database): ManagementDatabase {
   const at = "2026-09-01T00:00:00Z",

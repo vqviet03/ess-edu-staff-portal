@@ -41,6 +41,7 @@ import { recordName } from "./models";
 import { EntityEditor } from "./editor";
 import { entityLabels, ManagerOnly, PreviewPanel, showValue } from "./shared";
 import { fieldNames } from "./validation";
+import { AccountSessions } from "./account-sessions";
 function RelationshipEditor({
   kind,
   classId,
@@ -390,6 +391,7 @@ function Profile() {
               )}
             </Card>
           )}
+          {account && <AccountSessions accountId={account.id} loginId={account.loginId} onSaved={setMessage} />}
           {d.classes.length > 0 && entity !== "classes" && (
             <Card>
               <Typography variant="h5" sx={{ mb: 2 }}>

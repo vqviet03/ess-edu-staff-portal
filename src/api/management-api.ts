@@ -16,6 +16,9 @@ import type {
   Selection,
   ProfileGroup,
   AuditEvent,
+  AccountSessionPolicy,
+  SessionPolicyRequest,
+  SessionRevocation,
 } from "@/features/management/models";
 const unwrap = <T>(r: Envelope<T>) => r.data;
 const query = (p: Record<string, unknown>) =>
@@ -42,6 +45,21 @@ const updated = [
 const binary = async (r: Response) => (r.ok ? r.blob() : r.json());
 export const managementApi = api.injectEndpoints({
   endpoints: (b) => ({
+    accountSessionPolicy: b.query<AccountSessionPolicy, string>({
+      query: (id) => `/manager/accounts/${encodeURIComponent(id)}/session-policy`,
+      transformResponse: unwrap<AccountSessionPolicy>,
+      providesTags: ["Management"],
+    }),
+    updateSessionPolicy: b.mutation<AccountSessionPolicy, { id: string; body: SessionPolicyRequest }>({
+      query: ({ id, body }) => ({ url: `/manager/accounts/${encodeURIComponent(id)}/session-policy`, method: "PATCH", body }),
+      transformResponse: unwrap<AccountSessionPolicy>,
+      invalidatesTags: (_, error) => error ? [] : ["Management", "Audit"],
+    }),
+    revokeAccountSessions: b.mutation<SessionRevocation, { id: string; version: number; reason: string }>({
+      query: ({ id, ...body }) => ({ url: `/manager/accounts/${encodeURIComponent(id)}/sessions/revoke`, method: "POST", body }),
+      transformResponse: unwrap<SessionRevocation>,
+      invalidatesTags: (_, error) => error ? [] : ["Management", "Audit"],
+    }),
     suggestIdentifier: b.mutation<{ id: string; isAvailable: boolean; requestedId: string }, { entity: Entity; fullName?: string; id?: string }>({
       query: (body) => ({ url: "/manager/identifiers/suggest", method: "POST", body }),
       transformResponse: unwrap<{ id: string; isAvailable: boolean; requestedId: string }>,
@@ -231,6 +249,9 @@ export const managementApi = api.injectEndpoints({
   }),
 });
 export const {
+  useAccountSessionPolicyQuery,
+  useUpdateSessionPolicyMutation,
+  useRevokeAccountSessionsMutation,
   useSuggestIdentifierMutation,
   useCheckIdentifierMutation,
   useSelectionCountQuery,

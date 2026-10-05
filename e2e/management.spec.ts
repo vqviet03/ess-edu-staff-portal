@@ -25,7 +25,7 @@ async function confirmPreview(
       !(await c.isChecked())
     )
       await c.check();
-  const reasonField = page.getByLabel(/Lý do thay đổi|Lý do \/ ghi chú/);
+  const reasonField = page.getByRole("textbox", { name: /Lý do thay đổi \(bắt buộc\)|Lý do \/ ghi chú/ });
   await reasonField.fill(reason);
   await expect(button).toBeEnabled();
   await button.click();

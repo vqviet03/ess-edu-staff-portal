@@ -205,6 +205,7 @@ export const fieldNames: Record<string, string> = {
   loginId: "ID đăng nhập",
   kind: "Loại tài khoản",
   profileId: "ID hồ sơ liên kết",
+  sessionLifetimeMinutes: "Thời hạn phiên (phút; trống = mặc định)",
 };
 export const fields: Record<Entity, string[]> = {
   students: [

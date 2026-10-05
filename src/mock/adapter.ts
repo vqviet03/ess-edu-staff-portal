@@ -179,7 +179,7 @@ export function createMockAdapter(
           );
         const session: AuthSession = {
           accessToken: `demo-${id()}`,
-          expiresAt: new Date(Date.now() + 3600000).toISOString(),
+          expiresAt: new Date(Date.now() + (account.sessionLifetimeMinutes ?? 60) * 60000).toISOString(),
           teacher: accountStaff(account!, profile!),
         };
         db.tokens[session.accessToken] = session;
@@ -197,9 +197,11 @@ export function createMockAdapter(
         if (db.usedCodes.includes(String(code)))
           return fail(410, "CODE_USED", "Liên kết đã được sử dụng.");
         db.usedCodes.push(String(code));
+        const teacher = actor(db, code === "manager-demo" ? "MG0001" : code === "dual-demo" ? "BOTH0001" : "GV0001");
+        const account = management(db).accounts.find((a) => a.kind === "STAFF" && a.profileId === teacher.id);
         const session: AuthSession = {
           accessToken: `demo-${id()}`,
-          expiresAt: new Date(Date.now() + 3600000).toISOString(),
+          expiresAt: new Date(Date.now() + (account?.sessionLifetimeMinutes ?? 60) * 60000).toISOString(),
           teacher: actor(
             db,
             code === "manager-demo"
@@ -846,7 +848,7 @@ export function createMockAdapter(
       if (!session || Date.parse(session.expiresAt) <= Date.now()) fail(401, "UNAUTHORIZED", "Phiên đăng nhập hết hạn.");
       const staff = actor(db, session.teacher.id);
       if (asynchronous) {
-        if (path === "/manager/changes/commit") { if (!capabilities(staff, "manager").manage) fail(403, "FORBIDDEN", "Cần vai trò MANAGER hoạt động."); }
+        if (path.startsWith("/manager/")) { if (!capabilities(staff, "manager").manage) fail(403, "FORBIDDEN", "Cần vai trò MANAGER hoạt động."); }
         else {
           let classId = path.match(/^\/classes\/([^/]+)/)?.[1];
           const sid = path.match(/^\/sessions\/([^/]+)/)?.[1], aid = path.match(/^\/assessments\/([^/]+)/)?.[1];

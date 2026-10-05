@@ -618,6 +618,8 @@ export function buildPreview(
     }
     if (entity === "accounts") {
       const a = after as Account;
+      // The dedicated policy API owns this field; profile/role edits must retain it.
+      a.sessionLifetimeMinutes = before && "roles" in before ? before.sessionLifetimeMinutes ?? null : null;
       if (
         !m[a.kind === "STAFF" ? "teachers" : "students"].some(
           (p) => p.id === a.profileId,
@@ -1228,6 +1230,35 @@ export async function managementRequest(
       accountStatus: params.get("accountStatus") ?? "",
       role: params.get("role") ?? "",
     };
+  const sessionMatch = path.match(/^\/manager\/accounts\/([^/]+)\/(session-policy|sessions\/revoke)$/);
+  if (sessionMatch) {
+    const a = m.accounts.find((a) => a.id === decodeURIComponent(sessionMatch[1]));
+    if (!a) reject(404, "NOT_FOUND", "Không tìm thấy tài khoản.");
+    const activeTokens = () => Object.entries(db.tokens).filter(([, s]) => a.kind === "STAFF" && s.teacher.id === a.profileId && Date.parse(s.expiresAt) > Date.now());
+    const studentSessions = () => (m.studentSessions ?? []).filter((s) => a.kind === "STUDENT" && s.accountId === a.id && !s.revokedAt && Date.parse(s.expiresAt) > Date.now());
+    const policy = () => ({ accountId: a.id, sessionLifetimeMinutes: a.sessionLifetimeMinutes ?? null, effectiveLifetimeMinutes: a.sessionLifetimeMinutes ?? 60, activeSessionCount: activeTokens().length + studentSessions().length, managerProtected: a.kind === "STAFF" && a.roles.includes("MANAGER"), version: a.version });
+    if (sessionMatch[2] === "session-policy" && method === "GET") return envelope(policy());
+    if (!(sessionMatch[2] === "session-policy" && method === "PATCH") && !(sessionMatch[2] === "sessions/revoke" && method === "POST")) reject(405, "METHOD_NOT_ALLOWED", "Phương thức không hợp lệ.");
+    const b = obj(req.body), reason = typeof b.reason === "string" ? b.reason.trim() : "";
+    if (!reason || reason.length > 500) reject(422, "VALIDATION_ERROR", "Nhập lý do từ 1 đến 500 ký tự.");
+    const revoke = sessionMatch[2] === "sessions/revoke";
+    if (revoke && policy().managerProtected) reject(403, "MANAGER_PROTECTED", "Không được buộc hết phiên tài khoản có vai trò MANAGER.");
+    if (b.version !== a.version) reject(409, "VERSION_CONFLICT", "Dữ liệu đã thay đổi. Tải lại để xem phiên bản mới.");
+    let revokedSessions = 0;
+    if (revoke) {
+      const tokens = activeTokens(), students = studentSessions();
+      revokedSessions = tokens.length + students.length;
+      for (const [token] of tokens) delete db.tokens[token];
+      for (const s of students) s.revokedAt = now();
+    } else {
+      const lifetime = b.sessionLifetimeMinutes ?? null;
+      if (lifetime !== null && (typeof lifetime !== "number" || !Number.isInteger(lifetime) || lifetime < 1 || lifetime > 43200)) reject(422, "VALIDATION_ERROR", "Thời hạn phiên từ 1 đến 43200 phút, hoặc dùng mặc định.");
+      a.sessionLifetimeMinutes = lifetime as number | null;
+    }
+    a.version++; a.updatedAt = now(); m.revision++;
+    m.audit.unshift({ id: uid(), at: now(), actorId: staff.id, action: revoke ? "REVOKE_SESSIONS" : "UPDATE_SESSION_POLICY", entity: "accounts", ids: [a.id], reason, changes: [{ id: a.id, fields: [revoke ? "sessions" : "sessionLifetimeMinutes"] }] });
+    save(db); return envelope(revoke ? { revokedSessions, policy: policy() } : policy());
+  }
   if (path === "/manager/dashboard")
     return envelope(
       stats(db, {
