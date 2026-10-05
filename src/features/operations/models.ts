@@ -26,7 +26,7 @@ export function operationEnvelope(value: unknown): Operation | null {
 }
 export function businessMutation(url: string, method = "GET") {
   if (!["POST", "PATCH", "PUT"].includes(method)) return false;
-  return url === "/manager/changes/commit" || (/^\/(classes|sessions|assessments)\//.test(url) && !url.endsWith("/preview"));
+  return url === "/manager/changes/commit" || /^\/manager\/accounts\/[^/]+\/(session-policy|sessions\/revoke)$/.test(url) || (/^\/(classes|sessions|assessments)\//.test(url) && !url.endsWith("/preview"));
 }
 export function relatedTags(entities: string[]) {
   const tags = new Set<"Auth" | "Management" | "Dashboard" | "Assignments" | "Warnings" | "Audit" | "Classes" | "Class" | "Students" | "Sessions" | "Assessments" | "Results" | "ClassAccess" | "Operations">(["Operations", "Audit"]);

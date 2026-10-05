@@ -39,6 +39,24 @@ export interface Account extends Versioned {
   kind: "STUDENT" | "STAFF";
   roles: Role[];
   status: "PENDING" | "ACTIVE" | "LOCKED";
+  sessionLifetimeMinutes?: number | null;
+}
+export interface AccountSessionPolicy {
+  accountId: string;
+  sessionLifetimeMinutes: number | null;
+  effectiveLifetimeMinutes: number;
+  activeSessionCount: number;
+  managerProtected: boolean;
+  version: number;
+}
+export interface SessionPolicyRequest {
+  sessionLifetimeMinutes: number | null;
+  version: number;
+  reason: string;
+}
+export interface SessionRevocation {
+  revokedSessions: number;
+  policy: AccountSessionPolicy;
 }
 export interface AssignmentLabel extends Versioned {
   name: string;

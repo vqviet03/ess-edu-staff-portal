@@ -145,3 +145,5 @@ CORS allow origin `https://vqviet03.github.io` (không có path repo), headers A
 ## ID và queue
 
 Xem [identifiers-operations.md](identifiers-operations.md) cho suggest/check, ID CREATE/UPDATE, nameSuffix, operation 202 và WebSocket. Preview đồng bộ trả ID cuối; commit với Prefer bất đồng bộ trả operation, DONE giữ nguyên envelope commit.
+
+GET/PATCH `accounts/{id}/session-policy` và POST `accounts/{id}/sessions/revoke`: xem [contract phiên tài khoản](account-sessions.md). Account list/detail bổ sung `sessionLifetimeMinutes`; UI lấy version và bảo vệ MANAGER từ policy endpoint, không suy diễn quyền từ menu switch.

@@ -133,3 +133,9 @@ Mutation gửi `Prefer: respond-async` và idempotency key, UI báo đang xử l
 Trong Giảng viên → lớp đang phụ trách → phiên → bài đánh giá: nhập đủ điểm hoặc xác nhận vắng cho từng học sinh, **Đánh dấu hoàn thành**, sau đó **Công bố báo cáo cho học sinh**. Hoàn thành chỉ khóa điểm, chưa công bố. Học sinh chọn đúng lớp và tải lại trang để xem Unit đã công bố. Một Unit dùng một bài làm nguồn; UI xác nhận trước khi thay nguồn. Gỡ công bố trước khi chuyển bài về nháp/sửa; lịch sử và điểm được giữ. Quản lý chỉ xem trạng thái, không công bố nếu không có quyền giảng viên của lớp.
 
 `GET /assessments/:id/publication` và POST publish/unpublish dùng RTK Query, Prefer/queue/idempotency hiện tại. Backend cần có endpoint trạng thái trước khi merge frontend. Mock thực hiện snapshot, version, quyền, gỡ công bố và persist khi reload.
+
+## Thời hạn và kết thúc phiên tài khoản
+
+Quản lý → hồ sơ Học sinh/Giảng viên/Tài khoản → **Phiên đăng nhập**: đặt số phút (1–43200; 60 phút = 1 giờ, 1440 = 1 ngày), hoặc mặc định hệ thống. Chính sách áp dụng cho đăng nhập mới bằng mật khẩu và link. **Buộc kết thúc tất cả phiên** cần lý do/xác nhận; tài khoản vẫn đăng nhập lại được. MANAGER và tài khoản hai vai trò được bảo vệ khỏi thao tác này. Form giữ dữ liệu khi lỗi/version conflict, có cảnh báo chưa lưu; HTTP 202 và realtime dùng RTK Query/queue sẵn có.
+
+Xem [contract phiên tài khoản](docs/account-sessions.md). Mock thực hiện thu hồi mọi token đích, thời hạn riêng, audit/version/idempotency và persist khi reload; tài khoản demo hiện tại dùng mặc định 60 phút. Không cần biến môi trường hay thư viện mới. Backend cần áp dụng migration 007 và deploy API trước khi merge frontend.

@@ -31,7 +31,7 @@ export async function installHttpFixture(page: Page, shared?: { get: () => strin
         const session = (response.data as Envelope<AuthSession>).data;
         const db = JSON.parse(database.get()) as Database;
         delete db.tokens[session.accessToken];
-        session.accessToken = `e30.${Buffer.from(JSON.stringify({exp:Math.floor(Date.now()/1000)+3600})).toString('base64url')}.${crypto.randomUUID()}`;
+        session.accessToken = `e30.${Buffer.from(JSON.stringify({exp:Math.floor(Date.parse(session.expiresAt)/1000)})).toString('base64url')}.${crypto.randomUUID()}`;
         db.tokens[session.accessToken] = session;
         database.set(JSON.stringify(db));
       }
@@ -58,6 +58,7 @@ export async function installHttpFixture(page: Page, shared?: { get: () => strin
         timer = setInterval(() => {
           const current = JSON.parse(database.get()) as Database;
           const me = current.tokens[token]?.teacher;
+          if (!me || Date.parse(current.tokens[token].expiresAt) <= Date.now()) { clearInterval(timer); socket.close({code:1008, reason:'UNAUTHORIZED'}); return; }
           for (const event of current.operationEvents ?? []) if (BigInt(event.eventId) > BigInt(cursor) && (me?.roles?.includes('MANAGER') || event.actorId === me?.id)) {socket.send(JSON.stringify({type:'CHANGE', data:event}));cursor=event.eventId;}
         }, 50);
       } catch {socket.close({code:1008, reason:'UNAUTHORIZED'});}
