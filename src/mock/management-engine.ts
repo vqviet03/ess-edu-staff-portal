@@ -1,4 +1,5 @@
 import { requestHeaders } from "@/api/headers";
+import { nameIdentifier, availableIdentifier, classPrefix } from "@/features/management/identifiers";
 import type { FetchArgs } from "@reduxjs/toolkit/query";
 import type { Database } from "./fixtures";
 import { managementSeed } from "./management-fixtures";
@@ -411,6 +412,7 @@ export function buildPreview(
   db: Database,
   staff: Teacher,
   request: PreviewRequest,
+  allocateIdentifiers = true,
 ): BulkPreview {
   if (!capabilities(staff, "manager").manage)
     reject(403, "FORBIDDEN", "Chỉ quản lý hoạt động được thao tác.");
@@ -447,6 +449,7 @@ export function buildPreview(
   if (!inputRows.length || inputRows.length > 5000)
     reject(422, "INVALID_ROWS", "Cần từ 1 đến 5000 bản ghi.");
   const ids = new Set<string>();
+  const used = new Set([...m.students.map((s) => s.id), ...m.teachers.map((t) => t.id), ...m.accounts.map((a) => a.loginId)].map((x) => x.toLowerCase()));
   for (const [i, rawInput] of inputRows.entries()) {
     const row = Number(rawInput._excelRow) || i + 2;
     if (
@@ -459,8 +462,20 @@ export function buildPreview(
       )
     )
       continue;
-    const raw = obj(rawInput),
-      recordId = String(raw.id ?? ""),
+    const raw = obj(rawInput);
+    if (request.mode === "CREATE" && allocateIdentifiers && (entity === "students" || entity === "teachers")) {
+      try {
+        const requested = String(raw.id ?? "").trim();
+        raw.id = availableIdentifier(requested || nameIdentifier(String(raw.fullName ?? "")), used);
+        used.add(String(raw.id).toLowerCase());
+        if (requested && requested !== raw.id) preview.warnings.push(`Dòng ${row}: ID ${requested} → ${raw.id} để tránh trùng.`);
+      } catch (e) { preview.errors.push({ row, column: "id", message: e instanceof Error ? e.message : "ID không hợp lệ" }); continue; }
+    }
+    if (request.mode === "CREATE" && allocateIdentifiers && entity === "classes") {
+      m.lastClassNumber = Math.max(20, m.lastClassNumber ?? 20, ...m.classes.map((c) => Number(c.code.match(/^ess(\d+)(?:-|$)/i)?.[1] ?? 0))) + 1;
+      raw.id = `ess${m.lastClassNumber}`;
+    }
+    const recordId = String(raw.id ?? ""),
       before =
         (m[entity] as ManagedRecord[]).find((r) => r.id === recordId) ?? null;
     if (ids.has(recordId)) {
@@ -497,6 +512,12 @@ export function buildPreview(
       ...before,
       ...effectivePatch(raw, request.clearFields),
     };
+    if (entity === "classes" && (!before || Object.hasOwn(raw, "nameSuffix"))) {
+      const prefix = before && "code" in before ? classPrefix(before.code) : recordId;
+      let suffix = String(raw.nameSuffix ?? raw.name ?? "").trim().replace(/^-/, "");
+      if (suffix.startsWith(prefix)) suffix = suffix.slice(prefix.length).replace(/^-/, "");
+      input.nameSuffix = suffix; input.code = input.name = prefix + (suffix ? "-" + suffix : "");
+    }
     if (entity === "accounts" || entity === "teachers")
       input.roles = parseRoles(input.roles);
     const parsed = entitySchemas[entity].safeParse(input);
@@ -772,7 +793,7 @@ export function buildPreview(
       affected.add(c.id);
   }
   preview.impacts = [...affected].map((classId) => {
-    const c = m.classes.find((c) => c.id === classId)!,
+    const c = (m.classes.find((c) => c.id === classId) ?? management(future).classes.find((c) => c.id === classId))!,
       remaining = validTeachers(management(future), classId);
     return {
       classId,
@@ -834,7 +855,7 @@ export function commitPreview(
     reject(422, "REASON_REQUIRED", "Nhập lý do thay đổi.");
   // Rebuild inside the transaction using the frozen selection/rows, never accept client diff.
   if (!item.extra) {
-    const checked = buildPreview(db, staff, item.request);
+    const checked = buildPreview(db, staff, item.request, false);
     if (checked.errors.length)
       reject(422, "PREVIEW_INVALID", "Dữ liệu không còn hợp lệ.");
     delete m.previews[checked.previewId];
@@ -1216,6 +1237,14 @@ export async function managementRequest(
         status: filter.status ?? "",
       }),
     );
+  if (path === "/manager/identifiers/suggest" || path === "/manager/identifiers/check") {
+    const b = obj(req.body);
+    if (b.entity === "classes") return envelope({ id: `ess${Math.max(20, m.lastClassNumber ?? 20, ...m.classes.map((c) => Number(c.code.match(/^ess(\d+)(?:-|$)/i)?.[1] ?? 0))) + 1}`, isAvailable: true, requestedId: "" });
+    if (b.entity !== "students" && b.entity !== "teachers") reject(400, "INVALID_ENTITY", "Chỉ sinh ID học sinh, giảng viên hoặc lớp.");
+    const requestedId = String(b.id ?? "").trim() || nameIdentifier(String(b.fullName ?? ""));
+    const used = new Set([...m.students.map((s) => s.id), ...m.teachers.map((t) => t.id), ...m.accounts.map((a) => a.loginId)].map((x) => x.toLowerCase()));
+    return envelope({ id: availableIdentifier(requestedId, used), isAvailable: !used.has(requestedId.toLowerCase()), requestedId });
+  }
   if (path === "/manager/selection/count") {
     const b = obj(req.body),
       entity = String(b.entity) as Entity;
@@ -1409,8 +1438,9 @@ export async function managementRequest(
       !(req.body.get("file") instanceof Blob)
     )
       reject(422, "INVALID_FILE", "Chọn file .xlsx.");
+    const mode = req.body.get("mode") === "UPDATE" ? "UPDATE" : "CREATE";
     const parsed = await excel
-        .readProfiles(req.body.get("file") as Blob, entity)
+        .readProfiles(req.body.get("file") as Blob, entity, mode)
         .catch((e) =>
           reject(
             422,
@@ -1418,7 +1448,6 @@ export async function managementRequest(
             e instanceof Error ? e.message : "File không hợp lệ",
           ),
         ),
-      mode = req.body.get("mode") === "UPDATE" ? "UPDATE" : "CREATE",
       clear = String(req.body.get("clearFields") ?? "")
         .split(",")
         .filter(Boolean);

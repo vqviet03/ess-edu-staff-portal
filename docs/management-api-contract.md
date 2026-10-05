@@ -1,6 +1,6 @@
 # ESS Staff · Quản lý và phân quyền (contract v1)
 
-Các endpoint giảng viên trong [api-contract.md](api-contract.md) tiếp tục giữ nguyên. Phần quản lý dưới đây là **contract mới để backend triển khai**; frontend/mock đã dùng cùng URL, payload và envelope. Ngày kiểm tra 04/10/2026, Cloud Run đăng nhập Staff thành công nhưng `/manager/dashboard` trả 404. Không tự chuyển sang mock khi real API thiếu endpoint.
+Các endpoint giảng viên trong [api-contract.md](api-contract.md) tiếp tục giữ nguyên. Backend ESS triển khai contract quản lý này; frontend/mock dùng cùng URL, payload và envelope. Không tự chuyển sang mock khi real API thiếu endpoint.
 
 Base URL `NEXT_PUBLIC_API_BASE_URL`, chuẩn hóa hậu tố `/v1`. HTTPS (HTTP chỉ localhost). Thành công `{data:T,meta?}`; lỗi `{error:{code,message,fieldErrors?,rowErrors?}}`. ID string, version integer, datetime ISO 8601; dateOfBirth `YYYY-MM-DD|null`. Không hard DELETE. Backend lấy tenant/actor từ phiên, kiểm tra quyền từng request và cả thời điểm commit.
 
@@ -141,3 +141,7 @@ CREATE không chấp nhận ID đã có; UPDATE yêu cầu ID đã có. Ô trố
 | 500 | INTERNAL_ERROR | Lỗi chung, không lộ DB/secrets |
 
 CORS allow origin `https://vqviet03.github.io` (không có path repo), headers Authorization, Content-Type, Idempotency-Key; methods GET/POST/PATCH/PUT/OPTIONS. Expose Content-Disposition cho tải .xlsx, Retry-After. JWT issuer/audience/signature/exp kiểm phía backend. Activation/exchange code ngẫu nhiên crypto, chỉ lưu digest, TTL ngắn, consume một lần trong transaction; không log code/password/token. Đặt lại mật khẩu thu hồi phiên cũ. Backend cần index/unique tenant+ID/loginId, unique teacherId+classId/enrollment studentId+classId, history append-only và audit.
+
+## ID và queue
+
+Xem [identifiers-operations.md](identifiers-operations.md) cho suggest/check, ID CREATE/UPDATE, nameSuffix, operation 202 và WebSocket. Preview đồng bộ trả ID cuối; commit với Prefer bất đồng bộ trả operation, DONE giữ nguyên envelope commit.

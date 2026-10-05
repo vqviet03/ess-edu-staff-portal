@@ -29,6 +29,7 @@ async function confirmPreview(
   await reasonField.fill(reason);
   await expect(button).toBeEnabled();
   await button.click();
+  await expect(page.getByText(/Chưa ghi dữ liệu\./)).toHaveCount(0);
   await expect(button).toHaveCount(0);
 }
 test.beforeEach(async ({ page }) => {

@@ -17,6 +17,7 @@ import { makeStore } from "@/store";
 import { WorkspaceRuntime } from "@/features/access/hooks";
 import { AuthRuntime } from "@/features/auth/runtime";
 import { UnsavedRuntime } from "@/shared/unsaved";
+import { OperationsRuntime } from "@/features/operations/runtime";
 type Mode = "light" | "dark" | "system";
 const Preferences = createContext<{
   mode: Mode;
@@ -133,6 +134,7 @@ export function Providers({ children }: { children: ReactNode }) {
             <CssBaseline />
             <AuthRuntime />
             <WorkspaceRuntime />
+            <OperationsRuntime />
             <UnsavedRuntime />
             {children}
           </ThemeProvider>

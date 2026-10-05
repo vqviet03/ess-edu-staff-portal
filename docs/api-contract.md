@@ -138,3 +138,7 @@ Timeout NEXT_PUBLIC_API_TIMEOUT_MS mặc định15s, hợp lệ 1–120000ms, kh
 ## Mở rộng Quản lý
 
 Xem [management-api-contract.md](management-api-contract.md) cho endpoint/models mới, MANAGER/TEACHER, access theo lớp, lifecycle, preview/commit, selection FILTER, Excel hồ sơ, activation và audit. `teacher` trong auth response là StaffIdentity để giữ tương thích tên field; profile/account có trạng thái riêng. Backend ESS cũ thiếu access mới chỉ cho frontend đọc; không tự nâng role ADMIN hoặc suy ra quyền sửa từ JWT.
+
+## ID và tác vụ nền
+
+Xem [identifiers-operations.md](identifiers-operations.md). Mutation nghiệp vụ từ portal gửi Prefer/respond-async và Idempotency-Key; baseQuery nhận 202, theo dõi operation rồi trả data cuối cho hooks. RTK Query WebSocket và Redux listener cập nhật cache ở các phiên quản lý khác. Auth/preview/đọc dữ liệu giữ contract hiện tại.

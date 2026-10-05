@@ -317,8 +317,6 @@ function InputGrid({ group }: { group: ProfileGroup }) {
       !rolesInput.safeParse(parseRoles(r.roles)).success
     )
       e.roles = "TEACHER / MANAGER / TEACHER|MANAGER";
-    if (rows.filter((o) => o.id === r.id && nonempty(o)).length > 1)
-      e.id = "ID trùng trong bảng";
     return e;
   });
   const change = (i: number, k: string, value: unknown) => {
@@ -331,7 +329,7 @@ function InputGrid({ group }: { group: ProfileGroup }) {
     <>
       <Title
         title="Thêm bằng bảng template"
-        subtitle="Nhập trực tiếp hoặc dán vùng dữ liệu từ Excel vào ô đầu tiên. Dòng hoàn toàn trống được bỏ qua."
+        subtitle="Nhập hoặc dán từ Excel. ID trống sinh từ tên; ID trùng tự thêm số trong preview. Dòng hoàn toàn trống được bỏ qua."
         actions={
           <>
             <NavButton href="/manage/grid/?entity=students">Học sinh</NavButton>

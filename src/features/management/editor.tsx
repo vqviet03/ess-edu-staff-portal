@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useForm, useWatch, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { z } from "zod";
@@ -13,7 +13,8 @@ import FormControlLabel from "@mui/material/FormControlLabel";
 import MenuItem from "@mui/material/MenuItem";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
-import { usePreviewChangesMutation } from "@/api/management-api";
+import { usePreviewChangesMutation, useSuggestIdentifierMutation, useCheckIdentifierMutation } from "@/api/management-api";
+import { classPrefix } from "./identifiers";
 import { errorMessage } from "@/api/base-query";
 import { confirmLeave, useUnsaved } from "@/shared/unsaved";
 import type { BulkPreview, Entity, ManagedRecord } from "./models";
@@ -43,6 +44,9 @@ export function EntityEditor({
   close: (saved?: number) => void;
 }) {
   const [baseVersion] = useState(record?.version);
+  const [customId, setCustomId] = useState(!!initial?.id), [identifierMessage, setIdentifierMessage] = useState("");
+  const [suggestIdentifier, suggesting] = useSuggestIdentifierMutation(), [checkIdentifier, checking] = useCheckIdentifierMutation();
+  const generation = useRef(0);
   const [preview, state] = usePreviewChangesMutation(),
     [data, setData] = useState<BulkPreview | null>(null),
     [error, setError] = useState("");
@@ -50,6 +54,7 @@ export function EntityEditor({
     control,
     handleSubmit,
     setValue,
+    getValues,
     formState: { isDirty },
   } = useForm<Record<string, unknown>>({
     resolver: zodResolver(
@@ -63,10 +68,31 @@ export function EntityEditor({
     defaultValues: {
       ...defaults(entity, entity === "accounts" ? crypto.randomUUID() : ""),
       ...record,
+      ...(entity === "classes" && record && "code" in record ? { nameSuffix: record.name.startsWith(classPrefix(record.code)) ? record.name.slice(classPrefix(record.code).length).replace(/^-/, "") : record.name } : {}),
       ...initial,
     },
   });
   const kind = useWatch({ control, name: "kind" });
+  const fullName = useWatch({ control, name: "fullName" });
+  const profile = entity === "students" || entity === "teachers";
+  useEffect(() => {
+    if (record || !profile || customId) return;
+    const sequence = ++generation.current;
+    let active = true;
+    if (!String(fullName ?? "").trim()) { setValue("id", ""); return; }
+    const timer = setTimeout(() => {
+      void suggestIdentifier({ entity, fullName: String(fullName) }).unwrap().then((r) => {
+        if (active && generation.current === sequence) { setValue("id", r.id, { shouldValidate: true }); setIdentifierMessage("ID được backend sinh; bạn có thể chỉnh sửa."); }
+      }).catch((e) => { if (active && generation.current === sequence) setIdentifierMessage(errorMessage(e)); });
+    }, 350);
+    return () => { clearTimeout(timer); active = false; };
+  }, [entity, profile, record, fullName, customId, suggestIdentifier, setValue]);
+  useEffect(() => {
+    if (record || entity !== "classes") return;
+    let active = true;
+    void suggestIdentifier({ entity }).unwrap().then((r) => { if (active) setValue("id", r.id); }).catch((e) => { if (active) setIdentifierMessage(errorMessage(e)); });
+    return () => { active = false; };
+  }, [entity, record, suggestIdentifier, setValue]);
   useUnsaved(isDirty && !data);
   return (
     <Dialog
@@ -95,8 +121,7 @@ export function EntityEditor({
             onSubmit={handleSubmit(async (values) => {
               try {
                 setError("");
-                setData(
-                  await preview({
+                const result = await preview({
                     entity,
                     rows: [{ ...values, version: baseVersion }],
                     clearFields: [
@@ -113,8 +138,9 @@ export function EntityEditor({
                         (record as unknown as Record<string, unknown>)[k],
                     ),
                     mode: record ? "UPDATE" : "CREATE",
-                  }).unwrap(),
-                );
+                  }).unwrap();
+                if (!record && result.changes[0]) setValue("id", result.changes[0].id);
+                setData(result);
               } catch (e) {
                 setError(errorMessage(e));
               }
@@ -133,7 +159,7 @@ export function EntityEditor({
                     kind === "STUDENT"
                       ? [""]
                       : options(entity, key);
-                  return (
+                  const input = (
                     <TextField
                       {...field}
                       value={
@@ -148,12 +174,15 @@ export function EntityEditor({
                         fieldState.error?.message ??
                         (key === "id" && record
                           ? "ID ổn định, không thay đổi"
+                          : key === "id" && !record
+                            ? entity === "classes" ? "Tiền tố ess và số lớp do backend cấp; số được chốt khi xem trước." : identifierMessage || "Để trống để sinh từ tên; ID trùng sẽ thêm số trong preview."
+                            : key === "nameSuffix" ? "Ví dụ a1 → ess21-a1. Sửa hậu tố giữ nguyên ID lớp."
                           : key === "profileId"
                             ? "Liên kết đúng ID hồ sơ đã có"
                             : "")
                       }
                       disabled={
-                        (key === "id" && !!record) ||
+                        (key === "id" && (!!record || entity === "classes")) ||
                         (entity === "accounts" &&
                           !!record &&
                           ["profileId", "kind"].includes(key)) ||
@@ -179,6 +208,7 @@ export function EntityEditor({
                           : undefined
                       }
                       onChange={(e) => {
+                        if (key === "id" && profile && !record) { generation.current++; setCustomId(true); setIdentifierMessage(""); }
                         if (key === "kind") {
                           setValue(
                             "roles",
@@ -209,6 +239,17 @@ export function EntityEditor({
                       ))}
                     </TextField>
                   );
+                  return <Stack spacing={1}>{input}{key === "id" && profile && !record && <Stack direction="row" spacing={1} sx={{ flexWrap: "wrap" }}>
+                    <Button loading={checking.isLoading} disabled={!String(field.value ?? "").trim()} onClick={async () => {
+                      try {
+                        const requested = String(getValues("id"));
+                        const r = await checkIdentifier({ entity, id: requested }).unwrap();
+                        if (getValues("id") !== requested) return;
+                        setIdentifierMessage(r.isAvailable ? "ID có thể sử dụng; backend kiểm tra lại khi lưu." : `ID đã dùng. Gợi ý: ${r.id}. Backend sẽ thêm số khi xem trước.`);
+                      } catch (e) { setIdentifierMessage(errorMessage(e)); }
+                    }}>Kiểm tra trùng</Button>
+                    <Button loading={suggesting.isLoading} onClick={() => { setCustomId(false); generation.current++; setIdentifierMessage(""); }}>Tự sinh từ tên</Button>
+                  </Stack>}</Stack>;
                 }}
               />
             ))}

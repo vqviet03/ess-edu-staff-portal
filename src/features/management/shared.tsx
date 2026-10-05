@@ -73,7 +73,7 @@ export function PreviewPanel({
     [reason, setReason] = useState(""),
     [error, setError] = useState(""),
     [commit, state] = useCommitChangesMutation();
-  useUnsaved(preview.count > 0);
+  useUnsaved(preview.count > 0 && !state.isLoading);
   const names: Record<string, string> = {
     STATUS_IMPACT: "Tôi xác nhận ảnh hưởng đổi trạng thái và thao tác mềm",
     ASSIGNMENT_IMPACT:
@@ -89,6 +89,7 @@ export function PreviewPanel({
         Chưa ghi dữ liệu.
       </Alert>
       {error && <Alert severity="error">{error}</Alert>}
+      {state.isLoading && <Alert severity="info">Tác vụ đang xử lý. ESS sẽ thông báo và tự cập nhật dữ liệu khi hoàn tất.</Alert>}
       {preview.warnings.map((w, i) => (
         <Alert key={i} severity="warning">
           {w}
@@ -272,7 +273,7 @@ export function PreviewPanel({
             }
           }}
         >
-          Xác nhận cập nhật {preview.count} bản ghi
+          {state.isLoading ? "Đang xử lý…" : `Xác nhận cập nhật ${preview.count} bản ghi`}
         </Button>
       </Stack>
     </Stack>
