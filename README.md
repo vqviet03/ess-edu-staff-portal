@@ -127,3 +127,9 @@ Kiểm tra: `npm run lint`, `npm run typecheck`, `npm test`, `npm run build`; br
 [Contract ID/tác vụ nền](docs/identifiers-operations.md): nhập tên gọi backend sinh ID, ID tùy chỉnh có nút kiểm tra trùng; CREATE bảng/Excel cho phép ID trống/trùng và xem ID đã cấp ở preview. Lớp tự cấp `ess21…`, hậu tố tên sửa riêng. Các ID hiện có giữ nguyên.
 
 Mutation gửi `Prefer: respond-async` và idempotency key, UI báo đang xử lý sau HTTP 202. WebSocket trong RTK Query nhận completion, Redux invalidate dữ liệu liên quan; polling là dự phòng và phục hồi sau reload. JWT gửi ở frame AUTH, không trên URL. Mock cũng có queue, events và lưu dữ liệu khi reload. Khi Cloud Run scale về 0/mọi client offline, job tiếp tục lúc truy cập lại; xử lý liên tục cần cấu hình backend riêng. Không cần thêm biến NEXT_PUBLIC hoặc thư viện.
+
+## Công bố báo cáo sang trang học sinh
+
+Trong Giảng viên → lớp đang phụ trách → phiên → bài đánh giá: nhập đủ điểm hoặc xác nhận vắng cho từng học sinh, **Đánh dấu hoàn thành**, sau đó **Công bố báo cáo cho học sinh**. Hoàn thành chỉ khóa điểm, chưa công bố. Học sinh chọn đúng lớp và tải lại trang để xem Unit đã công bố. Một Unit dùng một bài làm nguồn; UI xác nhận trước khi thay nguồn. Gỡ công bố trước khi chuyển bài về nháp/sửa; lịch sử và điểm được giữ. Quản lý chỉ xem trạng thái, không công bố nếu không có quyền giảng viên của lớp.
+
+`GET /assessments/:id/publication` và POST publish/unpublish dùng RTK Query, Prefer/queue/idempotency hiện tại. Backend cần có endpoint trạng thái trước khi merge frontend. Mock thực hiện snapshot, version, quyền, gỡ công bố và persist khi reload.

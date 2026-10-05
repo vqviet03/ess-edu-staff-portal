@@ -15,6 +15,7 @@ import type { ChangeNotification } from "@/features/operations/models";
 export interface Database {
   operations?: Record<string, StoredMockOperation>;
   operationEvents?: ChangeNotification[];
+  publications?: Record<string, { assessmentId: string; publishedAt: string; results: StudentResult[]; skills: Assessment["skills"] }>;
   management?: ManagementDatabase;
   classes: Class[];
   students: Record<string, Student[]>;

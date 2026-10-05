@@ -17,6 +17,8 @@ export function operationCommand(url: string, method: string) {
   if (/^\/sessions\/[^/]+$/.test(url)) return "Staff.Session";
   if (/^\/sessions\/.+\/assessments$/.test(url)) return "Staff.CreateAssessment";
   if (/^\/assessments\/[^/]+$/.test(url)) return "Staff.Assessment";
+  if (url.endsWith("/publish")) return "Staff.Publish";
+  if (url.endsWith("/unpublish")) return "Staff.Unpublish";
   return method === "PUT" ? "Staff.Result" : "Staff.Batch";
 }
 export function operationEntities(command: string) {

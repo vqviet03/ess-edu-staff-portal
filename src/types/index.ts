@@ -85,6 +85,13 @@ export interface SkillResult {
   comment: string;
   advice: string;
 }
+export interface Publication {
+  unitId: string | null;
+  unitNumber: number | null;
+  isPublished: boolean;
+  sourceAssessmentId: string | null;
+  publishedAt: string | null;
+}
 export interface StudentResult {
   studentId: string;
   attendance: Attendance;

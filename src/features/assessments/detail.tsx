@@ -5,18 +5,20 @@ import Alert from "@mui/material/Alert";
 import Button from "@mui/material/Button";
 import Stack from "@mui/material/Stack";
 import Snackbar from "@mui/material/Snackbar";
-import { useUpdateAssessmentMutation } from "@/api/api";
+import { useUpdateAssessmentMutation, usePublicationQuery } from "@/api/api";
 import { errorMessage } from "@/api/base-query";
 import { Card, Feedback, NavButton, StatusChip, Title } from "@/shared/ui";
 import { route } from "@/utils/context";
 import { confirmLeave } from "@/shared/unsaved";
 import { useScoreContext } from "@/features/scores/context";
 import { SchemaEditor } from "./schema-editor";
+import { PublicationPanel } from "./publication";
 export function AssessmentDetail() {
   const q = useScoreContext(),
     [update, state] = useUpdateAssessmentMutation(),
     [error, setError] = useState(""),
     [message, setMessage] = useState("");
+  const publication = usePublicationQuery(q.context.assessmentId, { skip: !q.assessment || !!q.empty, pollingInterval: 30000, skipPollingIfUnfocused: true });
   if (q.loading || q.error || q.empty)
     return (
       <Feedback
@@ -55,7 +57,7 @@ export function AssessmentDetail() {
       >
         <StatusChip status={a.status} />
         <Button
-          disabled={!q.canEdit || state.isLoading}
+          disabled={!q.canEdit || state.isLoading || publication.currentData?.isPublished}
           onClick={async () => {
             if (
               !confirmLeave() ||
@@ -87,6 +89,7 @@ export function AssessmentDetail() {
         </Alert>
       )}
       <ReadOnlyNotice editable={q.canEdit}/>
+      <PublicationPanel assessment={a} publication={publication.currentData} canEdit={q.canEdit} loading={publication.isLoading || (publication.isFetching && !publication.currentData)} error={publication.error} retry={publication.refetch} onSuccess={setMessage}/>
       <Card>
         <SchemaEditor
           key={a.version}

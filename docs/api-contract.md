@@ -142,3 +142,7 @@ Xem [management-api-contract.md](management-api-contract.md) cho endpoint/models
 ## ID và tác vụ nền
 
 Xem [identifiers-operations.md](identifiers-operations.md). Mutation nghiệp vụ từ portal gửi Prefer/respond-async và Idempotency-Key; baseQuery nhận 202, theo dõi operation rồi trả data cuối cho hooks. RTK Query WebSocket và Redux listener cập nhật cache ở các phiên quản lý khác. Auth/preview/đọc dữ liệu giữ contract hiện tại.
+
+## Công bố báo cáo
+
+GET `/assessments/:assessmentId/publication` → `{data:{unitId:string|null,unitNumber:number|null,isPublished:boolean,sourceAssessmentId:string|null,publishedAt:string|null}}`. POST `/assessments/:id/publish` hoặc `/unpublish` body `{version}` → `{data:{published:boolean}}` (hoặc operation 202 khi có Prefer). Hoàn thành không tự công bố; publish yêu cầu quyền giảng viên của lớp, bài COMPLETED, Unit hợp lệ và roster đầy đủ. Snapshot là nguồn của API học sinh. SourceAssessmentId cho biết bài đang làm nguồn trong Unit; công bố bài khác thay nguồn sau xác nhận UI. Gỡ công bố trước khi sửa/mở lại nháp; dữ liệu nhập không bị xóa. Cache assessment/publication/results/classes và các phiên quản lý được làm mới.

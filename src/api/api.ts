@@ -12,6 +12,7 @@ import type {
   Student,
   StudentResult,
   Teacher,
+  Publication,
 } from "@/types";
 import { verifiedSession, verifiedStaff } from "@/features/auth/contract";
 import { baseQuery } from "./base-query";
@@ -175,6 +176,16 @@ export const createStaffApi = (query = baseQuery) =>
         transformResponse: unwrap<Assessment>,
         providesTags: (_, __, id) => [{ type: "Assessments", id }],
       }),
+      publication: b.query<Publication, string>({
+        query: (id) => `/assessments/${encodeURIComponent(id)}/publication`,
+        transformResponse: unwrap<Publication>,
+        providesTags: ["Assessments"],
+      }),
+      publishAssessment: b.mutation<{ published: boolean }, { id: string; version: number; publish: boolean }>({
+        query: ({ id, version, publish }) => ({ url: `/assessments/${encodeURIComponent(id)}/${publish ? "publish" : "unpublish"}`, method: "POST", body: { version } }),
+        transformResponse: unwrap<{ published: boolean }>,
+        invalidatesTags: (_, error) => error ? [] : ["Assessments", "Results", "Classes", "Class"],
+      }),
       updateAssessment: b.mutation<
         Assessment,
         Assessment & { confirmSchemaChange?: boolean }
@@ -291,6 +302,8 @@ export const {
   useAssessmentsQuery,
   useCreateAssessmentMutation,
   useAssessmentQuery,
+  usePublicationQuery,
+  usePublishAssessmentMutation,
   useUpdateAssessmentMutation,
   useResultsQuery,
   useSaveResultMutation,
