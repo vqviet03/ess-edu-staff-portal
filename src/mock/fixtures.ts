@@ -15,6 +15,7 @@ import type { ChangeNotification } from "@/features/operations/models";
 export interface Database {
   operations?: Record<string, StoredMockOperation>;
   operationEvents?: ChangeNotification[];
+  reportVersions?: Record<string, number>;
   publications?: Record<string, { assessmentId: string; publishedAt: string; results: StudentResult[]; skills: Assessment["skills"] }>;
   management?: ManagementDatabase;
   classes: Class[];
@@ -184,12 +185,15 @@ export function seed(): Database {
   bon.overallComment =
     "Điểm mạnh: ngữ pháp và nghe.\nCần tập trung thêm vào từ vựng và viết.";
   bon.overallAdvice = "Ôn từ theo chủ đề.\nLuyện viết và nói hằng ngày.";
+  const published = {...structuredClone(assessments[0]),id:"assessment-published",name:"Báo cáo đã công bố Unit 3",status:"COMPLETED" as const};
+  assessments.push(published); results[published.id] = structuredClone(results["assessment-seven"].slice(0,1));
   return {
     classes,
     students,
     sessions,
     assessments,
     results,
+    publications: {"class-green:3": {assessmentId: "assessment-published", publishedAt:"2026-09-21T00:00:00Z",results:structuredClone(results["assessment-seven"].slice(0,1)),skills:structuredClone(published.skills)}},
     tokens: {},
     usedCodes: [],
     previews: {},

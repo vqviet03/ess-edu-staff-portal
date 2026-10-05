@@ -8,7 +8,7 @@ import type { Assessment, AuthSession, Envelope, Publication, StudentResult } fr
 import { operationCommand } from "../src/mock/operations";
 
 async function harness(login = "GV0001") {
-  let value = JSON.stringify(seed()); let token = "";
+  const initial = seed(); initial.publications = {}; let value = JSON.stringify(initial); let token = "";
   const mock = createMockAdapter({ getItem: () => value, setItem: (_key, next) => { value = next; } }, 0);
   const runtime = { signal: new AbortController().signal, dispatch: () => {}, getState: () => ({}) } as unknown as BaseQueryApi;
   const request = (url: string, method = "GET", body?: unknown) => mock({ url, method, body, headers: { Authorization: `Bearer ${token}` } }, runtime, {});

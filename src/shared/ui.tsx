@@ -19,6 +19,7 @@ import { signedOut } from "@/store/auth";
 import { useLogoutMutation, useResetDemoMutation } from "@/api/api";
 import { errorMessage, useMock } from "@/api/base-query";
 import { useWorkspace } from "@/features/access/hooks";
+import { AppScale, DisplayTools, GuideLayout, useAppDisplay } from "@/features/help/display";
 import { confirmLeave } from "./unsaved";
 export function Feedback({
   loading,
@@ -172,11 +173,12 @@ export function Shell({ children }: { children: ReactNode }) {
       }
     }
   };
+  const { zoom } = useAppDisplay();
   const [reset, { isLoading }] = useResetDemoMutation();
   return (
-    <Box
+    <AppScale><Box
       sx={{
-        maxWidth: 1600,
+        maxWidth: 1600 / (zoom / 100),
         mx: "auto",
         p: { xs: 2.5, md: 4 },
         minHeight: "100vh",
@@ -304,6 +306,7 @@ export function Shell({ children }: { children: ReactNode }) {
                     <MenuItem value="teacher">Giảng viên</MenuItem>
                   </TextField>
                 )}
+              <DisplayTools />
               <TextField select label="Ngôn ngữ" value="vi" sx={{ width: 125 }}>
                 <MenuItem value="vi">Tiếng Việt</MenuItem>
               </TextField>
@@ -360,7 +363,7 @@ export function Shell({ children }: { children: ReactNode }) {
               )}
             </Stack>
           </Stack>
-          <Box component="main">{children}</Box>
+          <GuideLayout workspace={workspace.selected}><Box component="main">{children}</Box></GuideLayout>
           <Typography
             component="footer"
             variant="caption"
@@ -373,6 +376,6 @@ export function Shell({ children }: { children: ReactNode }) {
           </Typography>
         </Box>
       </Box>
-    </Box>
+    </Box></AppScale>
   );
 }

@@ -141,3 +141,7 @@ Quản lý → hồ sơ Học sinh/Giảng viên/Tài khoản → **Phiên đăn
 Xem [contract phiên tài khoản](docs/account-sessions.md). Mock thực hiện thu hồi mọi token đích, thời hạn riêng, audit/version/idempotency và persist khi reload; tài khoản demo hiện tại dùng mặc định 60 phút. Không cần biến môi trường hay thư viện mới. Backend cần áp dụng migration 007 và deploy API trước khi merge frontend.
 
 Lịch sử đăng nhập trong hồ sơ tài khoản hiển thị thời gian Việt Nam, thiết bị/trình duyệt/OS và IP kết nối (có thể là proxy; chưa xác định vị trí). Chỉ MANAGER xem được. Bảng nhập hỗ trợ Tạo mới/Cập nhật, ID tự sinh ở CREATE, ô trống giữ dữ liệu ở UPDATE, xóa dòng và kiểm tra boolean/vai trò trước preview. Xem [contract chi tiết](docs/account-sessions.md).
+
+## Báo cáo học sinh, hướng dẫn và thu/phóng
+
+Xem [hướng dẫn tính năng và API](docs/student-reports.md). Mở “Báo cáo học tập” từ học sinh của lớp/hồ sơ quản lý; quản lý chỉ xem, giảng viên đang phụ trách có thể sửa nhận xét. Header có “Hướng dẫn” theo màn hình (vừa đọc vừa thao tác), nút −/100%/+ lưu kích thước 75–125%. Biểu đồ báo cáo cho bật/tắt từng kỹ năng hoặc tất cả. Route `/reports/` được static export như các route hiện có; Pages từ dev sau merge, cấu hình API thật và workflow giữ nguyên.

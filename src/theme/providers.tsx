@@ -14,6 +14,7 @@ import { createTheme, ThemeProvider } from "@mui/material/styles";
 import { viVN } from "@mui/material/locale";
 import CssBaseline from "@mui/material/CssBaseline";
 import { makeStore } from "@/store";
+import { AppDisplayProvider } from "@/features/help/display";
 import { WorkspaceRuntime } from "@/features/access/hooks";
 import { AuthRuntime } from "@/features/auth/runtime";
 import { UnsavedRuntime } from "@/shared/unsaved";
@@ -136,7 +137,7 @@ export function Providers({ children }: { children: ReactNode }) {
             <WorkspaceRuntime />
             <OperationsRuntime />
             <UnsavedRuntime />
-            {children}
+            <AppDisplayProvider storageKey="ess.staff.zoom">{children}</AppDisplayProvider>
           </ThemeProvider>
         </Preferences.Provider>
       </AppRouterCacheProvider>

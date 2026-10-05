@@ -58,7 +58,7 @@ export function OperationsRuntime() {
     for (const job of Object.values(jobs)) {
       if (job.status === "IN_PROGRESS" || done.current.has(job.operationId) || !job.completedAt || Date.parse(job.completedAt) < Date.now() - 60000) continue;
       done.current.add(job.operationId);
-      dispatch(api.util.invalidateTags(relatedTags(["students", "teachers", "classes", "accounts", "assignments", "enrollments", "sessions", "assessments", "results"])));
+      dispatch(api.util.invalidateTags(relatedTags(["students", "teachers", "classes", "accounts", "assignments", "enrollments", "sessions", "assessments", "results", "reports"])));
       setToast({ text: job.status === "DONE" ? "Tác vụ đã hoàn tất. Dữ liệu đã được cập nhật." : (job.error?.message ?? "Tác vụ thất bại."), error: job.status === "FAILED" });
     }
   }, [jobs, dispatch]);
