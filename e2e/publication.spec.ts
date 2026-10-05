@@ -1,0 +1,20 @@
+import { test, expect } from "@playwright/test";
+import { seed } from "../src/mock/fixtures";
+import { installHttpFixture } from "./support/http-fixture";
+const base = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
+test("completed assessment is published explicitly, persists on reload, and must be unpublished before reopening", async ({ page }) => {
+  test.skip(process.env.NEXT_PUBLIC_USE_MOCK === "true", "Validates the real HTTP/async contract with an isolated fixture.");
+  const db = seed(), a = db.assessments[0], session = db.sessions.find(s => s.id === a.sessionId)!;
+  a.status = "COMPLETED";
+  db.results[a.id].forEach((row, i) => { if (i > 0) { row.attendance = "ABSENT"; row.skillResults.forEach(s => { s.score = null; }); } });
+  let value = JSON.stringify(db); await installHttpFixture(page, { get: () => value, set: next => { value = next; } });
+  await page.goto(`${base}/login/`); await page.getByLabel("ID giảng viên").fill("GV0001"); await page.locator('input[autocomplete="current-password"]').fill("Demo123!"); await page.getByRole("button", { name: "Đăng nhập", exact: true }).click(); await expect(page).toHaveURL(/\/home\//);
+  await page.goto(`${base}/assessment/?classId=${session.classId}&sessionId=${a.sessionId}&assessmentId=${a.id}`);
+  const publish = page.getByRole("button", { name: "Công bố báo cáo cho học sinh", exact: true }); await expect(publish).toBeEnabled();
+  await expect(page.getByText(/Chưa công bố cho học sinh\./)).toBeVisible();
+  page.on("dialog", dialog => dialog.accept()); await publish.click();
+  await expect(page.getByText(/Đã công bố cho học sinh · Unit/)).toBeVisible(); await expect(page.getByRole("button", { name: "Chuyển về nháp", exact: true })).toBeDisabled();
+  await page.reload(); await expect(page.getByText(/Đã công bố cho học sinh · Unit/)).toBeVisible();
+  await page.getByRole("button", { name: "Gỡ công bố báo cáo", exact: true }).click(); await expect(publish).toBeVisible(); await expect(page.getByRole("button", { name: "Chuyển về nháp", exact: true })).toBeEnabled();
+  await page.getByRole("button", { name: "Chuyển về nháp", exact: true }).click(); await expect(page.getByRole("button", { name: "Đánh dấu hoàn thành", exact: true })).toBeVisible(); await expect(publish).toBeDisabled();
+});
