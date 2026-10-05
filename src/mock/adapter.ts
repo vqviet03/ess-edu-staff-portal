@@ -476,11 +476,35 @@ export function createMockAdapter(
         learningSave();
         return envelope(a);
       }
+      m = path.match(/^\/assessments\/([^/]+)\/(publication|publish|unpublish)$/);
+      if (m) {
+        const a = assessmentCheck(m[1]), s = sessionCheck(a.sessionId);
+        const key = `${s.classId}:${s.unitNumber}`;
+        const source = db.publications?.[key];
+        if (m[2] === "publication" && method === "GET") return envelope({ unitId: s.unitNumber === null ? null : `unit-${s.classId}-${s.unitNumber}`, unitNumber: s.unitNumber, isPublished: source?.assessmentId === a.id, sourceAssessmentId: source?.assessmentId ?? null, publishedAt: source?.publishedAt ?? null });
+        if (method !== "POST" || m[2] === "publication") return fail(405, "METHOD_NOT_ALLOWED", "Phương thức không hợp lệ.");
+        assertLearning(db, staff, s.classId, true);
+        if (object(body).version !== a.version) return fail(409, "VERSION_CONFLICT", "Bài đánh giá đã thay đổi. Tải lại trước khi công bố.");
+        if (s.unitNumber === null) return fail(422, "VALIDATION_ERROR", "Phiên cần liên kết Unit để công bố.");
+        db.publications ??= {};
+        const publish = m[2] === "publish";
+        if (publish) {
+          if (a.status !== "COMPLETED") return fail(409, "ASSESSMENT_LOCKED", "Chỉ công bố bài đánh giá đã hoàn thành.");
+          const rows = db.results[a.id].filter(r => db.students[s.classId].some(student => student.id === r.studentId && student.status === "ACTIVE"));
+          if (rows.some(r => r.attendance === "UNSET" || (r.attendance === "PRESENT" && !calculate(r, a.skills).complete))) return fail(422, "INCOMPLETE_RESULTS", "Bài còn điểm chưa hoàn tất.");
+          db.publications[key] = { assessmentId: a.id, publishedAt: new Date().toISOString(), results: structuredClone(rows), skills: structuredClone(a.skills) };
+        } else {
+          if (source?.assessmentId !== a.id) return fail(409, "VALIDATION_ERROR", "Bài này chưa được công bố.");
+          delete db.publications[key];
+        }
+        a.version++; learningSave(); return envelope({ published: publish });
+      }
       m = path.match(/^\/assessments\/([^/]+)$/);
       if (m) {
         const a = assessmentCheck(m[1]);
         if (method === "GET") return envelope(a);
         assertLearning(db, staff, sessionCheck(a.sessionId).classId, true);
+        if (Object.values(db.publications ?? {}).some(p => p.assessmentId === a.id)) return fail(409, "PUBLISHED_ASSESSMENT", "Gỡ công bố báo cáo trước khi sửa bài đánh giá.");
         const b = object(body);
         if (b.version !== a.version || b.schemaVersion !== a.schemaVersion)
           return fail(
