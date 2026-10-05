@@ -41,6 +41,7 @@ export interface ManagementDatabase {
   audit: AuditEvent[];
   passwordHashes?: Record<string, string>;
   lastClassNumber?: number;
+  loginHistory?: { accountId: string; loggedInAt: string; expiresAt: string; revokedAt: string | null; ipAddress: string | null; device: string | null; browser: string | null; operatingSystem: string | null }[];
   studentSessions?: { id: string; accountId: string; expiresAt: string; revokedAt: string | null }[];
 }
 export function managementSeed(db: Database): ManagementDatabase {

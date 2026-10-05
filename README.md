@@ -136,6 +136,8 @@ Trong Giảng viên → lớp đang phụ trách → phiên → bài đánh giá
 
 ## Thời hạn và kết thúc phiên tài khoản
 
-Quản lý → hồ sơ Học sinh/Giảng viên/Tài khoản → **Phiên đăng nhập**: đặt số phút (1–43200; 60 phút = 1 giờ, 1440 = 1 ngày), hoặc mặc định hệ thống. Chính sách áp dụng cho đăng nhập mới bằng mật khẩu và link. **Buộc kết thúc tất cả phiên** cần lý do/xác nhận; tài khoản vẫn đăng nhập lại được. MANAGER và tài khoản hai vai trò được bảo vệ khỏi thao tác này. Form giữ dữ liệu khi lỗi/version conflict, có cảnh báo chưa lưu; HTTP 202 và realtime dùng RTK Query/queue sẵn có.
+Quản lý → hồ sơ Học sinh/Giảng viên/Tài khoản → **Phiên đăng nhập**: đặt năm/tháng/ngày/giờ/phút (tổng lớn hơn 0, tối đa 10 năm), hoặc mặc định hệ thống. Chính sách áp dụng cho đăng nhập mới bằng mật khẩu và link. **Buộc kết thúc tất cả phiên** cần lý do/xác nhận; tài khoản vẫn đăng nhập lại được. MANAGER và tài khoản hai vai trò được bảo vệ khỏi thao tác này. Form giữ dữ liệu khi lỗi/version conflict, có cảnh báo chưa lưu; HTTP 202 và realtime dùng RTK Query/queue sẵn có.
 
 Xem [contract phiên tài khoản](docs/account-sessions.md). Mock thực hiện thu hồi mọi token đích, thời hạn riêng, audit/version/idempotency và persist khi reload; tài khoản demo hiện tại dùng mặc định 60 phút. Không cần biến môi trường hay thư viện mới. Backend cần áp dụng migration 007 và deploy API trước khi merge frontend.
+
+Lịch sử đăng nhập trong hồ sơ tài khoản hiển thị thời gian Việt Nam, thiết bị/trình duyệt/OS và IP kết nối (có thể là proxy; chưa xác định vị trí). Chỉ MANAGER xem được. Bảng nhập hỗ trợ Tạo mới/Cập nhật, ID tự sinh ở CREATE, ô trống giữ dữ liệu ở UPDATE, xóa dòng và kiểm tra boolean/vai trò trước preview. Xem [contract chi tiết](docs/account-sessions.md).

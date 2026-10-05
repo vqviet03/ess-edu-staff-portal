@@ -1,3 +1,5 @@
+import { sessionExpiry } from "@/features/management/session-duration";
+import type { SessionDuration } from "@/features/management/session-duration";
 import { requestHeaders } from "@/api/headers";
 import { nameIdentifier, availableIdentifier, classPrefix } from "@/features/management/identifiers";
 import type { FetchArgs } from "@reduxjs/toolkit/query";
@@ -620,6 +622,7 @@ export function buildPreview(
       const a = after as Account;
       // The dedicated policy API owns this field; profile/role edits must retain it.
       a.sessionLifetimeMinutes = before && "roles" in before ? before.sessionLifetimeMinutes ?? null : null;
+      a.sessionDuration = before && "roles" in before ? before.sessionDuration ?? null : null;
       if (
         !m[a.kind === "STAFF" ? "teachers" : "students"].some(
           (p) => p.id === a.profileId,
@@ -1230,13 +1233,19 @@ export async function managementRequest(
       accountStatus: params.get("accountStatus") ?? "",
       role: params.get("role") ?? "",
     };
-  const sessionMatch = path.match(/^\/manager\/accounts\/([^/]+)\/(session-policy|sessions\/revoke)$/);
+  const sessionMatch = path.match(/^\/manager\/accounts\/([^/]+)\/(session-policy|sessions\/revoke|login-history)$/);
   if (sessionMatch) {
     const a = m.accounts.find((a) => a.id === decodeURIComponent(sessionMatch[1]));
     if (!a) reject(404, "NOT_FOUND", "Không tìm thấy tài khoản.");
     const activeTokens = () => Object.entries(db.tokens).filter(([, s]) => a.kind === "STAFF" && s.teacher.id === a.profileId && Date.parse(s.expiresAt) > Date.now());
     const studentSessions = () => (m.studentSessions ?? []).filter((s) => a.kind === "STUDENT" && s.accountId === a.id && !s.revokedAt && Date.parse(s.expiresAt) > Date.now());
-    const policy = () => ({ accountId: a.id, sessionLifetimeMinutes: a.sessionLifetimeMinutes ?? null, effectiveLifetimeMinutes: a.sessionLifetimeMinutes ?? 60, activeSessionCount: activeTokens().length + studentSessions().length, managerProtected: a.kind === "STAFF" && a.roles.includes("MANAGER"), version: a.version });
+    const policy = () => { const serverNow = now(), previewExpiresAt = sessionExpiry(serverNow, a.sessionDuration, a.sessionLifetimeMinutes ?? 60); return { accountId: a.id, defaultLifetimeMinutes: 60, sessionDuration: a.sessionDuration ?? null, serverNow, previewExpiresAt, sessionLifetimeMinutes: a.sessionLifetimeMinutes ?? null, effectiveLifetimeMinutes: (Date.parse(previewExpiresAt) - Date.parse(serverNow)) / 60000, activeSessionCount: activeTokens().length + studentSessions().length, managerProtected: a.kind === "STAFF" && a.roles.includes("MANAGER"), version: a.version }; };
+    if (sessionMatch[2] === "login-history" && method === "GET") {
+      const page = Number(params.get("page") ?? 1), pageSize = Number(params.get("pageSize") ?? 10);
+      if (!Number.isInteger(page) || page < 1 || page > 100000 || !Number.isInteger(pageSize) || pageSize < 1 || pageSize > 100) reject(400, "VALIDATION_ERROR", "Phân trang không hợp lệ.");
+      const history = (m.loginHistory ?? []).filter((s) => s.accountId === a.id).sort((left, right) => Date.parse(right.loggedInAt) - Date.parse(left.loggedInAt));
+      return envelope({ items: history.slice((page - 1) * pageSize, page * pageSize).map((entry) => ({ loggedInAt: entry.loggedInAt, expiresAt: entry.expiresAt, revokedAt: entry.revokedAt, ipAddress: entry.ipAddress, device: entry.device, browser: entry.browser, operatingSystem: entry.operatingSystem })), total: history.length, page, pageSize });
+    }
     if (sessionMatch[2] === "session-policy" && method === "GET") return envelope(policy());
     if (!(sessionMatch[2] === "session-policy" && method === "PATCH") && !(sessionMatch[2] === "sessions/revoke" && method === "POST")) reject(405, "METHOD_NOT_ALLOWED", "Phương thức không hợp lệ.");
     const b = obj(req.body), reason = typeof b.reason === "string" ? b.reason.trim() : "";
@@ -1250,10 +1259,12 @@ export async function managementRequest(
       revokedSessions = tokens.length + students.length;
       for (const [token] of tokens) delete db.tokens[token];
       for (const s of students) s.revokedAt = now();
+      for (const entry of m.loginHistory ?? []) if (entry.accountId === a.id && !entry.revokedAt && Date.parse(entry.expiresAt) > Date.now()) entry.revokedAt = now();
     } else {
-      const lifetime = b.sessionLifetimeMinutes ?? null;
-      if (lifetime !== null && (typeof lifetime !== "number" || !Number.isInteger(lifetime) || lifetime < 1 || lifetime > 43200)) reject(422, "VALIDATION_ERROR", "Thời hạn phiên từ 1 đến 43200 phút, hoặc dùng mặc định.");
-      a.sessionLifetimeMinutes = lifetime as number | null;
+      const lifetime = b.sessionLifetimeMinutes ?? null, duration = b.sessionDuration ?? null;
+      if (lifetime !== null && duration !== null) reject(422, "VALIDATION_ERROR", "Chỉ chọn một cách đặt thời hạn phiên.");
+      try { sessionExpiry(now(), duration as SessionDuration | null, lifetime as number | undefined ?? 60); } catch (error) { reject(422, "VALIDATION_ERROR", error instanceof Error ? error.message : "Thời hạn không hợp lệ."); }
+      a.sessionLifetimeMinutes = lifetime as number | null; a.sessionDuration = duration as SessionDuration | null;
     }
     a.version++; a.updatedAt = now(); m.revision++;
     m.audit.unshift({ id: uid(), at: now(), actorId: staff.id, action: revoke ? "REVOKE_SESSIONS" : "UPDATE_SESSION_POLICY", entity: "accounts", ids: [a.id], reason, changes: [{ id: a.id, fields: [revoke ? "sessions" : "sessionLifetimeMinutes"] }] });

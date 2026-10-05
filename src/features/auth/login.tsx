@@ -88,7 +88,7 @@ export function Login() {
               Đăng nhập
             </Button>
             <Typography variant="caption" color="text.secondary">
-              Tài khoản do trung tâm cấp.
+              Tài khoản do trung tâm cấp. Khi đăng nhập, hệ thống ghi thời gian, IP kết nối và thông tin trình duyệt/thiết bị để bảo vệ tài khoản; quản lý trung tâm có thể xem. Không thu thập vị trí GPS.
             </Typography>
           </Stack>
         </Card>
@@ -160,6 +160,7 @@ export function LinkLogin() {
     <Shell>
       <Box sx={{ maxWidth: 480, mx: "auto" }}>
         <Title title="Đăng nhập bằng liên kết" />
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>Hệ thống ghi thời gian, IP kết nối và thông tin trình duyệt/thiết bị để bảo vệ tài khoản; quản lý trung tâm có thể xem. Không thu thập vị trí GPS.</Typography>
         <Card>
           {error ? (
             <>

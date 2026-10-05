@@ -1,43 +1,37 @@
-# ESS — quản lý thời hạn và thu hồi phiên
+# Phiên tài khoản và lịch sử đăng nhập
 
-Chỉ MANAGER đang hoạt động trong cùng trường được sử dụng các API dưới đây. `id` là `Account.publicId`, không phải ID hồ sơ hay ID đăng nhập. Response JSON theo `{data:...}`, lỗi theo `{error:{code,message}}`.
+Chỉ MANAGER đang hoạt động được truy cập các endpoint `/v1/manager/accounts/{id}`; tất cả truy vấn kiểm tra trường/school hiện tại. MANAGER (kể cả hai vai trò) được bảo vệ khỏi buộc kết thúc phiên.
 
-## API
+## Thời hạn
 
-`GET /v1/manager/accounts/{id}/session-policy`
+`GET /session-policy` trả `{data:{accountId,sessionLifetimeMinutes,sessionDuration,effectiveLifetimeMinutes,defaultLifetimeMinutes,serverNow,previewExpiresAt,activeSessionCount,managerProtected,version}}`.
 
+`PATCH /session-policy`:
 ```json
-{"data":{"accountId":"account-id","sessionLifetimeMinutes":null,"effectiveLifetimeMinutes":60,"activeSessionCount":2,"managerProtected":false,"version":1}}
+{"sessionLifetimeMinutes":null,"sessionDuration":{"years":1,"months":2,"days":3,"hours":4,"minutes":5},"version":1,"reason":"Thời hạn cho lần đăng nhập tiếp theo"}
 ```
 
-`PATCH /v1/manager/accounts/{id}/session-policy`
+Các ô là số nguyên không âm, tổng lớn hơn 0 và tối đa **10 năm theo lịch**, được kiểm tra ở backend. Cộng năm, tháng theo UTC (cuối tháng/năm nhuận được kẹp về ngày cuối hợp lệ), rồi ngày/giờ/phút. `effectiveLifetimeMinutes` là quy đổi tại `serverNow`, không phải một tháng cố định 30 ngày. UI hiển thị thời điểm dự kiến theo giờ Việt Nam; thời điểm thật được tính lại khi đăng nhập. `sessionDuration:null` và `sessionLifetimeMinutes:null` dùng mặc định `Jwt:LifetimeMinutes`. Client cũ vẫn gửi số phút nguyên, giới hạn thực tế cũng tối đa 10 năm; không gửi đồng thời hai kiểu thời hạn. Policy áp dụng chung mật khẩu/link và học sinh/Staff, không đổi hạn của JWT đã cấp. Session vẫn ở sessionStorage.
 
+`POST /sessions/revoke {version,reason}` trả `{data:{revokedSessions,policy}}`, giữ tài khoản và dữ liệu; tài khoản vẫn đăng nhập lại được. MANAGER trả 403 `MANAGER_PROTECTED`. Phiên đã thu hồi bị từ chối ở request tiếp theo và websocket đóng trong khoảng 10 giây. Lý do 1–500 ký tự và version hiện tại bắt buộc.
+
+PATCH policy và POST revoke hỗ trợ queue hiện có: `Prefer: respond-async` + `Idempotency-Key`, trả 202 IN_PROGRESS; GET operations lấy DONE/FAILED; websocket CHANGE báo thay đổi, RTK Query invalidate. Quyền/version được kiểm tra lại khi commit. 401/403/404/409/422 giữ contract lỗi hiện có.
+
+## Lịch sử
+
+`GET /login-history?page=1&pageSize=5`:
 ```json
-{"sessionLifetimeMinutes":1440,"version":1,"reason":"Phiên có thời hạn một ngày"}
+{"data":{"items":[{"loggedInAt":"2026-10-05T09:00:00Z","expiresAt":"2027-10-05T09:00:00Z","revokedAt":null,"ipAddress":"192.0.2.10","device":"Điện thoại","browser":"Safari","operatingSystem":"iOS/iPadOS"}],"total":1,"page":1,"pageSize":5}}
 ```
 
-Trả policy mới với version tăng. Số nguyên 1–43200 phút (30 ngày); `null` dùng `Jwt:LifetimeMinutes`. Thời hạn áp dụng thống nhất cho đăng nhập mật khẩu và đổi mã một lần, học sinh và Staff. JWT `exp` và `auth_sessions.expires_at` có cùng thời hạn. Không thay thời hạn các phiên đã cấp. Có thể đặt thời hạn cho tài khoản MANAGER nhưng không làm hết hạn phiên hiện tại của họ.
+Chỉ ghi đăng nhập **thành công**, cả mật khẩu và link. Sắp mới nhất trước, page 1–100000, pageSize 1–100. Giữ thông tin sau logout/thu hồi để đối chiếu bảo mật. Metadata cũ trả null, không bịa thông tin. Không trả JWT, password, mã link, session secret hay raw User-Agent. Thời gian ISO UTC.
 
-`POST /v1/manager/accounts/{id}/sessions/revoke`
+IP lấy từ socket peer, không tin X-Forwarded-For do caller gửi; phía Cloud Run có thể là IP proxy. Không dùng IP để khẳng định vị trí vật lý. Thiết bị/OS/trình duyệt suy luận từ User-Agent (có thể bị giả mạo; iPad desktop mode có thể giống macOS). Không GPS, fingerprinting hoặc GeoIP bên thứ ba. Staff Portal nêu việc ghi nhận này trên đăng nhập; mọi frontend kết nối auth (gồm Student Portal) cần thông báo tương ứng. Chỉ quản lý cùng trường xem được thông tin, không công khai.
 
-```json
-{"version":2,"reason":"Yêu cầu người dùng đăng nhập lại"}
-```
+## Nhập bằng bảng / Excel
 
-```json
-{"data":{"revokedSessions":2,"policy":{"accountId":"account-id","sessionLifetimeMinutes":1440,"effectiveLifetimeMinutes":1440,"activeSessionCount":0,"managerProtected":false,"version":3}}}
-```
+CREATE cho phép ID trống, tự sinh từ họ tên và thêm số tránh trùng. UPDATE cần ID ổn định, ô trống giữ dữ liệu cũ. `createAccount` chuẩn boolean, chấp nhận TRUE/FALSE/1/0 từ bảng/Excel; trống bỏ qua. `roles` chuẩn array TEACHER/MANAGER, chấp nhận chuỗi `TEACHER|MANAGER`. Giá trị sai trả lỗi đúng cột `create_account`/`roles`; không bypass xác nhận trạng thái/quyền. Bảng có xóa dòng (xác nhận khi đã nhập dữ liệu), preview trước commit, ID chỉ bắt buộc khi cập nhật.
 
-Thu hồi tất cả phiên còn hiệu lực của tài khoản trong một transaction. Token cũ bị từ chối ở request tiếp theo, không cần chờ JWT hết hạn. Tài khoản vẫn đăng nhập lại được; không khóa tài khoản, đổi mật khẩu, kết thúc phân công hay xóa dữ liệu. `activeSessionCount` là số phiên phía server, không phải số thiết bị online. Mọi tài khoản có MANAGER, kể cả TEACHER+MANAGER, đều bị chặn thu hồi bằng `403 MANAGER_PROTECTED`. Vai trò được kiểm tra lại trong database dưới school lock tại lúc thực hiện.
+## Rollout
 
-## Async, xung đột và realtime
-
-Hai mutations hỗ trợ cơ chế sẵn có: gửi `Prefer: respond-async` và `Idempotency-Key` để nhận HTTP 202 với operation `IN_PROGRESS`. Lấy `/v1/operations/{operationId}` đến DONE/FAILED. Kết quả DONE nằm trong `result.data`. Không retry bằng key mới khi chưa biết kết quả; key cũ trả cùng operation. Worker kiểm tra lại phiên/quyền của người thực hiện và vai trò của đích tại commit.
-
-Thông báo `CHANGE` gửi đến các quản lý qua `/v1/events/ws`; entity `accounts` khiến RTK Query refresh cache liên quan. WebSocket của Staff bị thu hồi đóng `1008 UNAUTHORIZED` trong lần kiểm tra phiên kế tiếp (tối đa khoảng 10 giây); HTTP bị chặn ngay sau commit. Client xóa sessionStorage và API cache khi nhận 401 hoặc WebSocket hết phiên. Student client phát hiện khi gọi API/khôi phục phiên; backend luôn kiểm tra phiên trên mọi endpoint được bảo vệ.
-
-Lỗi: 401 phiên không hợp lệ, 403 thiếu quyền/tài khoản quản lý được bảo vệ, 404 không thuộc trường/không tồn tại, 409 version conflict, 422 thời hạn/lý do không hợp lệ. Bắt buộc lý do 1–500 ký tự. Xung đột yêu cầu tải policy mới và kiểm tra trước khi gửi lại. Audit lưu actor, ID tài khoản, lý do và thay đổi; không lưu JWT, mật khẩu hay mã đăng nhập.
-
-## Database và triển khai
-
-Áp dụng `007_account_session_policy.sql` bằng migration runner trước khi triển khai code mới. Thêm `accounts.session_lifetime_minutes` nullable với CHECK range; không thay dữ liệu/phiên đang tồn tại, không chạy migration tự động khi web khởi động. Các index phiên chưa thu hồi hiện có tiếp tục được sử dụng. Không đưa trường chính sách vào bulk/import chung để bỏ qua validation hoặc version của API riêng.
+Backend áp dụng migration **008_session_duration_login_metadata.sql** rõ ràng trước triển khai, sau 007. Additive, giữ account/session/report và policy phút cũ; không seed/reset DB. Mock persist cùng contract, mutations và lịch sử; không cần thêm dịch vụ/secret/thư viện. Không tin kiểm tra client thay cho backend.

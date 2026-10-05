@@ -1,3 +1,4 @@
+import { sessionExpiry } from "@/features/management/session-duration";
 import type {
   BaseQueryFn,
   FetchArgs,
@@ -179,9 +180,11 @@ export function createMockAdapter(
           );
         const session: AuthSession = {
           accessToken: `demo-${id()}`,
-          expiresAt: new Date(Date.now() + (account.sessionLifetimeMinutes ?? 60) * 60000).toISOString(),
+          expiresAt: sessionExpiry(new Date().toISOString(), account.sessionDuration, account.sessionLifetimeMinutes ?? 60),
           teacher: accountStaff(account!, profile!),
         };
+        const history = management(db); history.loginHistory ??= [];
+        if (account) history.loginHistory.push({ accountId: account.id, loggedInAt: new Date().toISOString(), expiresAt: session.expiresAt, revokedAt: null, ipAddress: null, device: "Thiết bị demo", browser: "Trình duyệt demo", operatingSystem: null });
         db.tokens[session.accessToken] = session;
         save(db);
         return envelope(session);
@@ -201,7 +204,7 @@ export function createMockAdapter(
         const account = management(db).accounts.find((a) => a.kind === "STAFF" && a.profileId === teacher.id);
         const session: AuthSession = {
           accessToken: `demo-${id()}`,
-          expiresAt: new Date(Date.now() + (account?.sessionLifetimeMinutes ?? 60) * 60000).toISOString(),
+          expiresAt: sessionExpiry(new Date().toISOString(), account?.sessionDuration, account?.sessionLifetimeMinutes ?? 60),
           teacher: actor(
             db,
             code === "manager-demo"
@@ -211,6 +214,8 @@ export function createMockAdapter(
                 : "GV0001",
           ),
         };
+        const history = management(db); history.loginHistory ??= [];
+        if (account) history.loginHistory.push({ accountId: account.id, loggedInAt: new Date().toISOString(), expiresAt: session.expiresAt, revokedAt: null, ipAddress: null, device: "Thiết bị demo", browser: "Trình duyệt demo", operatingSystem: null });
         db.tokens[session.accessToken] = session;
         save(db);
         return envelope(session);
@@ -286,6 +291,9 @@ export function createMockAdapter(
       };
 
       if (path === "/auth/logout" && method === "POST") {
+        const loggedOut = db.tokens[token];
+        const accountId = management(db).accounts.find((a) => a.kind === "STAFF" && a.profileId === loggedOut?.teacher.id)?.id;
+        for (const entry of management(db).loginHistory ?? []) if (entry.accountId === accountId && entry.expiresAt === loggedOut?.expiresAt && !entry.revokedAt) entry.revokedAt = new Date().toISOString();
         delete db.tokens[token];
         save(db);
         return envelope({ loggedOut: true });
