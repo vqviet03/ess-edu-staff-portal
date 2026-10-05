@@ -14,6 +14,7 @@ export function operationCommand(url: string, method: string) {
   if (url === "/manager/changes/commit") return "Management.Commit";
   if (/^\/manager\/accounts\/[^/]+\/sessions\/revoke$/.test(url)) return "Management.RevokeSessions";
   if (/^\/manager\/accounts\/[^/]+\/session-policy$/.test(url)) return "Management.UpdateSessionPolicy";
+  if (url.endsWith("/report/comments")) return "Staff.ReportComments";
   if (url.includes("/students/")) return "Staff.Student";
   if (/^\/classes\/.+\/sessions$/.test(url)) return "Staff.CreateSession";
   if (/^\/sessions\/[^/]+$/.test(url)) return "Staff.Session";
@@ -24,5 +25,5 @@ export function operationCommand(url: string, method: string) {
   return method === "PUT" ? "Staff.Result" : "Staff.Batch";
 }
 export function operationEntities(command: string) {
-  return command.startsWith("Management.") ? ["students", "teachers", "classes", "accounts", "labels", "assignments", "enrollments"] : command === "Staff.Student" ? ["students"] : ["sessions", "classes", "assessments", "results"];
+  return command === "Staff.ReportComments" ? ["reports", "results", "assessments"] : command.startsWith("Management.") ? ["students", "teachers", "classes", "accounts", "labels", "assignments", "enrollments"] : command === "Staff.Student" ? ["students"] : ["sessions", "classes", "assessments", "results"];
 }

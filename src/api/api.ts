@@ -41,6 +41,7 @@ export const createStaffApi = (query = baseQuery) =>
       "Sessions",
       "Assessments",
       "Results",
+      "Reports",
       "Operations",
     ],
     endpoints: (b) => ({
@@ -184,7 +185,7 @@ export const createStaffApi = (query = baseQuery) =>
       publishAssessment: b.mutation<{ published: boolean }, { id: string; version: number; publish: boolean }>({
         query: ({ id, version, publish }) => ({ url: `/assessments/${encodeURIComponent(id)}/${publish ? "publish" : "unpublish"}`, method: "POST", body: { version } }),
         transformResponse: unwrap<{ published: boolean }>,
-        invalidatesTags: (_, error) => error ? [] : ["Assessments", "Results", "Classes", "Class"],
+        invalidatesTags: (_, error) => error ? [] : ["Assessments", "Results", "Reports", "Classes", "Class"],
       }),
       updateAssessment: b.mutation<
         Assessment,

@@ -46,6 +46,8 @@ export interface Class {
   completedUnits: number;
 }
 export interface Student {
+  publicId?: string;
+  studentCode?: string;
   id: string;
   name: string;
   nickname: string;

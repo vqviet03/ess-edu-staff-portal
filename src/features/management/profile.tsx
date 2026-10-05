@@ -406,6 +406,7 @@ function Profile() {
                       {c.name}
                     </NavButton>
                     <Typography>{showValue(c.status)}</Typography>
+                    {entity === "students" && <NavButton href={`/reports/?classId=${encodeURIComponent(c.id)}&studentId=${encodeURIComponent(r.id)}`}>Báo cáo học tập</NavButton>}
                     <Progress
                       completed={c.completedUnits}
                       total={c.totalUnits}
@@ -505,6 +506,7 @@ function Profile() {
                       <Typography>
                         {e.studentId} · {showValue(e.status)}
                       </Typography>
+                      <NavButton href={`/reports/?classId=${encodeURIComponent(r.id)}&studentId=${encodeURIComponent(e.studentId)}`}>Báo cáo học tập</NavButton>
                       <Button
                         onClick={() =>
                           setRelationship({

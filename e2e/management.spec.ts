@@ -70,7 +70,7 @@ test("manager dashboard, navigation, readonly grades/schema, dark/mobile và dee
     page.getByRole("button", { name: "Đánh dấu hoàn thành" }),
   ).toBeDisabled();
   await go(page, "/home/");
-  await page.getByLabel("Giao diện").click();
+  await page.getByRole("combobox", {name: "Giao diện", exact: true}).click();
   await page.getByRole("option", { name: "Tối", exact: true }).click();
   await page.screenshot({
     path: "test-results/management-overview-dark.png",

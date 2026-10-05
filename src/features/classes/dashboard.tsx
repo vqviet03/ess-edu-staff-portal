@@ -162,7 +162,7 @@ export function ClassDashboard() {
                   <TableBody>
                     {students.currentData.map((s) => (
                       <TableRow key={s.id}>
-                        <TableCell>{s.id}</TableCell>
+                        <TableCell>{s.publicId || s.studentCode || s.id}</TableCell>
                         <TableCell>{s.name}</TableCell>
                         <TableCell>{s.nickname || "—"}</TableCell>
                         <TableCell>
@@ -176,6 +176,7 @@ export function ClassDashboard() {
                           <StatusChip status={s.status} />
                         </TableCell>
                         <TableCell>
+                          <NavButton href={`/reports/?classId=${encodeURIComponent(id)}&studentId=${encodeURIComponent(s.id)}`}>Báo cáo học tập</NavButton>
                           <Button
                             disabled={!permissions.editLearning}
                             onClick={() => setStudent(s)}

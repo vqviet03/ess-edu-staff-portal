@@ -21,6 +21,7 @@ import {
   studentInput,
   validateResult,
 } from "@/utils/scores";
+import { reportRequest } from "./reports";
 import { seed, type Database } from "./fixtures";
 import {
   management,
@@ -350,6 +351,8 @@ export function createMockAdapter(
           { page, pageSize, total: rows.length },
         );
       }
+      const studentReport = reportRequest(db, staff, path, method, body);
+      if (studentReport) { if (studentReport.changed) learningSave(); return envelope(studentReport.data); }
       let m = path.match(/^\/classes\/([^/]+)$/);
       if (m) return envelope(classView(classCheck(decodeURIComponent(m[1]))));
       m = path.match(/^\/classes\/([^/]+)\/students(?:\/([^/]+))?$/);
@@ -502,6 +505,7 @@ export function createMockAdapter(
           if (a.status !== "COMPLETED") return fail(409, "ASSESSMENT_LOCKED", "Chỉ công bố bài đánh giá đã hoàn thành.");
           const rows = db.results[a.id].filter(r => db.students[s.classId].some(student => student.id === r.studentId && student.status === "ACTIVE"));
           if (rows.some(r => r.attendance === "UNSET" || (r.attendance === "PRESENT" && !calculate(r, a.skills).complete))) return fail(422, "INCOMPLETE_RESULTS", "Bài còn điểm chưa hoàn tất.");
+          db.reportVersions ??= {}; for (const row of rows) { const versionKey = `${key}:${row.studentId}`; db.reportVersions[versionKey] = (db.reportVersions[versionKey] ?? 1) + 1; }
           db.publications[key] = { assessmentId: a.id, publishedAt: new Date().toISOString(), results: structuredClone(rows), skills: structuredClone(a.skills) };
         } else {
           if (source?.assessmentId !== a.id) return fail(409, "VALIDATION_ERROR", "Bài này chưa được công bố.");
