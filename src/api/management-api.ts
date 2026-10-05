@@ -42,6 +42,14 @@ const updated = [
 const binary = async (r: Response) => (r.ok ? r.blob() : r.json());
 export const managementApi = api.injectEndpoints({
   endpoints: (b) => ({
+    suggestIdentifier: b.mutation<{ id: string; isAvailable: boolean; requestedId: string }, { entity: Entity; fullName?: string; id?: string }>({
+      query: (body) => ({ url: "/manager/identifiers/suggest", method: "POST", body }),
+      transformResponse: unwrap<{ id: string; isAvailable: boolean; requestedId: string }>,
+    }),
+    checkIdentifier: b.mutation<{ id: string; isAvailable: boolean; requestedId: string }, { entity: Entity; id: string }>({
+      query: (body) => ({ url: "/manager/identifiers/check", method: "POST", body }),
+      transformResponse: unwrap<{ id: string; isAvailable: boolean; requestedId: string }>,
+    }),
     selectionCount: b.query<
       { count: number },
       { entity: Entity; selection: Selection }
@@ -223,6 +231,8 @@ export const managementApi = api.injectEndpoints({
   }),
 });
 export const {
+  useSuggestIdentifierMutation,
+  useCheckIdentifierMutation,
   useSelectionCountQuery,
   useClassAccessQuery,
   useDashboardQuery,

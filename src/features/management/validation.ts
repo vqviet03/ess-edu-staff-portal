@@ -28,7 +28,7 @@ const email = z
   .string()
   .refine((v) => !v || z.email().safeParse(v).success, "Email không hợp lệ");
 export const studentProfileInput = z.object({
-  id,
+  id: id.or(z.literal("")),
   fullName: name,
   nickname: text,
   dateOfBirth: dateInput,
@@ -37,7 +37,7 @@ export const studentProfileInput = z.object({
   notes: text,
 });
 export const staffProfileInput = z.object({
-  id,
+  id: id.or(z.literal("")),
   fullName: name,
   email,
   phone: contact.refine(
@@ -48,9 +48,10 @@ export const staffProfileInput = z.object({
   notes: text,
 });
 export const classProfileInput = z.object({
-  id,
-  code: name,
-  name,
+  id: id.or(z.literal("")),
+  code: z.string().max(200),
+  name: z.string().max(200),
+  nameSuffix: z.string().max(160).optional(),
   schedule: name,
   totalUnits: z.number().int().min(1).max(1000),
   status: z.enum(["DRAFT", "ACTIVE", "PAUSED", "COMPLETED", "INACTIVE"]),
@@ -168,6 +169,7 @@ export function defaults(
       ...shared,
       code: "",
       name: "",
+      nameSuffix: "",
       schedule: "",
       totalUnits: 12,
       status: "DRAFT",
@@ -196,6 +198,7 @@ export const fieldNames: Record<string, string> = {
   roles: "Vai trò",
   createAccount: "Tạo tài khoản",
   code: "Mã lớp",
+  nameSuffix: "Hậu tố tên lớp",
   name: "Tên",
   schedule: "Lịch học",
   totalUnits: "Tổng Unit",
@@ -205,16 +208,16 @@ export const fieldNames: Record<string, string> = {
 };
 export const fields: Record<Entity, string[]> = {
   students: [
-    "id",
     "fullName",
+    "id",
     "nickname",
     "dateOfBirth",
     "parentContact",
     "status",
     "notes",
   ],
-  teachers: ["id", "fullName", "email", "phone", "roles", "status", "notes"],
-  classes: ["id", "code", "name", "schedule", "totalUnits", "status", "notes"],
+  teachers: ["fullName", "id", "email", "phone", "roles", "status", "notes"],
+  classes: ["id", "nameSuffix", "schedule", "totalUnits", "status", "notes"],
   accounts: ["id", "loginId", "kind", "profileId", "roles", "status"],
   labels: ["id", "name", "status", "notes"],
 };

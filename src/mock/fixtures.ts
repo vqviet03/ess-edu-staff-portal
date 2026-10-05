@@ -10,7 +10,11 @@ import {
 } from "@/types";
 import { managementSeed, type ManagementDatabase } from "./management-fixtures";
 import { emptyResult } from "@/utils/scores";
+import type { StoredMockOperation } from "./operations";
+import type { ChangeNotification } from "@/features/operations/models";
 export interface Database {
+  operations?: Record<string, StoredMockOperation>;
+  operationEvents?: ChangeNotification[];
   management?: ManagementDatabase;
   classes: Class[];
   students: Record<string, Student[]>;

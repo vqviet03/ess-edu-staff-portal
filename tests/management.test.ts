@@ -563,6 +563,7 @@ test("Excel import hoạt động: blank giữ cũ, clear rõ ràng, tiếng Vi�
   const parsed = await readProfiles(
     new Blob([Uint8Array.from(new Uint8Array(await book.xlsx.writeBuffer()))]),
     "students",
+    "UPDATE",
   );
   assert(parsed.errors.some((e) => e.row === 6));
 });

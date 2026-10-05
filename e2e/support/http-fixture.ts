@@ -6,18 +6,19 @@ import type { AuthSession, Envelope } from '../../src/types';
 import type { BaseQueryApi } from '@reduxjs/toolkit/query';
 
 // Only tests intercept HTTP. The production browser executes real fetchBaseQuery.
-export async function installHttpFixture(page: Page) {
+export async function installHttpFixture(page: Page, shared?: { get: () => string; set: (value: string) => void }) {
   const config = resolveApiConfiguration('false', process.env.NEXT_PUBLIC_API_BASE_URL);
   if (config.error) throw new Error(config.error);
   const prefix = new URL(config.baseUrl).pathname;
   let value = JSON.stringify(seed());
-  const adapter = createMockAdapter({getItem: () => value, setItem: (_key, next) => {value = next;}}, 0);
+  const database = shared ?? {get: () => value, set: (next: string) => {value = next;}};
+  const adapter = createMockAdapter({getItem: () => database.get(), setItem: (_key, next) => {database.set(next);}}, 0);
   const runtime = {signal: new AbortController().signal, abort() {}, dispatch: () => {}, getState: () => ({}), extra: undefined, endpoint: 'httpFixture', type: 'query'} as BaseQueryApi;
   let queue = Promise.resolve();
   await page.route(`${config.baseUrl}/**`, route => {
     queue = queue.then(async () => {
       const request = route.request();
-      const cors = {'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization,content-type,idempotency-key,accept', 'Access-Control-Allow-Methods': 'GET,POST,PATCH,PUT,OPTIONS'};
+      const cors = {'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization,content-type,idempotency-key,accept,prefer', 'Access-Control-Allow-Methods': 'GET,POST,PATCH,PUT,OPTIONS'};
       if (request.method() === 'OPTIONS') {await route.fulfill({status:204, headers:cors});return;}
       let body: unknown;
       if (request.headers()['content-type']?.startsWith('multipart/form-data')) {
@@ -28,18 +29,39 @@ export async function installHttpFixture(page: Page) {
       const response = await adapter({url:endpoint, method:request.method(), headers:request.headers(), body}, runtime, {});
       if (!response.error && ['/auth/login','/auth/link/exchange'].includes(endpoint)) {
         const session = (response.data as Envelope<AuthSession>).data;
-        const db = JSON.parse(value) as Database;
+        const db = JSON.parse(database.get()) as Database;
         delete db.tokens[session.accessToken];
         session.accessToken = `e30.${Buffer.from(JSON.stringify({exp:Math.floor(Date.now()/1000)+3600})).toString('base64url')}.${crypto.randomUUID()}`;
         db.tokens[session.accessToken] = session;
-        value = JSON.stringify(db);
+        database.set(JSON.stringify(db));
       }
       if (response.error) {
         await route.fulfill({status:typeof response.error.status === 'number' ? response.error.status : 500, headers:cors, contentType:'application/json', body:JSON.stringify(response.error.data)});
       } else if (response.data instanceof Blob) {
         await route.fulfill({status:200, headers:cors, contentType:response.data.type, body:Buffer.from(await response.data.arrayBuffer())});
-      } else await route.fulfill({status:200, headers:cors, contentType:'application/json', body:JSON.stringify(response.data)});
+      } else await route.fulfill({status:request.headers().prefer === 'respond-async' && request.method() !== 'GET' && typeof response.data === 'object' && response.data !== null && 'data' in response.data && typeof response.data.data === 'object' && response.data.data !== null && 'operationId' in response.data.data ? 202 : 200, headers:cors, contentType:'application/json', body:JSON.stringify(response.data)});
     });
     return queue;
+  });
+  await page.routeWebSocket(config.baseUrl.replace(/^http/, 'ws') + '/events/ws', socket => {
+    let token = '', cursor = '0', timer: ReturnType<typeof setInterval> | undefined;
+    socket.onMessage(async message => {
+      try {
+        const auth = JSON.parse(String(message)) as {type?: string; accessToken?: string; cursor?: string};
+        if (auth.type !== 'AUTH' || !auth.accessToken) {socket.close({code:1008, reason:'UNAUTHORIZED'});return;}
+        token = auth.accessToken;
+        const checked = await adapter({url:'/auth/me', headers:{Authorization:`Bearer ${token}`}}, runtime, {});
+        if (checked.error) {socket.close({code:1008, reason:'UNAUTHORIZED'});return;}
+        const db = JSON.parse(database.get()) as Database;
+        cursor = auth.cursor ?? db.operationEvents?.at(-1)?.eventId ?? '0';
+        socket.send(JSON.stringify({type:'READY', cursor}));
+        timer = setInterval(() => {
+          const current = JSON.parse(database.get()) as Database;
+          const me = current.tokens[token]?.teacher;
+          for (const event of current.operationEvents ?? []) if (BigInt(event.eventId) > BigInt(cursor) && (me?.roles?.includes('MANAGER') || event.actorId === me?.id)) {socket.send(JSON.stringify({type:'CHANGE', data:event}));cursor=event.eventId;}
+        }, 50);
+      } catch {socket.close({code:1008, reason:'UNAUTHORIZED'});}
+    });
+    socket.onClose(() => clearInterval(timer));
   });
 }

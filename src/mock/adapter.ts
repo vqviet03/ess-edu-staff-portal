@@ -31,6 +31,9 @@ import {
 } from "./management-engine";
 import { accountStaff } from "@/features/management/models";
 import { requestHeaders } from "@/api/headers";
+import { businessMutation } from "@/features/operations/models";
+import { publicOperation, operationCommand, operationEntities } from "./operations";
+import { capabilities } from "@/features/access/capabilities";
 export const MOCK_KEY = "learnleaf.staff.mock.v1";
 interface StoragePort {
   getItem(key: string): string | null;
@@ -791,8 +794,68 @@ export function createMockAdapter(
       };
     }
   };
+  const processPending = async (runtime: Parameters<typeof handler>[1]) => {
+    const pending = Object.values(read().operations ?? {}).filter((j) => j.status === "IN_PROGRESS");
+    for (const job of pending) {
+      const result = await handler(job.request, runtime);
+      const db = structuredClone(read()), current = db.operations?.[job.operationId];
+      if (!current || current.status !== "IN_PROGRESS") continue;
+      current.completedAt = new Date().toISOString();
+      if ("error" in result && result.error) {
+        const detail = result.error.data as { error?: { code?: string; message?: string } } | undefined;
+        current.status = "FAILED"; current.error = { status: typeof result.error.status === "number" ? result.error.status : 500, code: detail?.error?.code ?? "OPERATION_FAILED", message: detail?.error?.message ?? "Tác vụ thất bại." };
+      } else { current.status = "DONE"; current.result = "data" in result ? result.data : undefined; }
+      const events = db.operationEvents ??= [];
+      events.push({ eventId: String(Number(events.at(-1)?.eventId ?? 0) + 1), operationId: current.operationId, actorId: current.actorId, status: current.status, command: current.command, entities: operationEntities(current.command), completedAt: current.completedAt, error: current.error });
+      if (events.length > 1000) events.splice(0, events.length - 1000);
+      save(db);
+    }
+  };
+  const wrapped = async (args: string | FetchArgs, runtime: Parameters<typeof handler>[1]) => {
+    const request = typeof args === "string" ? { url: args } : args;
+    const path = request.url.split("?")[0], method = request.method ?? "GET", headers = requestHeaders(request.headers);
+    const asynchronous = headers.get("Prefer") === "respond-async" && businessMutation(path, method);
+    if (!asynchronous && !path.startsWith("/operations")) return handler(args, runtime);
+    try {
+      const db = structuredClone(read()), token = headers.get("Authorization")?.replace(/^Bearer /, "") ?? "";
+      const session = db.tokens[token];
+      if (!session || Date.parse(session.expiresAt) <= Date.now()) fail(401, "UNAUTHORIZED", "Phiên đăng nhập hết hạn.");
+      const staff = actor(db, session.teacher.id);
+      if (asynchronous) {
+        if (path === "/manager/changes/commit") { if (!capabilities(staff, "manager").manage) fail(403, "FORBIDDEN", "Cần vai trò MANAGER hoạt động."); }
+        else {
+          let classId = path.match(/^\/classes\/([^/]+)/)?.[1];
+          const sid = path.match(/^\/sessions\/([^/]+)/)?.[1], aid = path.match(/^\/assessments\/([^/]+)/)?.[1];
+          if (sid) classId = db.sessions.find((s) => s.id === sid)?.classId;
+          if (aid) { const assessment = db.assessments.find((a) => a.id === aid); classId = db.sessions.find((s) => s.id === assessment?.sessionId)?.classId; }
+          assertLearning(db, staff, classId ?? "", true);
+        }
+        const key = headers.get("Idempotency-Key") ?? id(), digest = JSON.stringify({ path, method, body: request.body });
+        if (key.length > 128) fail(400, "INVALID_KEY", "Idempotency-Key không hợp lệ.");
+        const jobs = db.operations ??= {};
+        const old = Object.values(jobs).find((j) => j.actorId === staff.id && j.key === key);
+        if (old) { if (old.digest !== digest) fail(409, "IDEMPOTENCY_CONFLICT", "Khóa đã dùng cho request khác."); return { data: { data: publicOperation(old, staff.id) } }; }
+        const operationId = id();
+        jobs[operationId] = { operationId, actorId: staff.id, token, key, digest, status: "IN_PROGRESS", command: operationCommand(path, method), createdAt: new Date().toISOString(), completedAt: null, request: { ...request, headers: { Authorization: `Bearer ${token}`, "Idempotency-Key": key } } };
+        save(db);
+        setTimeout(() => { const work = queue.then(() => processPending(runtime)); queue = work.catch(() => undefined); }, Math.max(50, delay * 2));
+        return { data: { data: publicOperation(jobs[operationId], staff.id) } };
+      }
+      if (path === "/operations/events") {
+        const after = new URLSearchParams(request.url.split("?")[1]).get("after") ?? "0";
+        return { data: { data: { items: (db.operationEvents ?? []).filter((e) => BigInt(e.eventId) > BigInt(after) && (staff.roles?.includes("MANAGER") || e.actorId === staff.id)).slice(0, 100) } } };
+      }
+      if (path === "/operations") return { data: { data: { items: Object.values(db.operations ?? {}).filter((j) => j.actorId === staff.id).slice(-100).map((j) => publicOperation(j, staff.id)) } } };
+      const opId = path.split("/")[2], owned = db.operations?.[opId];
+      if (!owned || (owned.actorId !== staff.id && !staff.roles?.includes("MANAGER"))) return fail(404, "OPERATION_NOT_FOUND", "Không tìm thấy tác vụ.");
+      if (owned.status === "IN_PROGRESS") await processPending(runtime);
+      return { data: { data: publicOperation(read().operations![opId], staff.id) } };
+    } catch (e) {
+      return { error: { status: e instanceof MockFailure || e instanceof ManagementError ? e.status : 500, data: { error: { code: e instanceof MockFailure || e instanceof ManagementError ? e.code : "MOCK_ERROR", message: e instanceof Error ? e.message : "Tác vụ thất bại." } } } };
+    }
+  };
   return (args, api, options) => {
-    const task = queue.then(() => handler(args, api));
+    const task = queue.then(() => wrapped(args, api));
     queue = task.catch(() => undefined);
     void options;
     return task;

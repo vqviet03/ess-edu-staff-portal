@@ -117,7 +117,7 @@ export async function profileWorkbook(
   instructions.addRows([
     ["ESS · Import hồ sơ"],
     [
-      "student_id / teacher_id và full_name bắt buộc khi tạo. ID ổn định, không đổi khi cập nhật.",
+      "CREATE: full_name bắt buộc. ID trống sinh từ tên (Vũ Quốc Việt → vq.viet); ID trùng thêm 1, 2… theo preview backend. UPDATE cần ID đã có và không đổi ID.",
     ],
     [
       "Ngày sinh YYYY-MM-DD; liên hệ là chuỗi để giữ số 0 đầu. Nhận xét tiếng Việt / xuống dòng được giữ.",
@@ -167,6 +167,7 @@ function primitive(value: CellValue): unknown {
 export async function readProfiles(
   file: Blob,
   group: ProfileGroup,
+  mode: "CREATE" | "UPDATE" = "CREATE",
 ): Promise<{ rows: Record<string, unknown>[]; errors: PreviewError[] }> {
   if (file.size > 5 * 1024 * 1024) throw new Error("File tối đa 5 MB.");
   const { Workbook } = (await import("exceljs")).default,
@@ -229,13 +230,13 @@ export async function readProfiles(
       }
     if (!nonEmpty) continue;
     const recordId = String(record.id ?? "");
-    if (seen.has(recordId))
+    if (mode === "UPDATE" && (!recordId || seen.has(recordId.toLowerCase())))
       errors.push({
         row: i,
         column: columns[group][0],
-        message: "ID trùng trong file.",
+        message: !recordId ? "UPDATE cần ID đã có." : "ID trùng trong file cập nhật.",
       });
-    seen.add(recordId);
+    seen.add(recordId.toLowerCase());
     // Preserve physical Excel row number including blank gaps for preview error mapping.
     record._excelRow = i;
     rows.push(record);
