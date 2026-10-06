@@ -145,3 +145,13 @@ Lịch sử đăng nhập trong hồ sơ tài khoản hiển thị thời gian V
 ## Báo cáo học sinh, hướng dẫn và thu/phóng
 
 Xem [hướng dẫn tính năng và API](docs/student-reports.md). Mở “Báo cáo học tập” từ học sinh của lớp/hồ sơ quản lý; quản lý chỉ xem, giảng viên đang phụ trách có thể sửa nhận xét. Header có “Hướng dẫn” theo màn hình (vừa đọc vừa thao tác), nút −/100%/+ lưu kích thước 75–125%. Biểu đồ báo cáo cho bật/tắt từng kỹ năng hoặc tất cả. Route `/reports/` được static export như các route hiện có; Pages từ dev sau merge, cấu hình API thật và workflow giữ nguyên.
+
+### Kho tài liệu và phiên học
+
+Routes mới: `/materials/`, `/storages/` (quản lý), `/deletion-requests/`, `/notifications/`. Phiên học có hai tab Tài liệu/Bài kiểm tra; chuyển tab giữ bản nháp và vị trí cuộn. Kho/picker dùng chung component, lưới hai cột trên mobile, cây lazy-load, chọn file xuyên thư mục. Viewer PDF/ảnh có zoom, audio có tốc độ 0.25–2x; PDF viewer/thumbnail loader tải khi cần. RTK Query mutations cập nhật cache đúng entity; phản ứng lạc quan rollback nếu lỗi. Bình luận chỉ xóa bản nháp sau khi API xác nhận lưu thành công.
+
+Luồng mới **chỉ dùng API thật**, không có seed tài liệu, không fallback sang mock. Các adapter cũ chỉ phục vụ regression tests/cấu hình demo cũ; build Pages vẫn đặt `NEXT_PUBLIC_USE_MOCK=false`. Kiểm thử HTTP trong `e2e/material-library.spec.ts` dùng fixtures riêng trong runner, không có trong dữ liệu production.
+
+Cần deploy backend mới và cấu hình DB `ess-materials` trước khi merge/deploy frontend. Backend đã có các endpoints; [contract, quyền, quota và bước rollout](docs/material-library-api.md). PR không tự merge, workflow Pages chỉ deploy sau push vào dev. Browser PUT tới Neon bucket dùng signed URL, không gửi JWT. Hủy/retry riêng từng file; lỗi 409 giữ form để xem lại. Không xóa vật lý file từ frontend. Storage hiển thị quota ứng dụng đã cấu hình, giữ dung lượng file soft-delete/reservations; đối chiếu thêm giới hạn Neon thực tế.
+
+Học sinh đang dùng API `/me/classes/.../materials` vẫn nhận tài liệu được công bố từ post mới, không cần đổi frontend học sinh để tải các file này. Feed/bình luận học sinh cần màn hình riêng nếu bổ sung vào portal học sinh sau.

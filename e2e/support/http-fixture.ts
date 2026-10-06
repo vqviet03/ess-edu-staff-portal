@@ -18,7 +18,7 @@ export async function installHttpFixture(page: Page, shared?: { get: () => strin
   await page.route(`${config.baseUrl}/**`, route => {
     queue = queue.then(async () => {
       const request = route.request();
-      const cors = {'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization,content-type,idempotency-key,accept,prefer', 'Access-Control-Allow-Methods': 'GET,POST,PATCH,PUT,OPTIONS'};
+      const cors = {'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization,content-type,idempotency-key,accept,prefer,x-workspace', 'Access-Control-Allow-Methods': 'GET,POST,PATCH,PUT,DELETE,OPTIONS'};
       if (request.method() === 'OPTIONS') {await route.fulfill({status:204, headers:cors});return;}
       let body: unknown;
       if (request.headers()['content-type']?.startsWith('multipart/form-data')) {

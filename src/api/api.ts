@@ -42,7 +42,7 @@ export const createStaffApi = (query = baseQuery) =>
       "Assessments",
       "Results",
       "Reports",
-      "Operations",
+      "Operations", "Materials", "Folders", "Posts", "Comments", "Storages", "DeletionRequests", "Notifications",
     ],
     endpoints: (b) => ({
       login: b.mutation<AuthSession, { teacherId: string; password: string }>({
