@@ -32,6 +32,8 @@ export function createAppBaseQuery(config: {
         if (auth.session && !["/auth/login", "/auth/link/exchange", "/auth/activate"].includes(path))
           headers.set("Authorization", `Bearer ${auth.session.accessToken}`);
         else headers.delete("Authorization");
+        const workspace=(getState() as {workspace?:{selected?:string}}).workspace?.selected;
+        if(workspace) headers.set("X-Workspace",workspace);
         headers.set("Accept", "application/json");
         return headers;
       },

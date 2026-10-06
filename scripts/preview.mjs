@@ -7,6 +7,7 @@ const root = resolve("out"),
 const mime = {
   ".html": "text/html; charset=utf-8",
   ".js": "text/javascript",
+  ".mjs":"text/javascript",
   ".css": "text/css",
   ".json": "application/json",
   ".txt": "text/plain",

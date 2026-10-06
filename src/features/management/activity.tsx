@@ -1,4 +1,5 @@
 "use client";
+import {StorageNotice} from "@/features/materials/storage-notice";
 import { useState } from "react";
 import Pagination from "@mui/material/Pagination";
 import Stack from "@mui/material/Stack";
@@ -18,6 +19,7 @@ function Warnings() {
   const q = useWarningsQuery();
   return (
     <>
+      <StorageNotice/>
       <Title
         title="Lớp trống giảng viên"
         subtitle="Lớp ACTIVE chưa có phân công hợp lệ. Cảnh báo được tính từ tài khoản, hồ sơ và phân công hiện tại."

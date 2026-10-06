@@ -1,4 +1,6 @@
 "use client";
+import { LibraryRefresh } from "@/features/materials/runtime";
+import { LibraryNavigation } from "@/features/materials/navigation";
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -176,7 +178,7 @@ export function Shell({ children }: { children: ReactNode }) {
   const { zoom } = useAppDisplay();
   const [reset, { isLoading }] = useResetDemoMutation();
   return (
-    <AppScale><Box
+    <AppScale><LibraryRefresh/><Box
       sx={{
         maxWidth: 1600 / (zoom / 100),
         mx: "auto",
@@ -230,6 +232,10 @@ export function Shell({ children }: { children: ReactNode }) {
                   ["Lớp học", "/manage/list/?entity=classes"],
                   ["Tài khoản", "/manage/list/?entity=accounts"],
                   ["Nhãn phụ trách", "/manage/list/?entity=labels"],
+                  ["Kho tài liệu", "/materials/"],
+                  ["Storage & dung lượng", "/storages/"],
+                  ["Duyệt xóa", "/deletion-requests/"],
+                  ["Thông báo", "/notifications/"],
                   ["Cảnh báo", "/manage/warnings/"],
                   ["Nhật ký", "/manage/audit/"],
                 ].map(([label, href]) => (
@@ -306,6 +312,7 @@ export function Shell({ children }: { children: ReactNode }) {
                     <MenuItem value="teacher">Giảng viên</MenuItem>
                   </TextField>
                 )}
+              {auth.status === "authenticated" && workspace.selected === "teacher" && <LibraryNavigation/>}
               <DisplayTools />
               <TextField select label="Ngôn ngữ" value="vi" sx={{ width: 125 }}>
                 <MenuItem value="vi">Tiếng Việt</MenuItem>

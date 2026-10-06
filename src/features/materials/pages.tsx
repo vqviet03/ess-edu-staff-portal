@@ -1,0 +1,389 @@
+"use client";
+import { useState } from "react";
+import Box from "@mui/material/Box";
+import Stack from "@mui/material/Stack";
+import Paper from "@mui/material/Paper";
+import Typography from "@mui/material/Typography";
+import Button from "@mui/material/Button";
+import TextField from "@mui/material/TextField";
+import MenuItem from "@mui/material/MenuItem";
+import Alert from "@mui/material/Alert";
+import LinearProgress from "@mui/material/LinearProgress";
+import Chip from "@mui/material/Chip";
+import {
+  useDeletionRequestsQuery,
+  useDecideDeletionMutation,
+  useStoragesQuery,
+  useNotificationsQuery,
+  useChangeNotificationMutation,
+  useReadNotificationsMutation,
+} from "@/api/library-api";
+import { useWorkspace } from "@/features/access/hooks";
+import { Feedback, NavButton, Title } from "@/shared/ui";
+import { MaterialBrowser } from "./browser";
+import { areaLabels, bytes } from "./utils";
+export function LibraryPage() {
+  return (
+    <>
+      <Title
+        title="Kho tài liệu"
+        subtitle="Duyệt theo thư mục hoặc cây; chọn nhiều file xuyên thư mục."
+      />
+      <MaterialBrowser />
+    </>
+  );
+}
+export function StoragePage() {
+  const { selected } = useWorkspace(),
+    q = useStoragesQuery(undefined, {
+      skip: selected !== "manager",
+      pollingInterval: 30000,
+    });
+  if (selected !== "manager")
+    return <Feedback error={new Error("Chỉ quản lý được xem storage.")} />;
+  return (
+    <Stack spacing={2}>
+      <Title
+        title="Storage & dung lượng"
+        subtitle="Dung lượng theo byte, bao gồm file ngừng hoạt động và dung lượng đã giữ chỗ."
+      />
+      <Feedback
+        loading={q.isLoading}
+        error={q.error}
+        retry={() => void q.refetch()}
+      />
+      <Box
+        sx={{
+          display: "grid",
+          gridTemplateColumns: { xs: "1fr", md: "repeat(2,minmax(0,1fr))" },
+          gap: 2,
+        }}
+      >
+        {q.currentData?.items.map((s) => (
+          <Paper key={s.id} sx={{ p: 3 }}>
+            <Stack spacing={1.5}>
+              <Typography variant="h6">{areaLabels[s.id]}</Typography>
+              <Chip
+                label={
+                  {
+                    LOW: "Còn nhiều chỗ",
+                    NORMAL: "Bình thường",
+                    WATCH: "Cần theo dõi",
+                    HIGH: "Gần đầy",
+                    CRITICAL: "Sắp hết dung lượng",
+                  }[s.status] ?? s.status
+                }
+                color={
+                  s.percentage >= 95
+                    ? "error"
+                    : s.percentage >= 80
+                      ? "warning"
+                      : s.percentage >= 60
+                        ? "info"
+                        : "success"
+                }
+              />
+              <LinearProgress
+                variant="determinate"
+                value={Math.min(100, s.percentage)}
+                sx={{
+                  height: 10,
+                  bgcolor: "action.hover",
+                  "& .MuiLinearProgress-bar": {
+                    bgcolor:
+                      s.percentage >= 95
+                        ? "error.main"
+                        : s.percentage >= 80
+                          ? "warning.main"
+                          : s.percentage >= 60
+                            ? "info.main"
+                            : s.percentage >= 30
+                              ? "primary.main"
+                              : "success.main",
+                  },
+                }}
+              />
+              <Typography>
+                {s.percentage.toFixed(1)}% · Tổng {bytes(s.totalBytes)}
+              </Typography>
+              <Typography variant="body2">
+                Đã dùng: {bytes(s.usedBytes)} · Giữ chỗ:{" "}
+                {bytes(s.reservedBytes)} · Còn lại: {bytes(s.remainingBytes)}
+              </Typography>
+              <Typography variant="caption">
+                File đã ngừng vẫn được giữ vật lý và tiếp tục chiếm dung lượng.
+              </Typography>
+            </Stack>
+          </Paper>
+        ))}
+      </Box>
+    </Stack>
+  );
+}
+export function DeletionPage() {
+  const { selected } = useWorkspace(),
+    q = useDeletionRequestsQuery(),
+    [decision, state] = useDecideDeletionMutation(),
+    [reason, setReason] = useState<Record<string, string>>({}),
+    [linkAction, setLinkAction] = useState<
+      Record<string, "KEEP_UNAVAILABLE" | "DETACH">
+    >({}),
+    [error, setError] = useState<unknown>(),
+    [success, setSuccess] = useState("");
+  return (
+    <Stack spacing={2}>
+      <Title
+        title="Yêu cầu xóa tài liệu"
+        subtitle="Xem ảnh hưởng trước khi duyệt; giữ lịch sử và file vật lý."
+      />
+      <Feedback
+        loading={q.isLoading}
+        error={q.error || error}
+        retry={() => void q.refetch()}
+      />
+      {success && <Alert severity="success">{success}</Alert>}
+      {q.currentData && !q.currentData.items.length && (
+        <Feedback empty="Chưa có yêu cầu xóa." />
+      )}
+      {q.currentData?.items.map((d) => (
+        <Paper key={d.request.id} sx={{ p: 3 }}>
+          <Stack spacing={2}>
+            <Typography variant="h6">{d.file.displayName}</Typography>
+            <Typography>Lý do: {d.request.reason}</Typography>
+            <Chip label={d.request.status} />
+            <Typography>{d.usages.length} bài đăng đang sử dụng:</Typography>
+            {d.usages.map((p) => (
+              <NavButton
+                key={p.id}
+                href={`/session/?classId=${p.classId}&sessionId=${p.sessionId}`}
+              >
+                {p.title}
+              </NavButton>
+            ))}
+            {selected === "manager" && d.request.status === "PENDING" && (
+              <>
+                <TextField
+                  select
+                  label="Xử lý liên kết khi duyệt"
+                  value={linkAction[d.request.id] ?? "KEEP_UNAVAILABLE"}
+                  onChange={(e) =>
+                    setLinkAction((v) => ({
+                      ...v,
+                      [d.request.id]: e.target.value as
+                        | "KEEP_UNAVAILABLE"
+                        | "DETACH",
+                    }))
+                  }
+                >
+                  <MenuItem value="KEEP_UNAVAILABLE">
+                    Giữ liên kết, báo file không khả dụng
+                  </MenuItem>
+                  <MenuItem value="DETACH">
+                    Gỡ file khỏi bài, giữ nhật ký
+                  </MenuItem>
+                </TextField>
+                <TextField
+                  label="Lý do quyết định"
+                  value={reason[d.request.id] ?? ""}
+                  onChange={(e) =>
+                    setReason((v) => ({ ...v, [d.request.id]: e.target.value }))
+                  }
+                />
+                <Stack direction="row" spacing={1}>
+                  {(["APPROVED", "REJECTED"] as const).map((value) => (
+                    <Button
+                      key={value}
+                      variant={value === "APPROVED" ? "contained" : "outlined"}
+                      disabled={
+                        state.isLoading || !reason[d.request.id]?.trim()
+                      }
+                      onClick={async () => {
+                        if (
+                          !window.confirm(
+                            value === "APPROVED"
+                              ? `Ngừng tài liệu và xử lý ${d.usages.length} liên kết như đã chọn?`
+                              : "Từ chối yêu cầu này?",
+                          )
+                        )
+                          return;
+                        setError(undefined);
+                        try {
+                          await decision({
+                            id: d.request.id,
+                            version: d.request.version,
+                            decision: value,
+                            reason: reason[d.request.id],
+                            linkAction:
+                              linkAction[d.request.id] ?? "KEEP_UNAVAILABLE",
+                          }).unwrap();
+                          setSuccess("Đã lưu quyết định.");
+                        } catch (e) {
+                          setError(e);
+                        }
+                      }}
+                    >
+                      {value === "APPROVED"
+                        ? "Duyệt ngừng hoạt động"
+                        : "Từ chối"}
+                    </Button>
+                  ))}
+                </Stack>
+              </>
+            )}
+          </Stack>
+        </Paper>
+      ))}
+    </Stack>
+  );
+}
+export const notificationTypes: Record<string, string> = {
+  MATERIAL: "Tài liệu / bài đăng",
+  SOCIAL: "Bình luận / tương tác",
+  APPROVAL: "Yêu cầu xóa / phê duyệt",
+  STORAGE: "Storage",
+  SYSTEM: "Hệ thống",
+};
+export function NotificationsPage() {
+  const [type, setType] = useState(""),
+    [read, setRead] = useState(""),
+    [cursor, setCursor] = useState<string>(),
+    q = useNotificationsQuery(
+      { type, isRead: read === "" ? undefined : read === "true", cursor },
+      { pollingInterval: 30000 },
+    ),
+    [change] = useChangeNotificationMutation(),
+    [all] = useReadNotificationsMutation(),
+    [error, setError] = useState<unknown>();
+  return (
+    <Stack spacing={2}>
+      <Title
+        title="Thông báo"
+        subtitle={`${q.currentData?.unreadCount ?? 0} chưa đọc`}
+        actions={
+          <Button
+            onClick={async () => {
+              try {
+                await all().unwrap();
+              } catch (e) {
+                setError(e);
+              }
+            }}
+          >
+            Đọc tất cả
+          </Button>
+        }
+      />
+      <Stack direction="row" spacing={1}>
+        <TextField
+          select
+          label="Loại"
+          value={type}
+          fullWidth
+          onChange={(e) => {
+            setType(e.target.value);
+            setCursor(undefined);
+          }}
+        >
+          <MenuItem value="">Tất cả</MenuItem>
+          {Object.entries(notificationTypes).map(([v, l]) => (
+            <MenuItem key={v} value={v}>
+              {l}
+            </MenuItem>
+          ))}
+        </TextField>
+        <TextField
+          select
+          label="Trạng thái"
+          value={read}
+          fullWidth
+          onChange={(e) => {
+            setRead(e.target.value);
+            setCursor(undefined);
+          }}
+        >
+          <MenuItem value="">Tất cả</MenuItem>
+          <MenuItem value="false">Chưa đọc</MenuItem>
+          <MenuItem value="true">Đã đọc</MenuItem>
+        </TextField>
+      </Stack>
+      <Feedback
+        loading={q.isLoading}
+        error={q.error || error}
+        retry={() => void q.refetch()}
+      />
+      {q.currentData && !q.currentData.items.length && (
+        <Feedback empty="Chưa có thông báo phù hợp." />
+      )}
+      {q.currentData?.items.map((n) => (
+        <Paper
+          key={n.id}
+          sx={{
+            p: 2,
+            borderLeft: 4,
+            borderColor: n.isRead ? "divider" : "primary.main",
+          }}
+        >
+          <Stack spacing={1}>
+            <Typography sx={{ fontWeight: n.isRead ? 400 : 700 }}>
+              {n.title}
+            </Typography>
+            <Typography variant="caption">
+              {notificationTypes[n.type]} ·{" "}
+              {new Date(n.createdAt).toLocaleString("vi-VN")}
+            </Typography>
+            <Stack
+              direction="row"
+              useFlexGap
+              spacing={1}
+              sx={{ flexWrap: "wrap" }}
+            >
+              <NavButton href={n.href}>Mở nội dung</NavButton>
+              <Button
+                onClick={async () => {
+                  try {
+                    await change({
+                      id: n.id,
+                      version: n.version,
+                      isRead: !n.isRead,
+                    }).unwrap();
+                  } catch (e) {
+                    setError(e);
+                  }
+                }}
+              >
+                {n.isRead ? "Đánh dấu chưa đọc" : "Đánh dấu đã đọc"}
+              </Button>
+              <Button
+                onClick={async () => {
+                  try {
+                    await change({
+                      id: n.id,
+                      version: n.version,
+                      deleted: true,
+                    }).unwrap();
+                  } catch (e) {
+                    setError(e);
+                  }
+                }}
+              >
+                Ẩn thông báo
+              </Button>
+            </Stack>
+          </Stack>
+        </Paper>
+      ))}
+      <Stack direction="row">
+        {cursor && (
+          <Button onClick={() => setCursor(undefined)}>Trang đầu</Button>
+        )}
+        {q.currentData?.nextCursor && (
+          <Button
+            onClick={() => setCursor(q.currentData?.nextCursor ?? undefined)}
+          >
+            Tiếp theo
+          </Button>
+        )}
+      </Stack>
+    </Stack>
+  );
+}

@@ -10,6 +10,82 @@ const management: Guide = { title: "Quản lý danh sách", intro: "Tìm kiếm,
 const profile: Guide = { title: "Hồ sơ và quan hệ", intro: "Xem thông tin hiện tại, tài khoản liên kết, lớp và lịch sử; tách trạng thái hồ sơ khỏi trạng thái tài khoản.", steps: [step("Thông tin hồ sơ", ["Chỉnh sửa tên, liên hệ, ghi chú, trạng thái; ID ổn định giữ nguyên. Thay trạng thái phải xem trước ảnh hưởng và xác nhận.", "Lớp có tiến độ theo Unit riêng biệt, tổng Unit và các quan hệ. Nội dung học tập cho quản lý là chỉ xem."], "form"), step("Phân công / ghi danh", ["Phân công có nhiều giảng viên, nhãn theo từng lớp và các giai đoạn lịch sử. Thêm người mới giữ người cũ; phân công lại cần xác nhận riêng.", "Từ lớp/học sinh, dùng Báo cáo học tập để xem kết quả đã công bố. Để sửa nhận xét, chuyển không gian Giảng viên và có phân công hợp lệ."] ,"workflow"), step("Tài khoản và phiên", ["PENDING chờ kích hoạt, ACTIVE được đăng nhập, LOCKED bị chặn. Cấp lại link vô hiệu hóa mã cũ; mã có hạn và dùng một lần.", "Phiên đăng nhập: đặt năm/tháng/ngày/giờ/phút, lớn hơn 0 và tối đa 10 năm; áp dụng lần đăng nhập tiếp theo. Buộc kết thúc phiên cần lý do; tài khoản có MANAGER được bảo vệ.", "Lịch sử hiển thị lần đăng nhập thành công, thời gian Việt Nam và thiết bị/IP khi ghi nhận được. IP có thể là proxy; vị trí chính xác chưa xác định."])] };
 const grid: Guide = { title: "Nhập hồ sơ bằng bảng / Excel", intro: "Tạo mới hoặc cập nhật nhiều học sinh/giảng viên với cùng quy tắc hồ sơ và quyền.", steps: [step("Chọn nhóm và chế độ", ["CREATE: chỉ họ tên bắt buộc; ID trống tự sinh, ID trùng thêm số trong preview. UPDATE: cần ID hồ sơ đã có, ô trống giữ dữ liệu cũ.", "Tải template riêng đúng nhóm. Workbook có Data, Schema, Instructions; ví dụ nằm trong hướng dẫn, không nhập thành hồ sơ."], "table"), step("Nhập và kiểm tra", ["Có thể dán vùng ô từ Excel, thêm dòng và Xóa dòng. Dòng hoàn toàn trống được bỏ qua; xóa dòng đã có dữ liệu cần xác nhận.", "Ngày sinh YYYY-MM-DD; vai trò TEACHER, MANAGER hoặc TEACHER|MANAGER. Tạo tài khoản TRUE/FALSE; tài khoản mới chờ kích hoạt. Không tự phân công/ghi danh lớp."], "table"), step("Xem trước và lưu", ["Preview hiển thị ID cuối cùng, trước/sau, lỗi dòng/cột và ảnh hưởng trạng thái/quyền. Tải danh sách lỗi để sửa; chưa hết lỗi chưa được lưu.", "Nhập lý do, xác nhận đủ ảnh hưởng rồi lưu. Khi dữ liệu đã đổi, xem trước lại; lỗi giữ dữ liệu nhập. Excel export theo phạm vi chọn/filter, không chứa mật khẩu/token."], "form")] };
 export function pageGuide(pathname: string, entity: string | null, workspace?: string | null): Guide {
+  if (pathname.includes("/materials"))
+    return {
+      title: "Kho tài liệu",
+      intro: "Duyệt, chọn và xem file; lựa chọn được giữ qua các thư mục.",
+      steps: [
+        step(
+          "Mở thư mục hoặc cây",
+          [
+            "Nhấn icon thư mục để mở các mục con. Chuyển Cây thư mục để mở từng nhánh. Breadcrumb và Quay lại giúp về cấp cha.",
+            "Tìm tên, chọn phạm vi hiện tại/toàn kho; dùng loại file và sắp xếp để thu hẹp kết quả.",
+          ],
+          "workflow",
+        ),
+        step(
+          "Chọn và xem",
+          [
+            "Checkbox chọn file, thumbnail mở bản xem. File đã chọn có viền và nền đậm; danh sách lựa chọn cho phép bỏ từng file hoặc tất cả.",
+            "Trong picker, thư mục chỉ điều hướng. Nút Thêm đưa toàn bộ file đang chọn vào bài đăng.",
+          ],
+          "table",
+        ),
+        step(
+          "Upload và quản lý",
+          [
+            "Chọn nhiều file, chọn storage theo loại, theo dõi tiến trình và hủy/thử lại từng file. File chỉ khả dụng sau khi API xác minh.",
+            "Giảng viên đổi tên file mình đăng và gửi yêu cầu xóa. Quản lý tạo/sửa thư mục, di chuyển file, xem nhật ký và duyệt ảnh hưởng.",
+          ],
+          "form",
+        ),
+      ],
+    };
+  if (pathname.includes("/storages"))
+    return {
+      title: "Storage",
+      intro: "Theo dõi dung lượng các nhóm tài liệu.",
+      steps: [
+        step(
+          "Đọc dung lượng",
+          [
+            "Tổng/đã dùng/giữ chỗ/còn lại đều tính bằng byte. Các mốc 30%, 60%, 80%, 95% đổi màu và nhãn.",
+            "Ngừng file không xóa vật lý, nên không tự giải phóng dung lượng. Kiểm tra storage gần đầy trước khi upload.",
+          ],
+          "chart",
+        ),
+      ],
+    };
+  if (pathname.includes("/deletion-requests"))
+    return {
+      title: "Duyệt xóa",
+      intro: "Ngừng tài liệu có kiểm tra các bài đang sử dụng.",
+      steps: [
+        step(
+          "Kiểm tra ảnh hưởng",
+          [
+            "Mở từng post/phiên học liên quan trước khi duyệt. Chọn giữ liên kết không khả dụng hoặc gỡ liên kết và nhập lý do.",
+            "Từ chối hoặc duyệt chỉ cập nhật trạng thái mềm; file và nhật ký vẫn được giữ.",
+          ],
+          "workflow",
+        ),
+      ],
+    };
+  if (pathname.includes("/notifications"))
+    return {
+      title: "Thông báo",
+      intro: "Thông báo thuộc tài khoản và lớp còn được phép truy cập.",
+      steps: [
+        step(
+          "Lọc và xử lý",
+          [
+            "Lọc loại hoặc đã đọc/chưa đọc. Mở nội dung để tới đối tượng, đánh dấu từng thông báo hoặc đọc tất cả.",
+            "Ẩn thông báo là xóa mềm. Số chưa đọc tự làm mới khi đang dùng portal.",
+          ],
+          "table",
+        ),
+      ],
+    };
   if (pathname.includes("/reports")) return report;
   if (pathname.includes("/manage/grid") || pathname.includes("/manage/excel")) return grid;
   if (pathname.includes("/manage/profile")) return { ...profile, title: `Hồ sơ ${entity === "teachers" ? "giảng viên" : entity === "classes" ? "lớp học" : entity === "accounts" ? "tài khoản" : entity === "labels" ? "nhãn" : "học sinh"}` };
@@ -19,7 +95,36 @@ export function pageGuide(pathname: string, entity: string | null, workspace?: s
   if (pathname.includes("/student-score") || pathname.includes("/scores")) return scores;
   if (pathname.includes("/assessment")) return assessment;
   if (pathname.includes("/import")) return imports;
-  if (pathname.includes("/session")) return { ...assessment, title: "Phiên học", steps: [step("Thông tin phiên", ["Tên phiên, ngày học, Unit liên quan và ghi chú mô tả buổi học. Phiên nháp không tăng tiến độ; nhiều phiên hoàn thành cùng Unit không được đếm trùng."], "form"), step("Bài đánh giá", ["Tạo nhiều bài PROGRESS_TRACKING hoặc FINAL_TEST, đặt tên dễ nhận biết. Mở bài để cấu hình kỹ năng, nhập điểm và công bố."], "workflow"), ...assessment.steps.slice(1)] };
+  if (pathname.includes("/session"))
+    return {
+      ...assessment,
+      title: "Phiên học",
+      steps: [
+        step(
+          "Tài liệu và trao đổi",
+          [
+            "Tab Tài liệu có bài đăng theo phiên, file theo nhóm Bài học/Hướng dẫn/Audio, tương tác và bình luận.",
+            "Giảng viên đang phụ trách lớp ACTIVE tạo/sửa bài. Chọn file từ kho hoặc upload trực tiếp, rồi lưu nháp/công bố. Chuyển tab giữ bản nháp và cuộn.",
+          ],
+          "workflow",
+        ),
+        step(
+          "Thông tin phiên",
+          [
+            "Tên phiên, ngày học, Unit liên quan và ghi chú mô tả buổi học. Phiên nháp không tăng tiến độ; nhiều phiên hoàn thành cùng Unit không được đếm trùng.",
+          ],
+          "form",
+        ),
+        step(
+          "Bài đánh giá",
+          [
+            "Tạo nhiều bài PROGRESS_TRACKING hoặc FINAL_TEST, đặt tên dễ nhận biết. Mở bài để cấu hình kỹ năng, nhập điểm và công bố.",
+          ],
+          "workflow",
+        ),
+        ...assessment.steps.slice(1),
+      ],
+    };
   if (pathname.includes("/class")) return classGuide;
   if (pathname.includes("/activate")) return { ...login, title: "Kích hoạt tài khoản", steps: [step("Đặt mật khẩu", ["Mở link còn hạn, nhập mật khẩu mới và xác nhận khớp; kiểm tra hướng dẫn độ dài trên form.", "Link chỉ dùng một lần. Mã sai/hết hạn/đã dùng: liên hệ quản lý cấp lại. Thành công quay về đăng nhập."], "form")] };
   if (pathname.includes("/home")) return workspace === "manager" ? { title: "Tổng quan quản lý", intro: "Theo dõi quy mô hiện tại, tiến độ Unit và lớp cần xử lý.", steps: [step("Chỉ số hiện tại và thời gian", ["Số học sinh/giảng viên hoạt động và lớp theo trạng thái là ảnh chụp hiện tại. Chỉ số theo khoảng thời gian dùng phạm vi được ghi trên màn hình; không trộn hai cách tính."], "report"), step("Lọc và biểu đồ", ["Chọn thời gian, lớp, trạng thái để thu hẹp phạm vi. Tiến độ Unit là Unit riêng biệt hoàn thành / tổng Unit, có mẫu số rõ ràng.", "Bảng lớp cần xử lý dẫn tới hồ sơ lớp/phân công. Xuất thống kê giữ đúng phạm vi filter."], "chart"), step("Đi đến nghiệp vụ", ["Menu quản lý mở hồ sơ/lớp/tài khoản/nhãn/cảnh báo/nhật ký. Nội dung học tập chỉ xem; tài khoản hai vai trò chuyển Giảng viên để sửa lớp đang phụ trách."])] } : { title: "Danh sách lớp giảng viên", intro: "Lớp đang phụ trách và lịch sử giảng dạy; tìm đúng lớp trước khi nhập điểm hoặc xem báo cáo.", steps: [step("Tìm lớp", ["Tìm tên/mã lớp, lọc trạng thái và phân trang. Mỗi dòng có lịch, số học sinh, tiến độ Unit và trạng thái."], "table"), step("Mở lớp", ["Bấm tên lớp để xem dashboard, học sinh, phiên và báo cáo. Lớp không còn phụ trách hoặc không ACTIVE chỉ xem; phân công và vai trò quyết định quyền sửa."])] };
