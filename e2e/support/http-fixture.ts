@@ -17,6 +17,8 @@ export async function installHttpFixture(page: Page, shared?: { get: () => strin
   const runtime = {signal: new AbortController().signal, abort() {}, dispatch: () => {}, getState: () => ({}), extra: undefined, endpoint: 'httpFixture', type: 'query'} as BaseQueryApi;
   let queue = Promise.resolve();
   const sockets = new Set<WebSocketRoute>();
+  const persistedNotices = new Map<string, Notification>();
+  let connections = 0, closes = 0;
   await page.route(`${config.baseUrl}/**`, route => {
     queue = queue.then(async () => {
       const request = route.request();
@@ -46,6 +48,7 @@ export async function installHttpFixture(page: Page, shared?: { get: () => strin
     return queue;
   });
   await page.routeWebSocket(config.baseUrl.replace(/^http/, 'ws') + '/events/ws', socket => {
+    connections++;
     let token = '', cursor = '0', timer: ReturnType<typeof setInterval> | undefined;
     socket.onMessage(async message => {
       try {
@@ -63,7 +66,7 @@ export async function installHttpFixture(page: Page, shared?: { get: () => strin
         cursor = auth.cursor ?? db.operationEvents?.at(-1)?.eventId ?? '0';
         sockets.add(socket);
         socket.send(JSON.stringify({type:'READY', cursor}));
-        socket.send(JSON.stringify({type:'NOTIFICATIONS', data:{items:[],nextCursor:null,unreadCount:0}}));
+        socket.send(JSON.stringify({type:'NOTIFICATIONS', data:{items:[...persistedNotices.values()],nextCursor:null,unreadCount:[...persistedNotices.values()].filter(n => !n.isRead).length}}));
         timer = setInterval(() => {
           const current = JSON.parse(database.get()) as Database;
           const me = current.tokens[token]?.teacher;
@@ -72,9 +75,10 @@ export async function installHttpFixture(page: Page, shared?: { get: () => strin
         }, 50);
       } catch {socket.close({code:1008, reason:'UNAUTHORIZED'});}
     });
-    socket.onClose(() => { clearInterval(timer); sockets.delete(socket); });
+    socket.onClose(() => { closes++; clearInterval(timer); sockets.delete(socket); });
   });
-  return { pushNotice: (notice: Notification) => {
+  return { connectionCounts: () => ({connections, closes, active:sockets.size}), pushNotice: (notice: Notification) => {
+    persistedNotices.set(notice.id, notice);
     for (const socket of sockets) socket.send(JSON.stringify({type:'NOTIFICATION', data:notice}));
   }};
 }
