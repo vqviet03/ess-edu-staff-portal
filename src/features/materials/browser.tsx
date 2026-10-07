@@ -40,6 +40,8 @@ import {
 import { useWorkspace } from "@/features/access/hooks";
 import { Feedback } from "@/shared/ui";
 import { MaterialViewer } from "./viewer";
+import { publicId, auditDetails } from "@/shared/public-id";
+import { StorageTransferDialog } from "./storage-transfer";
 import { UploadDialog } from "./upload";
 import type { Folder, MaterialFile } from "./models";
 import { bytes, fileKind, toggleSelection } from "./utils";
@@ -89,7 +91,7 @@ const FileTile = memo(function FileTile({
           onChange={() => toggle(file)}
           slotProps={{ input: { "aria-label": `Chọn ${file.displayName}` } }}
         />
-        <Typography variant="caption">{fileKind(file.mimeType)}</Typography>
+        <Typography variant="caption">{fileKind(file.mimeType)}{file.publicId ? ` · ${publicId(file.publicId)}` : ""}</Typography>
         <IconButton
           aria-label={`Thông tin ${file.displayName}`}
           onClick={() => info(file)}
@@ -188,6 +190,7 @@ function TreeBranch({
   workspace,
   sort,
   folderActions,
+  storageId,
 }: {
   folderId: string | null;
   depth: number;
@@ -202,12 +205,14 @@ function TreeBranch({
   workspace: string;
   sort: string;
   folderActions: (f: Folder) => ReactNode;
+  storageId?: string;
 }) {
   const folders = useFoldersQuery({ parentId: folderId, workspace }),
     [cursor, setCursor] = useState<string>(),
     files = useFilesQuery(
       {
         folderId,
+        storageId,
         search: "",
         scope: "current",
         type: "",
@@ -288,6 +293,7 @@ function TreeBranch({
               workspace={workspace}
               sort={sort}
               folderActions={folderActions}
+              storageId={storageId}
             />
           )}
         </Box>
@@ -335,6 +341,7 @@ function FileInformation({
     <Dialog open onClose={close} fullWidth maxWidth="md">
       <DialogTitle>{file.displayName}</DialogTitle>
       <DialogContent>
+        <Typography>Mã tài liệu: {publicId(file.publicId)}</Typography>
         <Typography>Tên gốc: {file.originalName}</Typography>
         <Typography>Tác giả: {file.authorName}</Typography>
         <Typography>
@@ -350,9 +357,7 @@ function FileInformation({
         {manager && (
           <>
             <Typography>Storage: {file.storageId}</Typography>
-            <Typography sx={{ overflowWrap: "anywhere" }}>
-              Object: {file.storageObjectKey}
-            </Typography>
+
             <Typography variant="h6" sx={{ mt: 2 }}>
               Nhật ký
             </Typography>
@@ -367,7 +372,7 @@ function FileInformation({
                   {a.action} · {new Date(a.createdAt).toLocaleString("vi-VN")}
                 </Typography>
                 <Typography variant="caption">
-                  Người thao tác: {a.actorName ?? "Hệ thống"} ({a.actorLoginId ?? a.actorUserId ?? a.actorId})
+                  Người thao tác: {a.actorName ?? "Hệ thống"} ({publicId(a.actorLoginId, a.actorUserId)})
                 </Typography>
                 <Typography
                   component="pre"
@@ -377,7 +382,7 @@ function FileInformation({
                     fontSize: 12,
                   }}
                 >
-                  {a.changesJson}
+                  {auditDetails(a.changesJson)}
                 </Typography>
               </Paper>
             ))}
@@ -394,9 +399,11 @@ function FileInformation({
 export function MaterialBrowser({
   picker = false,
   onAdd,
+  storageId,
 }: {
   picker?: boolean;
   onAdd?: (files: MaterialFile[]) => void;
+  storageId?: string;
 }) {
   const workspace = useWorkspace(),
     manager = workspace.selected === "manager",
@@ -406,7 +413,7 @@ export function MaterialBrowser({
     [mode, setMode] = useState<"grid" | "tree">("grid"),
     [search, setSearch] = useState(""),
     [debounced, setDebounced] = useState(""),
-    [scope, setScope] = useState<"current" | "all">("current"),
+    [scope, setScope] = useState<"current" | "all">(storageId ? "all" : "current"),
     [type, setType] = useState(""),
     [sort, setSort] = useState("name"),
     [cursor, setCursor] = useState<string>(),
@@ -418,6 +425,7 @@ export function MaterialBrowser({
     [metadata, setMetadata] = useState<MaterialFile | null>(null),
     [information, setInformation] = useState<MaterialFile | null>(null),
     [upload, setUpload] = useState(false),
+    [transferOpen, setTransferOpen] = useState(false),
     [error, setError] = useState<unknown>(),
     [message, setMessage] = useState(""),
     [folderEdit, setFolderEdit] = useState<Folder | null | undefined>(),
@@ -437,6 +445,7 @@ export function MaterialBrowser({
     files = useFilesQuery(
       {
         folderId,
+        storageId,
         search: debounced,
         scope,
         type,
@@ -622,6 +631,7 @@ export function MaterialBrowser({
           ))}
         </TextField>
       </Stack>
+      {transferOpen && <StorageTransferDialog files={chosen} close={() => setTransferOpen(false)} saved={() => { setTransferOpen(false); setSelected({}); setMessage("Đã xếp hàng chuyển file. Tiến độ cập nhật qua thông báo."); }} />}
       {(chosen.length > 0 || Object.keys(selectedFolders).length > 0) && <Paper sx={{ p: 1.5, bgcolor: "action.selected" }}>
         <Stack
           direction="row"
@@ -665,6 +675,7 @@ export function MaterialBrowser({
           >
             Bỏ chọn tất cả
           </Button>
+          {!picker && manager && <Button disabled={!chosen.length} onClick={() => setTransferOpen(true)}>Chuyển sang ổ khác</Button>}
           {!picker && manager && (
             <Button
               disabled={!chosen.length || moveState.isLoading}
@@ -717,6 +728,7 @@ export function MaterialBrowser({
           <TreeBranch
             key={folderId ?? "root"}
             folderId={folderId}
+            storageId={storageId}
             depth={0}
             selected={selected}
             selectedFolders={selectedFolders}

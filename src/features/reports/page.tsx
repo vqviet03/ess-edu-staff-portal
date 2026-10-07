@@ -1,4 +1,5 @@
 "use client";
+import { publicId } from "@/shared/public-id";
 import dynamic from "next/dynamic";
 import { useState } from "react";
 import { useSearchParams } from "next/navigation";
@@ -34,7 +35,7 @@ export function StudentReports() {
     <Feedback loading={classes.isLoading || details.isLoading || roster.isLoading || permissions.loading} error={classes.error || details.error || roster.error || permissions.error} retry={retry}/>
     {!classes.isLoading && !classId && <Feedback empty="Chưa có lớp được phép xem."/>}{classId && !roster.isFetching && !roster.error && !students.length && <Feedback empty="Lớp chưa có học sinh."/>}
     {selection.studentId && !roster.isFetching && !roster.error && students.length > 0 && !student && <Alert severity="warning">Không tìm thấy học sinh đã chọn trong lớp này. Chọn lại học sinh để xem đúng báo cáo.</Alert>}
-    {student && <Typography>{student.name} {student.nickname ? `· ${student.nickname}` : ""} · {student.publicId || student.studentCode || student.id}</Typography>}
+    {student && <Typography>{student.name} {student.nickname ? `· ${student.nickname}` : ""} · {publicId(student.publicId, student.studentCode, student.id)}</Typography>}
     <Feedback loading={units.isLoading || (units.isFetching && !units.currentData)} error={units.error} retry={() => void units.refetch()}/>
     {unit && <Tabs value={unitId} onChange={(_,value:string) => {setSelection({classId,studentId,unitId:value});setMessage("");}} variant="scrollable" scrollButtons="auto" allowScrollButtonsMobile aria-label="Chọn Unit báo cáo">{units.currentData?.map(u => <Tab key={u.id} value={u.id} label={u.name}/>)}</Tabs>}
     {student && !units.isFetching && !units.error && !unit && <Feedback empty="Học sinh chưa có Unit hoặc báo cáo đã công bố trong lớp này."/>}

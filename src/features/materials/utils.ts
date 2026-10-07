@@ -20,8 +20,8 @@ export function fileKind(mime: string) {
 }
 export function bytes(value: number) {
   if (value < 1024) return `${value} B`;
-  const unit = value < 1024 ** 2 ? "KB" : value < 1024 ** 3 ? "MB" : "GB";
-  const divisor = unit === "KB" ? 1024 : unit === "MB" ? 1024 ** 2 : 1024 ** 3;
+  const unit = value < 1024 ** 2 ? "KiB" : value < 1024 ** 3 ? "MiB" : "GiB";
+  const divisor = unit === "KiB" ? 1024 : unit === "MiB" ? 1024 ** 2 : 1024 ** 3;
   return `${(value / divisor).toLocaleString("vi-VN", { maximumFractionDigits: 1 })} ${unit}`;
 }
 export function defaultArea(mime: string): Area {

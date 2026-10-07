@@ -1,4 +1,5 @@
 "use client";
+import { publicId } from "@/shared/public-id";
 import { useState } from "react";
 import Alert from "@mui/material/Alert";
 import Button from "@mui/material/Button";
@@ -15,10 +16,11 @@ import { useApplicationSettings } from "./hooks";
 import type { ApplicationSettings } from "./models";
 export function SettingsPage() { return <ManagerOnly><SettingsContent /></ManagerOnly>; }
 function SettingsContent() {
-  const { settings, query } = useApplicationSettings(), proposals = useSettingsProposalsQuery(), actor = useAppSelector(s => s.auth.session?.teacher.id);
+  const { settings, query } = useApplicationSettings(), proposals = useSettingsProposalsQuery(undefined, { skip: !query.data || settings.schemaReady === false }), actor = useAppSelector(s => s.auth.session?.teacher.id);
   return <><Title title="Cấu hình ứng dụng" subtitle="Đề xuất đổi tên và tiền tố gợi ý lớp. Các quản lý khác đồng ý trước khi áp dụng; ID lớp đã có được giữ nguyên." />
     <Feedback loading={query.isLoading} error={query.error} retry={() => void query.refetch()} />
-    {query.data && <SettingsForm key={settings.version} settings={settings} />}
+    {query.data && settings.schemaReady === false && <Alert severity="warning">Cấu hình hệ thống chưa sẵn sàng. Cần chạy migration Core 012 qua job backend trước khi gửi đề xuất. Các màn hình khác vẫn dùng tên mặc định.</Alert>}
+    {query.data && settings.schemaReady !== false && <SettingsForm key={settings.version} settings={settings} />}
     <Typography component="h2" variant="h6" sx={{ my: 2 }}>Đề xuất & xác nhận</Typography>
     <Feedback loading={proposals.isLoading} error={proposals.error} retry={() => void proposals.refetch()} />
     <Stack spacing={2}>{proposals.currentData?.items.map(p => <ProposalCard key={p.id + ":" + p.version} proposal={p} actor={actor} />)}</Stack>
@@ -48,9 +50,9 @@ function ProposalCard({ proposal: p, actor }: { proposal: import("./models").Set
   return <Card><Stack spacing={1}>
     <Typography variant="h6">{p.appName} · tiền tố {p.classIdPrefix}</Typography>
     <Chip label={{ PENDING: "Chờ xác nhận", EXPIRED: "Hết hạn", APPLIED: "Đã áp dụng", REJECTED: "Đã từ chối" }[p.status]} sx={{ alignSelf: "start" }} />
-    <Typography>Đề xuất bởi {p.proposerName ?? p.proposedBy} · {p.reason}</Typography>
+    <Typography>Đề xuất bởi {p.proposerName ?? "Quản lý"} · {p.reason}</Typography>
     <Typography variant="body2">{p.approvals.length}/{p.requiredManagers.length} quản lý khác đã đồng ý · Hết hạn {new Date(p.expiresAt).toLocaleString("vi-VN")}</Typography>
-    {p.requiredManagers.map(m => <Typography key={m.id} variant="body2">{m.name} ({m.userId}) · {p.approvals.includes(m.id) ? "Đã đồng ý" : "Chưa đồng ý"}</Typography>)}
+    {p.requiredManagers.map(m => <Typography key={m.id} variant="body2">{m.name} ({publicId(m.userId)}) · {p.approvals.includes(m.id) ? "Đã đồng ý" : "Chưa đồng ý"}</Typography>)}
     <Feedback error={state.error} />
     {canDecide && <Stack direction="row" spacing={1}>{(["APPROVED", "REJECTED"] as const).map(decision => <Button key={decision} loading={state.isLoading} variant={decision === "APPROVED" ? "contained" : "outlined"} onClick={async () => { if (!window.confirm(decision === "APPROVED" ? "Đồng ý áp dụng tên / tiền tố khi đủ xác nhận?" : "Từ chối đề xuất này?")) return; try { await decide({ id: p.id, version: p.version, decision }).unwrap(); } catch {} }}>{decision === "APPROVED" ? "Đồng ý" : "Từ chối"}</Button>)}</Stack>}
   </Stack></Card>;

@@ -1,4 +1,5 @@
 "use client";
+import { publicId } from "@/shared/public-id";
 import { ReadOnlyNotice } from "@/features/access/hooks";
 import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
@@ -88,7 +89,7 @@ export function Scores() {
                           fontWeight: 600,
                         }}
                       >
-                        {s.name} · {s.nickname || s.id}
+                        {s.name} · {s.nickname || publicId(s.publicId, s.studentCode, s.id)}
                       </Typography>
                       <Typography>
                         {r.attendance === "ABSENT"

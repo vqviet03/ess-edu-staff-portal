@@ -1,4 +1,5 @@
 "use client";
+import { publicId } from "@/shared/public-id";
 import { exportPrefix } from "@/features/settings/branding";
 import { useState, type ReactNode } from "react";
 import Alert from "@mui/material/Alert";
@@ -164,7 +165,7 @@ export function PreviewPanel({
                   .map(([key, value]) => (
                     <TableRow key={`${c.entity}:${c.id}:${key}`}>
                       <TableCell>
-                        {c.row ?? ""} · {c.id}
+                        {c.row ?? ""} · {publicId(c.id)}
                       </TableCell>
                       <TableCell>{fieldNames[key] ?? key}</TableCell>
                       <TableCell sx={{ whiteSpace: "pre-wrap" }}>

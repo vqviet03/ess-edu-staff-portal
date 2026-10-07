@@ -1,6 +1,5 @@
 "use client";
 import { useState } from "react";
-import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
 import Paper from "@mui/material/Paper";
 import Typography from "@mui/material/Typography";
@@ -8,12 +7,10 @@ import Button from "@mui/material/Button";
 import TextField from "@mui/material/TextField";
 import MenuItem from "@mui/material/MenuItem";
 import Alert from "@mui/material/Alert";
-import LinearProgress from "@mui/material/LinearProgress";
 import Chip from "@mui/material/Chip";
 import {
   useDeletionRequestsQuery,
   useDecideDeletionMutation,
-  useStoragesQuery,
   useNotificationsQuery,
   useChangeNotificationMutation,
   useReadNotificationsMutation,
@@ -23,7 +20,6 @@ import { libraryApi } from "@/api/library-api";
 import { useWorkspace } from "@/features/access/hooks";
 import { Feedback, NavButton, Title } from "@/shared/ui";
 import { MaterialBrowser } from "./browser";
-import { areaLabels, bytes } from "./utils";
 export function LibraryPage() {
   return (
     <>
@@ -35,92 +31,7 @@ export function LibraryPage() {
     </>
   );
 }
-export function StoragePage() {
-  const { selected } = useWorkspace(),
-    q = useStoragesQuery(undefined, {
-      skip: selected !== "manager",
-    });
-  if (selected !== "manager")
-    return <Feedback error={new Error("Chỉ quản lý được xem storage.")} />;
-  return (
-    <Stack spacing={2}>
-      <Title
-        title="Storage & dung lượng"
-        subtitle="Dung lượng theo byte, bao gồm file ngừng hoạt động và dung lượng đã giữ chỗ."
-      />
-      <Feedback
-        loading={q.isLoading}
-        error={q.error}
-        retry={() => void q.refetch()}
-      />
-      <Box
-        sx={{
-          display: "grid",
-          gridTemplateColumns: { xs: "1fr", md: "repeat(2,minmax(0,1fr))" },
-          gap: 2,
-        }}
-      >
-        {q.currentData?.items.map((s) => (
-          <Paper key={s.id} sx={{ p: 3 }}>
-            <Stack spacing={1.5}>
-              <Typography variant="h6">{areaLabels[s.id]}</Typography>
-              <Chip
-                label={
-                  {
-                    LOW: "Còn nhiều chỗ",
-                    NORMAL: "Bình thường",
-                    WATCH: "Cần theo dõi",
-                    HIGH: "Gần đầy",
-                    CRITICAL: "Sắp hết dung lượng",
-                  }[s.status] ?? s.status
-                }
-                color={
-                  s.percentage >= 95
-                    ? "error"
-                    : s.percentage >= 80
-                      ? "warning"
-                      : s.percentage >= 60
-                        ? "info"
-                        : "success"
-                }
-              />
-              <LinearProgress
-                variant="determinate"
-                value={Math.min(100, s.percentage)}
-                sx={{
-                  height: 10,
-                  bgcolor: "action.hover",
-                  "& .MuiLinearProgress-bar": {
-                    bgcolor:
-                      s.percentage >= 95
-                        ? "error.main"
-                        : s.percentage >= 80
-                          ? "warning.main"
-                          : s.percentage >= 60
-                            ? "info.main"
-                            : s.percentage >= 30
-                              ? "primary.main"
-                              : "success.main",
-                  },
-                }}
-              />
-              <Typography>
-                {s.percentage.toFixed(1)}% · Tổng {bytes(s.totalBytes)}
-              </Typography>
-              <Typography variant="body2">
-                Đã dùng: {bytes(s.usedBytes)} · Giữ chỗ:{" "}
-                {bytes(s.reservedBytes)} · Còn lại: {bytes(s.remainingBytes)}
-              </Typography>
-              <Typography variant="caption">
-                Dung lượng gồm file gốc và thumbnail. File chờ xóa vẫn chiếm chỗ; xóa thành công mới giải phóng.
-              </Typography>
-            </Stack>
-          </Paper>
-        ))}
-      </Box>
-    </Stack>
-  );
-}
+export { StorageManagerPage as StoragePage } from "./storage-manager";
 export function DeletionPage() {
   const { selected } = useWorkspace(),
     q = useDeletionRequestsQuery(),

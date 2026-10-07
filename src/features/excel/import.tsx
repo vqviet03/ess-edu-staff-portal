@@ -1,4 +1,5 @@
 "use client";
+import { publicId } from "@/shared/public-id";
 import { exportPrefix } from "@/features/settings/branding";
 import { useState } from "react";
 import Alert from "@mui/material/Alert";
@@ -154,7 +155,7 @@ export function ExcelImport() {
                   setError("");
                   const blob = await template(a.id).unwrap();
                   const { download } = await import("./workbook");
-                  download(blob, `${exportPrefix()}_${a.id}.xlsx`);
+                  download(blob, `${exportPrefix()}_bang_diem.xlsx`);
                 } catch (e) {
                   setError(errorMessage(e));
                 }
@@ -320,7 +321,7 @@ export function ExcelImport() {
                   <AccordionSummary expandIcon="↓">
                     <Typography>
                       {q.students.find((s) => s.id === change.studentId)?.name}{" "}
-                      · {change.studentId}
+                      · {publicId(q.students.find(s => s.id === change.studentId)?.publicId, q.students.find(s => s.id === change.studentId)?.studentCode)}
                     </Typography>
                   </AccordionSummary>
                   <AccordionDetails>

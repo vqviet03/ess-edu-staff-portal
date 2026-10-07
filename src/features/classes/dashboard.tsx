@@ -1,4 +1,5 @@
 "use client";
+import { publicId } from "@/shared/public-id";
 import { ReadOnlyNotice, useClassCapabilities } from "@/features/access/hooks";
 import { useState } from "react";
 import { useSearchParams } from "next/navigation";
@@ -162,7 +163,7 @@ export function ClassDashboard() {
                   <TableBody>
                     {students.currentData.map((s) => (
                       <TableRow key={s.id}>
-                        <TableCell>{s.publicId || s.studentCode || s.id}</TableCell>
+                        <TableCell>{publicId(s.publicId, s.studentCode, s.id)}</TableCell>
                         <TableCell>{s.name}</TableCell>
                         <TableCell>{s.nickname || "—"}</TableCell>
                         <TableCell>

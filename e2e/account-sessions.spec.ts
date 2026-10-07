@@ -28,7 +28,7 @@ test("Mobile tối: bảo vệ MANAGER, giữ form khi version conflict và cả
   await expect(page.getByRole("button", { name: "Buộc kết thúc tất cả phiên" })).toBeDisabled(); await expect(page.getByText("Tài khoản có vai trò MANAGER được bảo vệ", { exact: false })).toBeVisible();
   await page.getByRole("checkbox", { name: "Dùng thời hạn mặc định của hệ thống" }).uncheck(); await page.getByLabel("Thời hạn · Phút").fill("15"); await page.getByLabel("Lý do thay đổi thời hạn").fill("Thời hạn mới");
   const db = JSON.parse(value) as Database; db.management!.accounts.find((a) => a.id === "acc-BOTH0001")!.version++; value = JSON.stringify(db);
-  await page.getByRole("button", { name: "Lưu thời hạn phiên", exact: true }).click(); await expect(page.getByText("Dữ liệu đã thay đổi.", { exact: false })).toBeVisible(); await expect(page.getByLabel("Thời hạn · Phút")).toHaveValue("15");
+  await page.getByRole("button", { name: "Lưu thời hạn phiên", exact: true }).click(); await expect(page.getByTestId("application-scale").getByText("Dữ liệu đã thay đổi.", { exact: false })).toBeVisible(); await expect(page.getByLabel("Thời hạn · Phút")).toHaveValue("15");
   page.once("dialog", async (dialog) => { expect(dialog.message()).toContain("chưa lưu"); await dialog.dismiss(); }); await page.getByRole("link", { name: "← Danh sách" }).click(); await expect(page).toHaveURL(/acc-BOTH0001/);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBeTruthy();
 });

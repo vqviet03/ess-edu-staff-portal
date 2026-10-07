@@ -56,7 +56,7 @@ export async function createTemplate(
       results.find((r) => r.studentId === student.id) ??
       emptyResult(student.id, assessment.skills);
     const row = sheet.addRow([
-      student.id,
+      student.publicId ?? student.studentCode ?? student.id,
       student.name,
       result.attendance,
       ...assessment.skills.flatMap((s) => {
@@ -229,10 +229,11 @@ export async function parseWorkbook(
     if (!row.hasValues) continue;
     const value = (name: string) =>
       scalar(row.getCell(headers.indexOf(name) + 1));
-    const id = value("student_id");
+    const suppliedId = value("student_id");
+    const id = typeof suppliedId === "string" ? students.find(s => [s.id, s.publicId, s.studentCode].includes(suppliedId))?.id ?? suppliedId : suppliedId;
     const add = (column: string, message: string) =>
       errors.push({ row: n, column, message });
-    if (typeof id !== "string" || !students.some((s) => s.id === id)) {
+    if (typeof id !== "string" || !students.some((s) => [s.id, s.publicId, s.studentCode].includes(id))) {
       add("student_id", "ID không thuộc lớp hoặc không hợp lệ");
       continue;
     }
