@@ -8,7 +8,6 @@ export function StorageNotice() {
   const { selected } = useWorkspace(),
     q = useStorageAlertsQuery(undefined, {
       skip: selected !== "manager",
-      pollingInterval: 30000,
     });
   return q.currentData?.items.length ? (
     <Alert

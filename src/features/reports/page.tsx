@@ -24,8 +24,8 @@ export function StudentReports() {
   const details = useClassQuery(classId,{skip:!classId}), permissions = useClassCapabilities(classId), roster = useHistoricalStudentsQuery(classId,{skip:!classId});
   const students = roster.currentData ?? [], student = selection.studentId ? students.find(s => [s.id,s.publicId,s.studentCode].includes(selection.studentId)) : students.find(s => s.status === "ACTIVE") ?? students[0], studentId = student?.id ?? "", context = {classId,studentId};
   const units = useStudentUnitsQuery(context,{skip:!classId || !studentId}), unit = selectUnit(units.currentData ?? [],selection.unitId), unitId = unit?.id ?? "";
-  const progress = useStudentProgressQuery(context,{skip:!classId || !studentId, pollingInterval:30000,skipPollingIfUnfocused:true});
-  const report = useStudentReportQuery({...context,unitId},{skip:!classId || !studentId || !unitId || !unit?.hasReport,pollingInterval:30000,skipPollingIfUnfocused:true});
+  const progress = useStudentProgressQuery(context,{skip:!classId || !studentId,});
+  const report = useStudentReportQuery({...context,unitId},{skip:!classId || !studentId || !unitId || !unit?.hasReport,});
   const editable = permissions.editLearning && !permissions.error && !report.error && !!report.currentData?.canEditComments;
   const retry = () => { void classes.refetch(); if(classId) { void details.refetch(); void roster.refetch(); permissions.retry(); } };
   return <><Title title="Báo cáo học tập học sinh" subtitle="Báo cáo đã công bố, cùng dữ liệu học sinh đang xem." actions={<><NavButton href={classId ? `/class/?classId=${encodeURIComponent(classId)}` : "/home/"}>← Lớp học</NavButton><Button disabled={!editable} variant="contained" onClick={() => setEditing(true)}>Sửa nhận xét</Button></>}/><ReadOnlyNotice editable={editable}/>{message && <Alert severity="success" onClose={() => setMessage("")}>{message}</Alert>}

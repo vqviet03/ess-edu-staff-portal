@@ -18,7 +18,7 @@ export function AssessmentDetail() {
     [update, state] = useUpdateAssessmentMutation(),
     [error, setError] = useState(""),
     [message, setMessage] = useState("");
-  const publication = usePublicationQuery(q.context.assessmentId, { skip: !q.assessment || !!q.empty, pollingInterval: 30000, skipPollingIfUnfocused: true });
+  const publication = usePublicationQuery(q.context.assessmentId, { skip: !q.assessment || !!q.empty, });
   if (q.loading || q.error || q.empty)
     return (
       <Feedback

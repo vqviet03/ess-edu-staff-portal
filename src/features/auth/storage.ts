@@ -1,7 +1,7 @@
 import type { AuthSession } from "@/types";
 import { apiConfiguration } from "@/api/config";
 export const SESSION_KEY = "learnleaf.staff.auth";
-export function expired(session: AuthSession) {
+export function expiresAt(session: AuthSession) {
   let until = Date.parse(session.expiresAt);
   try {
     const body = session.accessToken.split(".")[1];
@@ -13,6 +13,10 @@ export function expired(session: AuthSession) {
         until = Math.min(until, parsed.exp * 1000);
     }
   } catch {}
+  return until;
+}
+export function expired(session: AuthSession) {
+  const until = expiresAt(session);
   return !Number.isFinite(until) || until <= Date.now();
 }
 export function readSession(): AuthSession | null {

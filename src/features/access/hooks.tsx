@@ -28,8 +28,6 @@ export function useClassCapabilities(classId: string) {
   const { staff, selected } = useWorkspace(),
     q = useClassAccessQuery(classId, {
       skip: !classId || !staff,
-      pollingInterval: 30000,
-      refetchOnFocus: true,
     });
   return {
     ...capabilities(staff ?? null, selected, q.currentData),

@@ -33,7 +33,7 @@ type Values = { useDefault: boolean; duration: SessionDuration; reason: string }
 const defaults = (p: AccountSessionPolicy): Values => ({ useDefault: p.sessionLifetimeMinutes === null && !p.sessionDuration, duration: p.sessionDuration ?? (p.sessionLifetimeMinutes ? minutesToDuration(p.sessionLifetimeMinutes) : { ...emptyDuration }), reason: "" });
 const localDateTime = (value: string) => new Intl.DateTimeFormat("vi-VN", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Ho_Chi_Minh" }).format(new Date(value));
 export function AccountSessions({ accountId, loginId, onSaved }: { accountId: string; loginId: string; onSaved: (message: string) => void }) {
-  const q = useAccountSessionPolicyQuery(accountId, { pollingInterval: 30000, skipPollingIfUnfocused: true, refetchOnFocus: true });
+  const q = useAccountSessionPolicyQuery(accountId, { });
   if (!q.currentData) return <Card><Typography variant="h5">Phiên đăng nhập</Typography><Feedback loading={q.isLoading} error={q.error} retry={() => void q.refetch()} /></Card>;
   return <Stack spacing={2}><SessionEditor key={accountId} policy={q.currentData} loginId={loginId} queryError={q.error} reload={async () => q.refetch().unwrap()} onSaved={onSaved} /><LoginHistoryCard accountId={accountId} /></Stack>;
 }
@@ -102,7 +102,7 @@ function SessionEditor({ policy, loginId, queryError, reload, onSaved }: { polic
 
 function LoginHistoryCard({ accountId }: { accountId: string }) {
   const [page, setPage] = useState(1);
-  const q = useAccountLoginHistoryQuery({ id: accountId, page }, { pollingInterval: 30000, skipPollingIfUnfocused: true, refetchOnFocus: true });
+  const q = useAccountLoginHistoryQuery({ id: accountId, page }, { });
   return <Card><Stack spacing={2}>
     <Typography variant="h5">Lịch sử đăng nhập</Typography>
     <Typography variant="body2" color="text.secondary">Các lần đăng nhập thành công, mới nhất trước. Thiết bị được nhận diện từ trình duyệt và có thể không chính xác. IP có thể là địa chỉ proxy; không xác định vị trí GPS.</Typography>

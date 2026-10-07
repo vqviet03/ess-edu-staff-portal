@@ -2,11 +2,9 @@
 import Link from "next/link";
 import Button from "@mui/material/Button";
 import Stack from "@mui/material/Stack";
-import { useWorkspace } from "@/features/access/hooks";
-import { useNotificationsQuery } from "@/api/library-api";
+import { libraryApi } from "@/api/library-api";
 export function LibraryNavigation() {
-  const ready = useWorkspace().staff,
-    q = useNotificationsQuery({}, { skip: !ready, pollingInterval: 30000 });
+  const q = libraryApi.endpoints.notifications.useQueryState({});
   return (
     <Stack direction="row" useFlexGap spacing={1} sx={{ flexWrap: "wrap" }}>
       <Button component={Link} href="/materials/">

@@ -24,9 +24,9 @@ export const createStaffApi = (query = baseQuery) =>
   createApi({
     reducerPath: "staffApi",
     baseQuery: query,
-    refetchOnFocus: true,
-    refetchOnReconnect: true,
-    refetchOnMountOrArgChange: 30,
+    refetchOnFocus: false,
+    refetchOnReconnect: false,
+    refetchOnMountOrArgChange: false,
     tagTypes: [
       "Auth",
       "Management",
