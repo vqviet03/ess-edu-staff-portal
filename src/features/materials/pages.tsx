@@ -112,7 +112,7 @@ export function StoragePage() {
                 {bytes(s.reservedBytes)} · Còn lại: {bytes(s.remainingBytes)}
               </Typography>
               <Typography variant="caption">
-                File đã ngừng vẫn được giữ vật lý và tiếp tục chiếm dung lượng.
+                Dung lượng gồm file gốc và thumbnail. File chờ xóa vẫn chiếm chỗ; xóa thành công mới giải phóng.
               </Typography>
             </Stack>
           </Paper>
@@ -135,7 +135,7 @@ export function DeletionPage() {
     <Stack spacing={2}>
       <Title
         title="Yêu cầu xóa tài liệu"
-        subtitle="Xem ảnh hưởng trước khi duyệt; giữ lịch sử và file vật lý."
+        subtitle="Xem ảnh hưởng trước khi duyệt xóa file gốc và thumbnail khỏi storage; giữ hồ sơ và nhật ký."
       />
       <Feedback
         loading={q.isLoading}
@@ -151,8 +151,9 @@ export function DeletionPage() {
           <Stack spacing={2}>
             <Typography variant="h6">{d.file.displayName}</Typography>
             <Typography>Lý do: {d.request.reason}</Typography>
-            <Chip label={d.request.status} />
+            <Chip label={d.request.status} /><Typography variant="body2">Tài liệu: {d.file.status === "DELETED" ? "Đã xóa khỏi storage" : d.file.status === "DELETING" ? "Đang chờ server xóa file và thumbnail" : "Đang lưu trữ"}</Typography>
             <Typography>{d.usages.length} bài đăng đang sử dụng:</Typography>
+            {d.purge?.lastError && <Alert severity="warning">Storage chưa xóa thành công ({d.purge.lastError}). Server đã thử {d.purge.attempts} lần; lần kế tiếp sau {new Date(d.purge.nextAttemptAt).toLocaleString("vi-VN")}. Dung lượng chưa được giải phóng.</Alert>}
             {d.usages.map((p) => (
               <NavButton
                 key={p.id}
@@ -202,7 +203,7 @@ export function DeletionPage() {
                         if (
                           !window.confirm(
                             value === "APPROVED"
-                              ? `Ngừng tài liệu và xử lý ${d.usages.length} liên kết như đã chọn?`
+                              ? `Xóa thật file gốc và thumbnail, xử lý ${d.usages.length} liên kết như đã chọn?`
                               : "Từ chối yêu cầu này?",
                           )
                         )
@@ -217,14 +218,14 @@ export function DeletionPage() {
                             linkAction:
                               linkAction[d.request.id] ?? "KEEP_UNAVAILABLE",
                           }).unwrap();
-                          setSuccess("Đã lưu quyết định.");
+                          setSuccess(value === "APPROVED" ? "Đã duyệt. Server sẽ xóa file và thumbnail rồi gửi thông báo." : "Đã từ chối.");
                         } catch (e) {
                           setError(e);
                         }
                       }}
                     >
                       {value === "APPROVED"
-                        ? "Duyệt ngừng hoạt động"
+                        ? "Duyệt xóa file thật"
                         : "Từ chối"}
                     </Button>
                   ))}

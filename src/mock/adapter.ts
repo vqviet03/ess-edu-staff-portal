@@ -1,3 +1,4 @@
+import { currentSettings, settingsRequest } from "./settings";
 import { sessionExpiry } from "@/features/management/session-duration";
 import type {
   BaseQueryFn,
@@ -150,6 +151,7 @@ export function createMockAdapter(
       const envelope = (data: unknown, meta?: unknown) => ({
         data: { data, ...(meta ? { meta } : {}) },
       });
+      if (path === "/application-settings") return envelope(currentSettings(db));
       if (path === "/auth/login" && method === "POST") {
         const b = object(body);
         const account = managed.accounts.find(
@@ -274,6 +276,8 @@ export function createMockAdapter(
         return fail(401, "UNAUTHORIZED", "Phiên đăng nhập đã hết hạn.");
       const staff = actor(db, db.tokens[token].teacher.id);
       if (path === "/auth/me") return envelope(staff);
+      const settingResponse = settingsRequest(db, staff, { ...req, headers });
+      if (settingResponse) { save(db); return settingResponse; }
       const managedResponse = await managementRequest(
         db,
         staff,

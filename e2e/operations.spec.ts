@@ -22,14 +22,14 @@ test("backend ID suggestions, custom check and websocket refresh another manager
   await dialog.getByLabel("ID", { exact: true }).fill("HV1001"); await dialog.getByRole("button", { name: "Kiểm tra trùng" }).click(); await expect(dialog.getByText(/ID đã dùng/)).toBeVisible();
   await dialog.getByLabel("ID", { exact: true }).fill("custom.viet"); await dialog.getByLabel("Họ tên", { exact: true }).fill("Vũ Quốc Việt realtime"); await dialog.getByRole("button", { name: "Kiểm tra trùng" }).click(); await expect(dialog.getByText(/ID có thể sử dụng/)).toBeVisible(); await expect(dialog.getByLabel("ID", { exact: true })).toHaveValue("custom.viet");
   await save(page);
-  await expect(other.getByText("custom.viet", { exact: true })).toBeVisible(); await expect(other.getByText(/ESS: tác vụ đã hoàn tất/)).toBeVisible();
+  await expect(other.getByText("custom.viet", { exact: true })).toBeVisible(); await expect(other.getByText(/Tác vụ đã hoàn tất/)).toBeVisible();
   await other.close();
 });
-test("class number is readonly and editing suffix keeps class ID", async ({ page }) => {
+test("class ID suggestion is editable and changing name keeps class ID", async ({ page }) => {
   if (process.env.NEXT_PUBLIC_USE_MOCK !== "true") await installHttpFixture(page);
   await login(page); await go(page, "/manage/list/?entity=classes"); await page.getByRole("button", { name: "Thêm lớp học", exact: true }).click();
-  const dialog = page.getByRole("dialog"); await expect(dialog.getByLabel("ID", { exact: true })).toHaveValue("ess21"); await expect(dialog.getByLabel("ID", { exact: true })).toBeDisabled();
+  const dialog = page.getByRole("dialog"); await expect(dialog.getByLabel("ID", { exact: true })).toHaveValue("ess21"); await expect(dialog.getByLabel("ID", { exact: true })).toBeEnabled();
   await dialog.getByLabel("Hậu tố tên lớp").fill("a1"); await dialog.getByLabel("Lịch học").fill("Thứ 3 · 18:00"); await save(page);
   await go(page, "/manage/profile/?entity=classes&id=ess21"); await expect(page.getByRole("heading", { name: "ess21-a1", exact: true })).toBeVisible();
-  await page.getByRole("button", { name: "Chỉnh sửa hồ sơ / trạng thái" }).click(); await dialog.getByLabel("Hậu tố tên lớp").fill("b2"); await save(page); await expect(page.getByRole("heading", { name: "ess21-b2", exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Chỉnh sửa hồ sơ / trạng thái" }).click(); await dialog.getByLabel("Tên", {exact:true}).fill("ess21-b2"); await save(page); await expect(page.getByRole("heading", { name: "ess21-b2", exact: true })).toBeVisible();
 });

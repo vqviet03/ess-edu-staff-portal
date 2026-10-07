@@ -2,6 +2,11 @@
 import { createContext, Suspense, useContext, useEffect, useState, type ReactNode } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 import Box from "@mui/material/Box";
+import IconButton from "@mui/material/IconButton";
+import Tooltip from "@mui/material/Tooltip";
+import Remove from "@mui/icons-material/Remove";
+import Add from "@mui/icons-material/Add";
+import Help from "@mui/icons-material/HelpOutlined";
 import Button from "@mui/material/Button";
 import Paper from "@mui/material/Paper";
 import Stack from "@mui/material/Stack";
@@ -19,10 +24,10 @@ export const useAppDisplay = () => useContext(Display);
 export function DisplayTools() {
   const display = useAppDisplay(), index = (zoomLevels as readonly number[]).indexOf(display.zoom);
   return <Stack direction="row" useFlexGap sx={{ alignItems: "center", flexWrap: "wrap", gap: .5 }} aria-label="Hướng dẫn và kích thước giao diện">
-    <Button variant="outlined" aria-label="Thu nhỏ giao diện" disabled={index === 0} onClick={() => display.setZoom(zoomLevels[index - 1])}>−</Button>
+    <IconButton aria-label="Thu nhỏ giao diện" disabled={index === 0} onClick={() => display.setZoom(zoomLevels[index - 1])}><Remove /></IconButton>
     <Button aria-label="Đặt lại kích thước 100%" onClick={() => display.setZoom(100)}>{display.zoom}%</Button>
-    <Button variant="outlined" aria-label="Phóng to giao diện" disabled={index === zoomLevels.length - 1} onClick={() => display.setZoom(zoomLevels[index + 1])}>+</Button>
-    <Button variant={display.open ? "contained" : "outlined"} aria-controls="page-guide" aria-expanded={display.open} onClick={display.toggle}>{display.open ? "Ẩn hướng dẫn" : "Hướng dẫn"}</Button>
+    <IconButton aria-label="Phóng to giao diện" disabled={index === zoomLevels.length - 1} onClick={() => display.setZoom(zoomLevels[index + 1])}><Add /></IconButton>
+    <Tooltip title={display.open ? "Ẩn hướng dẫn" : "Hướng dẫn"}><IconButton aria-label={display.open ? "Ẩn hướng dẫn" : "Hướng dẫn"} color={display.open ? "primary" : "default"} aria-controls="page-guide" aria-expanded={display.open} onClick={display.toggle}><Help /></IconButton></Tooltip>
   </Stack>;
 }
 export function AppScale({ children }: { children: ReactNode }) {

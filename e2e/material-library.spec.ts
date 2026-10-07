@@ -261,13 +261,38 @@ async function fixture(page: Page) {
   });
   return signedRequests;
 }
-async function login(page: Page) {
+async function login(page: Page, id = "GV0001") {
   await page.goto(`${base}/login/`);
-  await page.getByLabel("ID giảng viên").fill("GV0001");
+  await page.getByLabel("ID giảng viên").fill(id);
   await page.getByLabel("Mật khẩu", { exact: true }).fill("Demo123!");
   await page.getByRole("button", { name: "Đăng nhập", exact: true }).click();
   await expect(page).toHaveURL(/\/home\//);
 }
+test("manager folder actions use ellipsis and physical deletion reviews usage", async ({ page }) => {
+  await fixture(page);
+  const cors = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "authorization,content-type,x-workspace", "Access-Control-Allow-Methods": "GET,DELETE,OPTIONS" };
+  let removed = false;
+  await page.route(`${api}/materials/a/deletion-impact`, async route => {
+    if (route.request().method() === "OPTIONS") return route.fulfill({ status: 204, headers: cors });
+    await route.fulfill({ json: { data: { file: { ...file("a", "one"), thumbnailBytes: 200, storageBytes: 1200 }, usages: [] } }, headers: cors });
+  });
+  await page.route(`${api}/materials/a`, async route => {
+    if (route.request().method() === "OPTIONS") return route.fulfill({ status: 204, headers: cors });
+    const body = route.request().postDataJSON(); expect(body.version).toBe(1); expect(body.linkAction).toBe("DETACH"); expect(body.reason).toBe("Không sử dụng"); removed = true;
+    await route.fulfill({ json: { data: { id: "a", status: "DELETING" } }, headers: cors });
+  });
+  await page.route(`${api}/materials?**`, async route => { const folder = new URL(route.request().url()).searchParams.get("folderId"); await route.fulfill({ json: { data: { items: folder === "one" && !removed ? [file("a", "one")] : [], nextCursor: null } }, headers: cors }); });
+  await login(page, "MG0001"); await page.goto(`${base}/materials/`);
+  await expect(page.getByRole("button", { name: "Sửa thư mục Juniors" })).toHaveCount(0);
+  await page.getByRole("button", { name: "Thao tác thư mục Juniors" }).click();
+  await expect(page.getByRole("menuitem", { name: "Sửa thư mục" })).toBeVisible(); await page.keyboard.press("Escape");
+  await page.getByRole("button", { name: "Juniors", exact: true }).click();
+  await page.getByRole("button", { name: "Thông tin Bài học a.pdf" }).click(); await page.getByRole("button", { name: "Xóa tài liệu", exact: true }).click();
+  const dialog = page.getByRole("dialog"); await expect(dialog.getByText(/Thumbnail: 200/)).toBeVisible();
+  await expect(dialog.getByRole("button", { name: "Xác nhận xóa" })).toBeDisabled();
+  await dialog.getByLabel("Lý do xóa").fill("Không sử dụng"); await dialog.getByRole("checkbox").check(); await dialog.getByRole("button", { name: "Xác nhận xóa" }).click();
+  await expect(page.getByText(/Đã ẩn tài liệu/)).toBeVisible(); await expect(page.getByRole("checkbox", { name: "Chọn Bài học a.pdf" })).toHaveCount(0); expect(removed).toBeTruthy();
+});
 test("grid across nested folders, tree selection and mobile bounds", async ({
   page,
 }) => {
@@ -288,8 +313,8 @@ test("grid across nested folders, tree selection and mobile bounds", async ({
     path: "test-results/materials-mobile-light.png",
     fullPage: true,
   });
-  await page.getByRole("combobox", { name: "Giao diện", exact: true }).click();
-  await page.getByRole("option", { name: "Tối", exact: true }).click();
+  await page.getByRole("button", { name: "Giao diện", exact: true }).click();
+  await page.getByRole("menuitem", { name: "Tối", exact: true }).click();
   await page.screenshot({
     path: "test-results/materials-mobile-dark.png",
     fullPage: true,

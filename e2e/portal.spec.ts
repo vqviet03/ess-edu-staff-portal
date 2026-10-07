@@ -31,10 +31,10 @@ test("đăng nhập, reload, theme, deep links và 401", async ({ page }) => {
   await expect(
     page.getByRole("heading", { name: "Lớp học của tôi" }),
   ).toBeVisible();
-  await page.getByRole("combobox", {name: "Giao diện", exact: true}).click();
-  await page.getByRole("option", { name: "Tối", exact: true }).click();
+  await page.getByRole("button", {name: "Giao diện", exact: true}).click();
+  await page.getByRole("menuitem", { name: "Tối", exact: true }).click();
   await page.reload();
-  await expect(page.getByRole("combobox", {name: "Giao diện", exact: true})).toHaveText("Tối");
+  await expect(page.getByRole("button", {name: "Giao diện", exact: true})).toHaveAttribute("data-mode", "dark");
   for (const route of [
     "class/?classId=class-green",
     "session/?classId=class-green&sessionId=session-3",

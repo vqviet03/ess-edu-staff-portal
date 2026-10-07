@@ -26,7 +26,7 @@ export function OperationsRuntime() {
       if (done.current.has(event.operationId)) continue;
       if (event.actorId === session?.teacher.id && localMutations[event.operationId]) { done.current.add(event.operationId); continue; }
       done.current.add(event.operationId);
-      setToast({ text: event.command.startsWith("Library.") ? "ESS: có thông báo mới." : event.status === "DONE" ? "ESS: tác vụ đã hoàn tất. Dữ liệu liên quan được cập nhật." : (event.error?.message ?? "Tác vụ thất bại; dữ liệu chưa được lưu."), error: event.status === "FAILED" });
+      setToast({ text: event.command.startsWith("Library.") ? "Có thông báo mới." : event.status === "DONE" ? "Tác vụ đã hoàn tất. Dữ liệu liên quan được cập nhật." : (event.error?.message ?? "Tác vụ thất bại; dữ liệu chưa được lưu."), error: event.status === "FAILED" });
     }
   }, [notices, localMutations, session?.teacher.id]);
   const pending = Object.values(jobs).filter((j) => j.status === "IN_PROGRESS");
@@ -40,7 +40,7 @@ export function OperationsRuntime() {
           receiveOperation(session.accessToken, next);
         } catch { setToast({ text: "Không kiểm tra được tác vụ. Vui lòng thử lại.", error: true }); }
       }
-    }}>Kiểm tra trạng thái</Button>}>Đang xử lý {pending.length} tác vụ. Bạn có thể tiếp tục sử dụng ESS.</Alert></Box>}
+    }}>Kiểm tra trạng thái</Button>}>Đang xử lý {pending.length} tác vụ. Bạn có thể tiếp tục thao tác.</Alert></Box>}
     <Snackbar open={!!toast} autoHideDuration={6000} onClose={() => setToast(null)} anchorOrigin={{ vertical: "bottom", horizontal: "right" }}><Alert severity={toast?.error ? "error" : "success"} onClose={() => setToast(null)}>{toast?.text}</Alert></Snackbar>
   </>;
 }

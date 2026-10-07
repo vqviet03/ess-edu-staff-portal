@@ -2,6 +2,7 @@ export interface CursorPage<T> {
   items: T[];
   nextCursor: string | null;
   total?: number;
+  page?: number; pageSize?: number;
   unreadCount?: number;
 }
 export interface Folder {
@@ -24,6 +25,8 @@ export interface MaterialFile {
   displayName: string;
   mimeType: string;
   sizeBytes: number;
+  thumbnailBytes?: number;
+  storageBytes?: number;
   thumbnailUrl: string | null;
   folderId: string | null;
   authorId: string;
@@ -94,6 +97,7 @@ export interface Storage {
   largeFileWarningBytes: number;
 }
 export interface DeletionItem {
+  purge?: { status: string; attempts: number; lastError: string | null; nextAttemptAt: string } | null;
   request: {
     id: string;
     materialId: string;

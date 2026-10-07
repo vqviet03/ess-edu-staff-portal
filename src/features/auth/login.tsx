@@ -17,8 +17,10 @@ import { signedIn } from "@/store/auth";
 import { useAppDispatch, useAppSelector } from "@/store";
 import { Card, Feedback, NavButton, Shell, Title } from "@/shared/ui";
 import type { AuthSession } from "@/types";
+import { useApplicationSettings } from "@/features/settings/hooks";
 const exchanges = new Map<string, Promise<AuthSession>>();
 export function Login() {
+  const { settings } = useApplicationSettings();
   const router = useRouter(),
     dispatch = useAppDispatch(),
     auth = useAppSelector((s) => s.auth),
@@ -39,7 +41,7 @@ export function Login() {
     <Shell>
       <Box sx={{ maxWidth: 440, mx: "auto", pt: { xs: 0, md: 4 } }}>
         <Title
-          title="Đăng nhập ESS Staff"
+          title={`Đăng nhập ${settings.appName} Staff`}
           subtitle="Quản lý lớp học, đánh giá và theo dõi tiến bộ của học sinh."
         />
         <Card>

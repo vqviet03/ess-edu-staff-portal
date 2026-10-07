@@ -1,4 +1,5 @@
 "use client";
+import { exportPrefix } from "@/features/settings/branding";
 import { useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
@@ -395,7 +396,7 @@ function EntityList({ entity }: { entity: Entity }) {
                       { download } = await import("@/features/excel/workbook");
                     download(
                       blob,
-                      `ESS_${entity}_${count ? "da_chon" : "bo_loc"}.xlsx`,
+                      `${exportPrefix()}_${entity}_${count ? "da_chon" : "bo_loc"}.xlsx`,
                     );
                   } catch (e) {
                     setError(errorMessage(e));

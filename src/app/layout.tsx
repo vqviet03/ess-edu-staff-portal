@@ -7,7 +7,7 @@ import "@fontsource/roboto/vietnamese-500.css";
 import "@fontsource/roboto/vietnamese-700.css";
 import { Providers } from "@/theme/providers";
 export const metadata: Metadata = {
-  title: "ESS · Giảng viên",
+  title: "Staff Portal",
   description: "Quản lý lớp học và kết quả học tập",
 };
 export default function Layout({ children }: { children: React.ReactNode }) {

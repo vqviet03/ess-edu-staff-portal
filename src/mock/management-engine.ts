@@ -240,12 +240,32 @@ function setEntity(
   m: ManagementDatabase,
   entity: Entity,
   record: ManagedRecord,
+  previousId = record.id,
 ) {
   // Parsing happens in buildPreview; this is the single typed entity write boundary.
   const rows = m[entity] as ManagedRecord[],
-    i = rows.findIndex((r) => r.id === record.id);
+    i = rows.findIndex((r) => r.id === previousId);
   if (i < 0) rows.push(record);
   else rows[i] = record;
+}
+function renameReferences(db: Database, entity: Entity, oldId: string, newId: string) {
+  if (oldId === newId) return;
+  const m = management(db);
+  if (entity === "students" || entity === "teachers") {
+    for (const a of m.accounts) if (a.profileId === oldId && a.kind === (entity === "teachers" ? "STAFF" : "STUDENT")) { a.profileId = newId; if (a.loginId === oldId) { a.loginId = newId; a.version++; } }
+    for (const a of m.assignments) if (entity === "teachers" && a.teacherId === oldId) a.teacherId = newId;
+    for (const e of m.enrollments) if (entity === "students" && e.studentId === oldId) e.studentId = newId;
+    if (entity === "students") { for (const students of Object.values(db.students)) for (const s of students) if (s.id === oldId) s.id = newId; for (const rows of Object.values(db.results)) for (const r of rows) if (r.studentId === oldId) r.studentId = newId; }
+    if (entity === "teachers") for (const session of Object.values(db.tokens)) if (session.teacher.id === oldId) session.teacher.id = newId;
+  }
+  if (entity === "classes") {
+    for (const a of m.assignments) if (a.classId === oldId) a.classId = newId;
+    for (const e of m.enrollments) if (e.classId === oldId) e.classId = newId;
+    for (const s of db.sessions) if (s.classId === oldId) s.classId = newId;
+    if (db.students[oldId]) { db.students[newId] = db.students[oldId]; delete db.students[oldId]; }
+    for (const key of Object.keys(db.publications ?? {})) if (key.startsWith(oldId + ":")) { db.publications![newId + key.slice(oldId.length)] = db.publications![key]; delete db.publications![key]; }
+  }
+  if (entity === "labels") for (const a of m.assignments) { if (a.labelId === oldId) a.labelId = newId; for (const h of a.history) if (h.labelId === oldId) h.labelId = newId; }
 }
 function effectivePatch(row: Record<string, unknown>, clear: string[] = []) {
   return Object.fromEntries(
@@ -450,7 +470,7 @@ export function buildPreview(
     );
   if (!inputRows.length || inputRows.length > 5000)
     reject(422, "INVALID_ROWS", "Cần từ 1 đến 5000 bản ghi.");
-  const ids = new Set<string>();
+  const ids = new Set<string>(), renamedIds = new Set<string>();
   const used = new Set([...m.students.map((s) => s.id), ...m.teachers.map((t) => t.id), ...m.accounts.map((a) => a.loginId)].map((x) => x.toLowerCase()));
   for (const [i, rawInput] of inputRows.entries()) {
     const row = Number(rawInput._excelRow) || i + 2;
@@ -473,9 +493,9 @@ export function buildPreview(
         if (requested && requested !== raw.id) preview.warnings.push(`Dòng ${row}: ID ${requested} → ${raw.id} để tránh trùng.`);
       } catch (e) { preview.errors.push({ row, column: "id", message: e instanceof Error ? e.message : "ID không hợp lệ" }); continue; }
     }
-    if (request.mode === "CREATE" && allocateIdentifiers && entity === "classes") {
+    if (request.mode === "CREATE" && allocateIdentifiers && entity === "classes" && !String(raw.id ?? "").trim()) {
       m.lastClassNumber = Math.max(20, m.lastClassNumber ?? 20, ...m.classes.map((c) => Number(c.code.match(/^ess(\d+)(?:-|$)/i)?.[1] ?? 0))) + 1;
-      raw.id = `ess${m.lastClassNumber}`;
+      raw.id = `${m.settings?.classIdPrefix ?? "ess"}${m.lastClassNumber}`;
     }
     const recordId = String(raw.id ?? ""),
       before =
@@ -514,11 +534,18 @@ export function buildPreview(
       ...before,
       ...effectivePatch(raw, request.clearFields),
     };
-    if (entity === "classes" && (!before || Object.hasOwn(raw, "nameSuffix"))) {
+    if (entity === "classes" && ((!before && !String(raw.name ?? "").trim()) || Object.hasOwn(raw, "nameSuffix") && !Object.hasOwn(raw, "name"))) {
       const prefix = before && "code" in before ? classPrefix(before.code) : recordId;
       let suffix = String(raw.nameSuffix ?? raw.name ?? "").trim().replace(/^-/, "");
       if (suffix.startsWith(prefix)) suffix = suffix.slice(prefix.length).replace(/^-/, "");
-      input.nameSuffix = suffix; input.code = input.name = prefix + (suffix ? "-" + suffix : "");
+      input.nameSuffix = suffix; input.name = prefix + (suffix ? "-" + suffix : ""); input.code = raw.code || input.name;
+    }
+    if (entity === "classes" && !input.code) input.code = recordId;
+    if (raw.newId !== undefined) {
+      const newId = String(raw.newId).trim(), taken = entity === "students" || entity === "teachers" ? used : new Set((m[entity] as ManagedRecord[]).map(r => r.id.toLowerCase()));
+      taken.delete(recordId.toLowerCase());
+      if (!before || request.selection || entity === "accounts" || !/^[a-z0-9][a-z0-9_.-]{1,63}$/i.test(newId) || taken.has(newId.toLowerCase()) || renamedIds.has(newId.toLowerCase())) { preview.errors.push({ row, column: "id", message: "ID không hợp lệ hoặc đã tồn tại." }); continue; }
+      renamedIds.add(newId.toLowerCase()); input.id = newId;
     }
     if (entity === "accounts" || entity === "teachers")
       input.roles = parseRoles(input.roles);
@@ -734,7 +761,8 @@ export function buildPreview(
   }
   const future = structuredClone(db);
   for (const c of preview.changes) {
-    setEntity(management(future), c.entity, c.after);
+    setEntity(management(future), c.entity, c.after, c.id);
+    renameReferences(future, c.entity, c.id, c.after.id);
     lifecycle(future, c.entity, c.before, c.after, "Preview");
   }
   const seenLogins = new Set<string>(),
@@ -866,7 +894,8 @@ export function commitPreview(
     delete m.previews[checked.previewId];
   }
   for (const c of p.changes) {
-    setEntity(m, c.entity, c.after);
+    setEntity(m, c.entity, c.after, c.id);
+    renameReferences(db, c.entity, c.id, c.after.id);
     lifecycle(db, c.entity, c.before, c.after, reason);
   }
   if (item.extra?.kind === "assignment")
@@ -1280,11 +1309,11 @@ export async function managementRequest(
       }),
     );
   if (path === "/manager/identifiers/suggest" || path === "/manager/identifiers/check") {
-    const b = obj(req.body);
-    if (b.entity === "classes") return envelope({ id: `ess${Math.max(20, m.lastClassNumber ?? 20, ...m.classes.map((c) => Number(c.code.match(/^ess(\d+)(?:-|$)/i)?.[1] ?? 0))) + 1}`, isAvailable: true, requestedId: "" });
-    if (b.entity !== "students" && b.entity !== "teachers") reject(400, "INVALID_ENTITY", "Chỉ sinh ID học sinh, giảng viên hoặc lớp.");
-    const requestedId = String(b.id ?? "").trim() || nameIdentifier(String(b.fullName ?? ""));
-    const used = new Set([...m.students.map((s) => s.id), ...m.teachers.map((t) => t.id), ...m.accounts.map((a) => a.loginId)].map((x) => x.toLowerCase()));
+    const b = obj(req.body), entity = String(b.entity) as Entity;
+    if (!["students", "teachers", "classes", "labels"].includes(entity)) reject(400, "INVALID_ENTITY", "Nhóm không hợp lệ.");
+    const requestedId = String(b.id ?? "").trim() || (entity === "classes" ? `${m.settings?.classIdPrefix ?? "ess"}${Math.max(20, m.lastClassNumber ?? 20, ...m.classes.map(c => Number(c.id.match(/[0-9]+/)?.[0] ?? 0))) + 1}` : nameIdentifier(String(b.fullName ?? "")));
+    const used = new Set((entity === "classes" || entity === "labels" ? m[entity].map(r => r.id) : [...m.students.map(s => s.id), ...m.teachers.map(t => t.id), ...m.accounts.map(a => a.loginId)]).map(x => x.toLowerCase()));
+    if (b.excludeId) { used.delete(String(b.excludeId).toLowerCase()); }
     return envelope({ id: availableIdentifier(requestedId, used), isAvailable: !used.has(requestedId.toLowerCase()), requestedId });
   }
   if (path === "/manager/selection/count") {
@@ -1299,13 +1328,14 @@ export async function managementRequest(
   if (path === "/manager/warnings") return envelope(warningClasses(db));
   if (path === "/manager/audit") {
     const page = Math.max(1, Number(params.get("page")) || 1),
-      items = m.audit.filter(
+      pageSize = Math.min(100, Math.max(1, Number(params.get("pageSize")) || 20)),
+      items = m.audit.map(e => { const person = m.teachers.find(t => t.id === e.actorId) ?? m.students.find(s => s.id === e.actorId); return { ...e, actorUserId: e.actorUserId ?? person?.id, actorLoginId: e.actorLoginId ?? m.accounts.find(a => a.profileId === e.actorId)?.loginId, actorName: e.actorName ?? person?.fullName ?? "Hệ thống" }; }).filter(
         (e) =>
           !params.get("search") ||
-          `${e.action} ${e.ids} ${e.actorId}`.includes(params.get("search")!),
+          `${e.action} ${e.ids} ${e.actorId} ${e.actorName} ${e.actorLoginId}`.includes(params.get("search")!),
       );
     return envelope({
-      items: items.slice((page - 1) * 20, page * 20),
+      items: items.slice((page - 1) * pageSize, page * pageSize), page, pageSize,
       total: items.length,
     });
   }

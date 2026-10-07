@@ -70,8 +70,8 @@ test("manager dashboard, navigation, readonly grades/schema, dark/mobile và dee
     page.getByRole("button", { name: "Đánh dấu hoàn thành" }),
   ).toBeDisabled();
   await go(page, "/home/");
-  await page.getByRole("combobox", {name: "Giao diện", exact: true}).click();
-  await page.getByRole("option", { name: "Tối", exact: true }).click();
+  await page.getByRole("button", {name: "Giao diện", exact: true}).click();
+  await page.getByRole("menuitem", { name: "Tối", exact: true }).click();
   await page.screenshot({
     path: "test-results/management-overview-dark.png",
     fullPage: true,
@@ -122,7 +122,7 @@ test("dual switch giữ lựa chọn, lịch sử chỉ xem; teacher không đư
   await go(page, "/manage/list/?entity=students");
   await expect(page.getByText(/Cần không gian Quản lý/)).toBeVisible();
 });
-test("tạo học sinh cùng tài khoản PENDING, sửa ID khóa; preview giữ form và sinh link kích hoạt", async ({
+test("tạo học sinh cùng tài khoản PENDING, ID có thể sửa bởi quản lý; preview giữ form và sinh link kích hoạt", async ({
   page,
 }) => {
   await login(page);
@@ -149,7 +149,8 @@ test("tạo học sinh cùng tài khoản PENDING, sửa ID khóa; preview giữ
     .click();
   await expect(
     page.getByRole("dialog").getByLabel("ID", { exact: true }),
-  ).toBeDisabled();
+  ).toBeEnabled();
+  await expect(page.getByRole("dialog").getByRole("button", { name: "Kiểm tra trùng" })).toBeVisible();
   await page.getByRole("button", { name: "Hủy", exact: true }).click();
   await page
     .getByRole("button", { name: "Tạo / cấp lại link kích hoạt" })

@@ -1,4 +1,5 @@
 import type { CellValue } from "exceljs";
+import { applicationName } from "@/features/settings/branding";
 import type { ProfileGroup, PreviewError } from "./models";
 export const columns = {
   students: [
@@ -43,7 +44,7 @@ export async function profileWorkbook(
 ): Promise<Blob> {
   const { Workbook } = (await import("exceljs")).default,
     book = new Workbook();
-  book.creator = "ESS";
+  book.creator = applicationName();
   const sheet = book.addWorksheet("Data"),
     schema = book.addWorksheet("Schema"),
     instructions = book.addWorksheet("Instructions");
@@ -115,7 +116,7 @@ export async function profileWorkbook(
   ]);
   schema.columns = [{ width: 24 }, { width: 90 }];
   instructions.addRows([
-    ["ESS · Import hồ sơ"],
+    [applicationName() + " · Import hồ sơ"],
     [
       "CREATE: full_name bắt buộc. ID trống sinh từ tên (Vũ Quốc Việt → vq.viet); ID trùng thêm 1, 2… theo preview backend. UPDATE cần ID đã có và không đổi ID.",
     ],
@@ -268,7 +269,7 @@ export async function statsWorkbook(
     book = new Workbook(),
     sheet = book.addWorksheet("Statistics");
   sheet.addRows([
-    ["ESS · Phạm vi", JSON.stringify(filter)],
+    [applicationName() + " · Phạm vi", JSON.stringify(filter)],
     ["Hiện tại lúc", stats.asOf],
     ["Học sinh hoạt động", stats.activeStudents],
     ["Giảng viên hoạt động", stats.activeTeachers],

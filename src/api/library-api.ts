@@ -133,17 +133,19 @@ export const libraryApi = api.injectEndpoints({
       CursorPage<{
         id: string;
         actorId: string;
+        actorUserId?: string; actorLoginId?: string; actorName?: string;
         action: string;
         changesJson: string;
         createdAt: string;
       }>,
-      string
+      string | { id: string; page: number; pageSize?: number }
     >({
-      query: (id) => `/materials/${id}/audit-logs`,
+      query: (q) => ({ url: `/materials/${typeof q === "string" ? q : q.id}/audit-logs`, params: typeof q === "string" ? {} : { page: q.page, pageSize: q.pageSize ?? 20 } }),
       transformResponse: unwrap<
         CursorPage<{
           id: string;
           actorId: string;
+          actorUserId?: string; actorLoginId?: string; actorName?: string;
           action: string;
           changesJson: string;
           createdAt: string;
@@ -151,6 +153,8 @@ export const libraryApi = api.injectEndpoints({
       >,
       providesTags: ["Materials"],
     }),
+    deletionImpact: b.query<{ file: MaterialFile; usages: DeletionItem["usages"] }, string>({ query: id => `/materials/${id}/deletion-impact`, transformResponse: unwrap<{ file: MaterialFile; usages: DeletionItem["usages"] }>, providesTags: ["Materials", "Posts"] }),
+    deleteFile: b.mutation<{ status: string }, { id: string; version: number; reason: string; linkAction: "KEEP_UNAVAILABLE" | "DETACH" }>({ query: ({ id, ...body }) => ({ url: `/materials/${id}`, method: "DELETE", body }), transformResponse: unwrap<{ status: string }>, invalidatesTags: (_, e) => e ? [] : ["Materials", "Posts", "Storages", "DeletionRequests", "Audit"] }),
     deletionRequests: b.query<CursorPage<DeletionItem>, void>({
       query: () => "/material-deletion-requests",
       transformResponse: unwrap<CursorPage<DeletionItem>>,
@@ -487,6 +491,8 @@ export const {
   useLazyAccessQuery,
   useAccessQuery,
   useAuditFileQuery,
+  useDeletionImpactQuery,
+  useDeleteFileMutation,
   useDeletionRequestsQuery,
   useRequestDeletionMutation,
   useDecideDeletionMutation,

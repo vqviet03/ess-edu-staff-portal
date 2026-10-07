@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
@@ -221,7 +221,7 @@ export function ProfilePage() {
   );
 }
 function Profile() {
-  const p = useSearchParams(),
+  const router = useRouter(), p = useSearchParams(),
     raw = p.get("entity"),
     entity: Entity =
       raw && Object.hasOwn(entityLabels, raw) ? (raw as Entity) : "students",
@@ -257,7 +257,8 @@ function Profile() {
     r = d?.record;
   if (!d || !r) return <Feedback empty="Không có hồ sơ." />;
   const account = entity === "accounts" && "roles" in r ? r : d.accounts[0];
-  const saved = (n?: number) => {
+  const saved = (n?: number, newId?: string) => {
+    if (n && newId && newId !== id) router.replace(`/manage/profile/?entity=${entity}&id=${encodeURIComponent(newId)}`);
     setEdit(false);
     setCreateAccount(false);
     setRelationship(null);

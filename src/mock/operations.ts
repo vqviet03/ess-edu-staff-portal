@@ -11,6 +11,8 @@ export function publicOperation(job: StoredMockOperation, actorId: string): Oper
   return { operationId: job.operationId, status: job.status, command: job.command, createdAt: job.createdAt, completedAt: job.completedAt, result: job.actorId === actorId ? job.result : null, error: job.error ?? null };
 }
 export function operationCommand(url: string, method: string) {
+  if (url === "/manager/settings/proposals") return "Management.ProposeSettings";
+  if (/^\/manager\/settings\/proposals\/[^/]+\/decision$/.test(url)) return "Management.DecideSettings";
   if (url === "/manager/changes/commit") return "Management.Commit";
   if (/^\/manager\/accounts\/[^/]+\/sessions\/revoke$/.test(url)) return "Management.RevokeSessions";
   if (/^\/manager\/accounts\/[^/]+\/session-policy$/.test(url)) return "Management.UpdateSessionPolicy";
@@ -25,5 +27,5 @@ export function operationCommand(url: string, method: string) {
   return method === "PUT" ? "Staff.Result" : "Staff.Batch";
 }
 export function operationEntities(command: string) {
-  return command === "Staff.ReportComments" ? ["reports", "results", "assessments"] : command.startsWith("Management.") ? ["students", "teachers", "classes", "accounts", "labels", "assignments", "enrollments"] : command === "Staff.Student" ? ["students"] : ["sessions", "classes", "assessments", "results"];
+  return ["Management.ProposeSettings", "Management.DecideSettings"].includes(command) ? ["settings"] : command === "Staff.ReportComments" ? ["reports", "results", "assessments"] : command.startsWith("Management.") ? ["students", "teachers", "classes", "accounts", "labels", "assignments", "enrollments"] : command === "Staff.Student" ? ["students"] : ["sessions", "classes", "assessments", "results"];
 }
