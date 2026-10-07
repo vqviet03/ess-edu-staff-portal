@@ -39,6 +39,8 @@ export interface ManagementDatabase {
     { accountId: string; expiresAt: string; used: boolean }
   >;
   audit: AuditEvent[];
+  settings?: import("@/features/settings/models").ApplicationSettings;
+  settingsProposals?: import("@/features/settings/models").SettingsProposal[];
   passwordHashes?: Record<string, string>;
   lastClassNumber?: number;
   loginHistory?: { accountId: string; loggedInAt: string; expiresAt: string; revokedAt: string | null; ipAddress: string | null; device: string | null; browser: string | null; operatingSystem: string | null }[];

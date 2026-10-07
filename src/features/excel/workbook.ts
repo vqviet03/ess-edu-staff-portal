@@ -1,3 +1,4 @@
+import { applicationName } from "@/features/settings/branding";
 import type ExcelJS from "exceljs";
 import {
   type Assessment,
@@ -39,7 +40,7 @@ export async function createTemplate(
 ): Promise<Blob> {
   const { default: Excel } = await import("exceljs");
   const book = new Excel.Workbook();
-  book.creator = "ESS";
+  book.creator = applicationName();
   const sheet = book.addWorksheet("Scores", {
     views: [{ state: "frozen", xSplit: 3, ySplit: 1 }],
   });
@@ -153,7 +154,7 @@ export async function createTemplate(
   schema.columns.forEach((c) => (c.width = 25));
   const instructions = book.addWorksheet("Instructions");
   [
-    "ESS · Mẫu nhập điểm. Không sửa sheet Schema hoặc ID học sinh.",
+    `${applicationName()} · Mẫu nhập điểm. Không sửa sheet Schema hoặc ID học sinh.`,
     "attended: PRESENT = Có mặt; ABSENT = Vắng; UNSET = Chưa xác định. Vắng không nhập điểm 0.",
     "Điểm từ 0 đến max_questions. Chỉ nhập thập phân khi allow_decimal=true. Ví dụ Speaking 2.1/4.",
     "Ô trống giữ dữ liệu cũ mặc định; số 0 cập nhật. Muốn xóa, chọn chế độ thay thế và xác nhận trong ứng dụng.",

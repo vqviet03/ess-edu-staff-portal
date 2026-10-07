@@ -1,5 +1,13 @@
 "use client";
-import { memo, useCallback, useEffect, useRef, useState } from "react";
+import { type ReactNode, memo, useCallback, useEffect, useRef, useState } from "react";
+import IconButton from "@mui/material/IconButton";
+import Pagination from "@mui/material/Pagination";
+import MoreVert from "@mui/icons-material/MoreVert";
+import AccountTree from "@mui/icons-material/AccountTreeOutlined";
+import GridView from "@mui/icons-material/GridViewOutlined";
+import ArrowBack from "@mui/icons-material/ArrowBack";
+import { FolderMenu } from "./folder-menu";
+import { DeleteMaterialDialog } from "./delete-dialog";
 import FolderIcon from "@mui/icons-material/Folder";
 import Box from "@mui/material/Box";
 import Paper from "@mui/material/Paper";
@@ -82,13 +90,13 @@ const FileTile = memo(function FileTile({
           slotProps={{ input: { "aria-label": `Chọn ${file.displayName}` } }}
         />
         <Typography variant="caption">{fileKind(file.mimeType)}</Typography>
-        <Button
+        <IconButton
           aria-label={`Thông tin ${file.displayName}`}
           onClick={() => info(file)}
           sx={{ minWidth: 44 }}
         >
-          ···
-        </Button>
+          <MoreVert />
+        </IconButton>
       </Stack>
       <Button
         onClick={() => preview(file)}
@@ -179,6 +187,7 @@ function TreeBranch({
   openFolder,
   workspace,
   sort,
+  folderActions,
 }: {
   folderId: string | null;
   depth: number;
@@ -192,6 +201,7 @@ function TreeBranch({
   openFolder: (f: Folder) => void;
   workspace: string;
   sort: string;
+  folderActions: (f: Folder) => ReactNode;
 }) {
   const folders = useFoldersQuery({ parentId: folderId, workspace }),
     [cursor, setCursor] = useState<string>(),
@@ -261,6 +271,7 @@ function TreeBranch({
             >
               <FolderIcon fontSize="small" sx={{ mr: 1 }} /> {f.name}
             </Button>
+            {folderActions(f)}
           </Stack>
           {expanded[f.id] && (
             <TreeBranch
@@ -276,6 +287,7 @@ function TreeBranch({
               openFolder={openFolder}
               workspace={workspace}
               sort={sort}
+              folderActions={folderActions}
             />
           )}
         </Box>
@@ -317,7 +329,8 @@ function FileInformation({
   close: () => void;
   manager: boolean;
 }) {
-  const audit = useAuditFileQuery(file.id, { skip: !manager });
+  const [page, setPage] = useState(1);
+  const audit = useAuditFileQuery({ id: file.id, page }, { skip: !manager });
   return (
     <Dialog open onClose={close} fullWidth maxWidth="md">
       <DialogTitle>{file.displayName}</DialogTitle>
@@ -325,7 +338,7 @@ function FileInformation({
         <Typography>Tên gốc: {file.originalName}</Typography>
         <Typography>Tác giả: {file.authorName}</Typography>
         <Typography>
-          Dung lượng: {bytes(file.sizeBytes)} · {file.mimeType}
+          File: {bytes(file.sizeBytes)} · Thumbnail: {bytes(file.thumbnailBytes ?? 0)} · Tổng lưu trữ: {bytes(file.storageBytes ?? file.sizeBytes)} · {file.mimeType}
         </Typography>
         <Typography>
           Nguồn:{" "}
@@ -354,7 +367,7 @@ function FileInformation({
                   {a.action} · {new Date(a.createdAt).toLocaleString("vi-VN")}
                 </Typography>
                 <Typography variant="caption">
-                  Người thao tác: {a.actorId}
+                  Người thao tác: {a.actorName ?? "Hệ thống"} ({a.actorLoginId ?? a.actorUserId ?? a.actorId})
                 </Typography>
                 <Typography
                   component="pre"
@@ -368,6 +381,7 @@ function FileInformation({
                 </Typography>
               </Paper>
             ))}
+            {!!audit.currentData?.total && <Pagination page={page} count={Math.ceil(audit.currentData.total / (audit.currentData.pageSize ?? 20))} onChange={(_, v) => setPage(v)} />}
           </>
         )}
       </DialogContent>
@@ -412,6 +426,7 @@ export function MaterialBrowser({
     [rename, setRename] = useState<MaterialFile | null>(null),
     [newName, setNewName] = useState(""),
     [reason, setReason] = useState(""),
+    [deleteFileId, setDeleteFileId] = useState<string | null>(null),
     [requestFile, setRequestFile] = useState<MaterialFile | null>(null);
   const folders = useFoldersQuery({
       parentId: folderId,
@@ -492,28 +507,22 @@ export function MaterialBrowser({
       return false;
     }
   };
+  const folderActions = (f: Folder) => manager && !picker ? <FolderMenu folder={f} edit={folder => { setFolderEdit(folder); setFolderName(folder.name); setKind(folder.kind); }} remove={folder => { const note = window.prompt("Lý do ngừng thư mục (phải rỗng):"); if (note?.trim()) void action(() => removeFolder({ id: folder.id, version: folder.version, reason: note }).unwrap(), "Đã ngừng thư mục."); }} /> : null;
   const chosen = Object.values(selected);
   return (
     <Stack spacing={2}>
-      <Stack direction={{ xs: "column", sm: "row" }} spacing={1}>
+      <Stack direction="row" spacing={1}>
         <TextField
           fullWidth
+          size="small"
           label="Tìm tên thư mục hoặc file"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
-        <Button
-          variant={mode === "tree" ? "contained" : "outlined"}
-          onClick={() => setMode("tree")}
-        >
-          Cây thư mục
-        </Button>
-        <Button
-          variant={mode === "grid" ? "contained" : "outlined"}
-          onClick={() => setMode("grid")}
-        >
-          Thư mục
-        </Button>
+        <Stack direction="row" spacing={.5} sx={{ alignItems: "center" }}>
+          <Tooltip title="Cây thư mục"><IconButton aria-label="Cây thư mục" aria-pressed={mode === "tree"} color={mode === "tree" ? "primary" : "default"} onClick={() => setMode("tree")}><AccountTree /></IconButton></Tooltip>
+          <Tooltip title="Thư mục"><IconButton aria-label="Thư mục" aria-pressed={mode === "grid"} color={mode === "grid" ? "primary" : "default"} onClick={() => setMode("grid")}><GridView /></IconButton></Tooltip>
+        </Stack>
       </Stack>
       <Breadcrumbs aria-label="Đường dẫn thư mục">
         <Button
@@ -541,7 +550,7 @@ export function MaterialBrowser({
         ))}
       </Breadcrumbs>
       <Stack direction="row" useFlexGap spacing={1} sx={{ flexWrap: "wrap" }}>
-        <Button
+        <Tooltip title="Thư mục cha"><span><IconButton aria-label="Thư mục cha"
           disabled={!path.length}
           onClick={() => {
             navigationId.current++;
@@ -550,26 +559,28 @@ export function MaterialBrowser({
             setSearch("");
           }}
         >
-          ← Quay lại
-        </Button>
+          <ArrowBack />
+        </IconButton></span></Tooltip>
         <TextField
           select
+          size="small"
           label="Phạm vi"
           value={scope}
           onChange={(e) => {
             setScope(e.target.value as typeof scope);
             setCursor(undefined);
           }}
-          sx={{ minWidth: 160 }}
+          sx={{ width: { xs: 135, sm: 155 } }}
         >
           <MenuItem value="current">Thư mục hiện tại</MenuItem>
           <MenuItem value="all">Toàn kho</MenuItem>
         </TextField>
         <TextField
           select
+          size="small"
           label="Loại file"
           value={type}
-          sx={{ minWidth: 130 }}
+          sx={{ width: 115 }}
           onChange={(e) => {
             setType(e.target.value);
             setCursor(undefined);
@@ -590,6 +601,7 @@ export function MaterialBrowser({
         </TextField>
         <TextField
           select
+          size="small"
           label="Sắp xếp"
           value={sort}
           sx={{ minWidth: 140 }}
@@ -610,7 +622,7 @@ export function MaterialBrowser({
           ))}
         </TextField>
       </Stack>
-      <Paper sx={{ p: 2, bgcolor: "action.selected" }}>
+      {(chosen.length > 0 || Object.keys(selectedFolders).length > 0) && <Paper sx={{ p: 1.5, bgcolor: "action.selected" }}>
         <Stack
           direction="row"
           useFlexGap
@@ -681,7 +693,7 @@ export function MaterialBrowser({
             </Button>
           )}
         </Stack>
-      </Paper>
+      </Paper>}
       <Feedback error={error} />
       {message && (
         <Alert severity="success" onClose={() => setMessage("")}>
@@ -716,6 +728,7 @@ export function MaterialBrowser({
             openFolder={openFolder}
             workspace={workspace.selected ?? "teacher"}
             sort={sort}
+            folderActions={folderActions}
           />
         ) : (
           <Box
@@ -745,7 +758,7 @@ export function MaterialBrowser({
                   minWidth: 0,
                 }}
               >
-                {!picker && (
+                <Stack direction="row" sx={{ alignItems: "center", justifyContent: "space-between" }}>{!picker && (
                   <Checkbox
                     checked={!!selectedFolders[f.id]}
                     slotProps={{
@@ -761,40 +774,7 @@ export function MaterialBrowser({
                     }
                   />
                 )}
-                {manager && !picker && (
-                  <Stack direction="row">
-                    <Button
-                      aria-label={`Sửa thư mục ${f.name}`}
-                      onClick={() => {
-                        setFolderEdit(f);
-                        setFolderName(f.name);
-                        setKind(f.kind);
-                      }}
-                    >
-                      Sửa
-                    </Button>
-                    <Button
-                      aria-label={`Ngừng thư mục ${f.name}`}
-                      onClick={() => {
-                        const note = window.prompt(
-                          "Lý do ngừng thư mục (phải rỗng):",
-                        );
-                        if (note?.trim())
-                          void action(
-                            () =>
-                              removeFolder({
-                                id: f.id,
-                                version: f.version,
-                                reason: note,
-                              }).unwrap(),
-                            "Đã ngừng thư mục.",
-                          );
-                      }}
-                    >
-                      Ngừng
-                    </Button>
-                  </Stack>
-                )}
+                {folderActions(f)}</Stack>
                 <Button
                   onClick={() => openFolder(f)}
                   sx={{
@@ -937,6 +917,7 @@ export function MaterialBrowser({
               >
                 Đổi tên
               </Button>
+              {manager && <Button color="error" onClick={() => { setDeleteFileId(information.id); setInformation(null); }}>Xóa tài liệu</Button>}
               <Button
                 disabled={!manager && information.uploadedBy !== staffId}
                 onClick={() => {
@@ -1066,8 +1047,7 @@ export function MaterialBrowser({
         <DialogTitle>Yêu cầu manager duyệt xóa</DialogTitle>
         <DialogContent>
           <Typography>
-            File và lịch sử được giữ. Manager sẽ kiểm tra các bài đăng đang sử
-            dụng trước khi duyệt.
+            Manager sẽ kiểm tra bài đăng đang sử dụng rồi duyệt xóa file gốc và thumbnail khỏi storage. Hồ sơ và lịch sử vẫn được giữ.
           </Typography>
           <TextField
             fullWidth
@@ -1102,6 +1082,7 @@ export function MaterialBrowser({
           </Button>
         </DialogActions>
       </Dialog>
+      {deleteFileId && <DeleteMaterialDialog id={deleteFileId} close={() => setDeleteFileId(null)} deleted={() => { setSelected(old => { const next = { ...old }; delete next[deleteFileId]; return next; }); setDeleteFileId(null); setMessage("Đã ẩn tài liệu. Server đang xóa file và thumbnail; bạn sẽ nhận thông báo khi hoàn tất."); }} />}
       {metadata && (
         <FileInformation
           file={metadata}

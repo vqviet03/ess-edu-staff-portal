@@ -1,4 +1,5 @@
 "use client";
+import { exportPrefix } from "@/features/settings/branding";
 import { useState, type ReactNode } from "react";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
@@ -89,7 +90,7 @@ export function PreviewPanel({
         Chưa ghi dữ liệu.
       </Alert>
       {error && <Alert severity="error">{error}</Alert>}
-      {state.isLoading && <Alert severity="info">Tác vụ đang xử lý. ESS sẽ thông báo và tự cập nhật dữ liệu khi hoàn tất.</Alert>}
+      {state.isLoading && <Alert severity="info">Tác vụ đang xử lý. Hệ thống sẽ thông báo và tự cập nhật dữ liệu khi hoàn tất.</Alert>}
       {preview.warnings.map((w, i) => (
         <Alert key={i} severity="warning">
           {w}
@@ -110,7 +111,7 @@ export function PreviewPanel({
                   { download } = await import("@/features/excel/workbook");
                 download(
                   await errorsWorkbook(preview.errors),
-                  "ESS_loi_nhap.xlsx",
+                  `${exportPrefix()}_loi_nhap.xlsx`,
                 );
               } catch (e) {
                 setError(errorMessage(e));

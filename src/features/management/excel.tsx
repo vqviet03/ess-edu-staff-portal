@@ -1,4 +1,5 @@
 "use client";
+import { exportPrefix } from "@/features/settings/branding";
 import { useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Alert from "@mui/material/Alert";
@@ -112,7 +113,7 @@ function Excel() {
                     setError("");
                     await downloadBlob(
                       await template(group).unwrap(),
-                      `ESS_${group}_template.xlsx`,
+                      `${exportPrefix()}_${group}_template.xlsx`,
                     );
                   } catch (e) {
                     setError(errorMessage(e));
@@ -136,7 +137,7 @@ function Excel() {
                           excludedIds: [],
                         },
                       }).unwrap(),
-                      `ESS_${group}_export.xlsx`,
+                      `${exportPrefix()}_${group}_export.xlsx`,
                     );
                   } catch (e) {
                     setError(errorMessage(e));
@@ -318,7 +319,7 @@ function InputGrid({ group }: { group: ProfileGroup }) {
                 try {
                   await downloadBlob(
                     await template(group).unwrap(),
-                    `ESS_${group}_template.xlsx`,
+                    `${exportPrefix()}_${group}_template.xlsx`,
                   );
                 } catch (e) {
                   setError(errorMessage(e));

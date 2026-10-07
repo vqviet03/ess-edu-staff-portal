@@ -27,6 +27,7 @@ export function makeStore(service = api) {
     effect: (action, runtime) => {
       const before = runtime.getOriginalState() as { operations: { librarySnapshot: unknown; libraryNotices: Record<string, boolean> } };
       store.dispatch(libraryApi.util.upsertQueryData("notifications", {}, action.payload));
+      if (action.payload.items.some(n => n.type === "SYSTEM" && n.href === "/manage/settings/" && !before.operations.libraryNotices[n.id])) runtime.dispatch(service.util.invalidateTags(["ApplicationSettings", "SettingsProposals"]));
       if (before.operations.librarySnapshot && action.payload.items.some((notice) => !before.operations.libraryNotices[notice.id]))
         runtime.dispatch(service.util.invalidateTags(["Materials", "Folders", "Posts", "Comments", "Storages", "DeletionRequests"]));
     },
@@ -36,6 +37,7 @@ export function makeStore(service = api) {
     effect: (action, runtime) => {
       const before = runtime.getOriginalState() as { operations: { libraryNotices: Record<string, boolean> } };
       if (before.operations.libraryNotices[action.payload.notice.id]) return;
+      if (action.payload.notice.type === "SYSTEM" && action.payload.notice.href === "/manage/settings/") runtime.dispatch(service.util.invalidateTags(["ApplicationSettings", "SettingsProposals"]));
       for (const args of libraryApi.util.selectCachedArgsForQuery(store.getState(), "notifications")) {
         store.dispatch(libraryApi.util.updateQueryData("notifications", args, (page) => mergeNotice(page, args, action.payload.notice)));
       }

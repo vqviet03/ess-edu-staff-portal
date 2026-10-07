@@ -2,7 +2,7 @@
 
 Các endpoint giảng viên trong [api-contract.md](api-contract.md) tiếp tục giữ nguyên. Backend ESS triển khai contract quản lý này; frontend/mock dùng cùng URL, payload và envelope. Không tự chuyển sang mock khi real API thiếu endpoint.
 
-Base URL `NEXT_PUBLIC_API_BASE_URL`, chuẩn hóa hậu tố `/v1`. HTTPS (HTTP chỉ localhost). Thành công `{data:T,meta?}`; lỗi `{error:{code,message,fieldErrors?,rowErrors?}}`. ID string, version integer, datetime ISO 8601; dateOfBirth `YYYY-MM-DD|null`. Không hard DELETE. Backend lấy tenant/actor từ phiên, kiểm tra quyền từng request và cả thời điểm commit.
+Base URL `NEXT_PUBLIC_API_BASE_URL`, chuẩn hóa hậu tố `/v1`. HTTPS (HTTP chỉ localhost). Thành công `{data:T,meta?}`; lỗi `{error:{code,message,fieldErrors?,rowErrors?}}`. ID string, version integer, datetime ISO 8601; dateOfBirth `YYYY-MM-DD|null`. Không xóa thật hồ sơ; file vật lý theo [contract kho](management-refinements.md). Backend lấy tenant/actor từ phiên, kiểm tra quyền từng request và cả thời điểm commit.
 
 ## Auth và capabilities
 
@@ -61,7 +61,7 @@ Mọi endpoint `/manager/*` yêu cầu MANAGER, tài khoản/hồ sơ ACTIVE. Fr
 | GET | /manager/{students|teachers}/excel/template | binary .xlsx, template trống |
 | POST | /manager/{students|teachers}/excel/export | `{selection}` → binary .xlsx; Schema ghi scope/số lượng |
 | POST | /manager/{students|teachers}/excel/preview | multipart `file`, `mode=CREATE|UPDATE`, `clearFields` dấu phẩy → ImportPreview (= BulkPreview) |
-| GET | /manager/audit?page=&search= | `{items:AuditEvent[],total}`; trang 20 items |
+| GET | /manager/audit?page=&pageSize=&search= | `{items:AuditEvent[],total,page,pageSize}`; mặc định 20 items, actorUserId/actorLoginId/actorName |
 
 Tạo/sửa từng hồ sơ, đổi trạng thái, bulk và import cùng preview/commit. Không tạo PATCH status bypass. Form edit gửi version hiện tại. Quan hệ đã tồn tại yêu cầu version của quan hệ; phân công lại dùng ID ổn định và thêm history. Label inactive không gắn mới; giữ nhãn các giai đoạn lịch sử.
 
@@ -147,3 +147,5 @@ CORS allow origin `https://vqviet03.github.io` (không có path repo), headers A
 Xem [identifiers-operations.md](identifiers-operations.md) cho suggest/check, ID CREATE/UPDATE, nameSuffix, operation 202 và WebSocket. Preview đồng bộ trả ID cuối; commit với Prefer bất đồng bộ trả operation, DONE giữ nguyên envelope commit.
 
 GET/PATCH `accounts/{id}/session-policy` và POST `accounts/{id}/sessions/revoke`: xem [contract phiên tài khoản](account-sessions.md). Account list/detail bổ sung `sessionLifetimeMinutes`; UI lấy version và bảo vệ MANAGER từ policy endpoint, không suy diễn quyền từ menu switch.
+
+Chi tiết thay đổi mới: [ID, audit, branding, quota và xóa tài liệu](management-refinements.md).

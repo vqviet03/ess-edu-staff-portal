@@ -26,11 +26,12 @@ export function operationEnvelope(value: unknown): Operation | null {
 }
 export function businessMutation(url: string, method = "GET") {
   if (!["POST", "PATCH", "PUT"].includes(method)) return false;
-  return url === "/manager/changes/commit" || /^\/manager\/accounts\/[^/]+\/(session-policy|sessions\/revoke)$/.test(url) || (/^\/(classes|sessions|assessments)\//.test(url) && !url.endsWith("/preview"));
+  return /^\/manager\/settings\/proposals(?:\/[^/]+\/decision)?$/.test(url) || url === "/manager/changes/commit" || /^\/manager\/accounts\/[^/]+\/(session-policy|sessions\/revoke)$/.test(url) || (/^\/(classes|sessions|assessments)\//.test(url) && !url.endsWith("/preview"));
 }
 export function relatedTags(entities: string[]) {
-  const tags = new Set<"Auth" | "Management" | "Dashboard" | "Assignments" | "Warnings" | "Audit" | "Classes" | "Class" | "Students" | "Sessions" | "Assessments" | "Results" | "Reports" | "ClassAccess" | "Operations">(["Operations", "Audit"]);
+  const tags = new Set<"Auth" | "Management" | "Dashboard" | "Assignments" | "Warnings" | "Audit" | "Classes" | "Class" | "Students" | "Sessions" | "Assessments" | "Results" | "Reports" | "ClassAccess" | "Operations" | "ApplicationSettings" | "SettingsProposals">(["Operations", "Audit"]);
   for (const entity of entities) {
+    if (entity === "settings") { tags.add("ApplicationSettings"); tags.add("SettingsProposals"); }
     if (["students", "teachers", "classes", "accounts", "labels", "assignments", "enrollments"].includes(entity)) tags.add("Management");
     if (["students", "teachers", "classes", "accounts", "assignments", "enrollments", "sessions"].includes(entity)) { tags.add("Dashboard"); tags.add("Warnings"); tags.add("Classes"); tags.add("Class"); }
     if (["teachers", "accounts", "classes", "assignments", "labels"].includes(entity)) tags.add("Assignments");

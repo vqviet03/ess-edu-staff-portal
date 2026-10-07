@@ -68,7 +68,7 @@ export const managementApi = api.injectEndpoints({
       query: (body) => ({ url: "/manager/identifiers/suggest", method: "POST", body }),
       transformResponse: unwrap<{ id: string; isAvailable: boolean; requestedId: string }>,
     }),
-    checkIdentifier: b.mutation<{ id: string; isAvailable: boolean; requestedId: string }, { entity: Entity; id: string }>({
+    checkIdentifier: b.mutation<{ id: string; isAvailable: boolean; requestedId: string }, { entity: Entity; id: string; excludeId?: string }>({
       query: (body) => ({ url: "/manager/identifiers/check", method: "POST", body }),
       transformResponse: unwrap<{ id: string; isAvailable: boolean; requestedId: string }>,
     }),
@@ -181,11 +181,11 @@ export const managementApi = api.injectEndpoints({
       providesTags: ["Warnings"],
     }),
     audit: b.query<
-      { items: AuditEvent[]; total: number },
-      { page: number; search: string }
+      { items: AuditEvent[]; total: number; page?: number; pageSize?: number },
+      { page: number; search: string; pageSize?: number }
     >({
       query: (p) => "/manager/audit?" + query(p),
-      transformResponse: unwrap<{ items: AuditEvent[]; total: number }>,
+      transformResponse: unwrap<{ items: AuditEvent[]; total: number; page?: number; pageSize?: number }>,
       providesTags: ["Audit"],
     }),
     activation: b.mutation<

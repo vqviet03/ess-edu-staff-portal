@@ -195,6 +195,9 @@ export interface AuditEvent {
   id: string;
   at: string;
   actorId: string;
+  actorUserId?: string | null;
+  actorLoginId?: string | null;
+  actorName?: string | null;
   action: string;
   entity: string;
   ids: string[];

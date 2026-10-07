@@ -1,6 +1,5 @@
 "use client";
-import { LibraryNavigation } from "@/features/materials/navigation";
-import type { ReactNode } from "react";
+import { Suspense, useEffect, type ReactNode } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useStore } from "react-redux";
@@ -14,7 +13,12 @@ import Paper from "@mui/material/Paper";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
-import { usePreferences } from "@/theme/providers";
+import IconButton from "@mui/material/IconButton";
+import Tooltip from "@mui/material/Tooltip";
+import LogoutIcon from "@mui/icons-material/Logout";
+import { Sidebar, BackButton } from "./navigation";
+import { PreferencesMenu } from "./preferences-menu";
+import { useApplicationSettings } from "@/features/settings/hooks";
 import { type RootState, useAppDispatch, useAppSelector } from "@/store";
 import { signedOut } from "@/store/auth";
 import { useLogoutMutation, useResetDemoMutation } from "@/api/api";
@@ -73,13 +77,14 @@ export function Title({
 }) {
   return (
     <Stack spacing={2} sx={{ mb: 2.5 }}>
+      <Stack direction="row" sx={{ alignItems: "center", gap: 1 }}><Suspense><BackButton /></Suspense>
       <Typography
         component="h1"
         variant="h4"
         sx={{ fontSize: { xs: 25, md: 30 } }}
       >
         {title}
-      </Typography>
+      </Typography></Stack>
       {subtitle && <Typography color="text.secondary">{subtitle}</Typography>}
       {actions && (
         <Stack
@@ -154,8 +159,9 @@ export function Progress({
 export function Shell({ children }: { children: ReactNode }) {
   const workspace = useWorkspace(),
     pathname = usePathname();
-  const { mode, setMode } = usePreferences(),
-    auth = useAppSelector((s) => s.auth),
+  const { settings } = useApplicationSettings();
+  useEffect(() => { document.title = settings.appName + " · Staff Portal"; }, [settings.appName]);
+  const auth = useAppSelector((s) => s.auth),
     dispatch = useAppDispatch(),
     router = useRouter();
   const store = useStore<RootState>();
@@ -179,88 +185,28 @@ export function Shell({ children }: { children: ReactNode }) {
   return (
     <AppScale><Box
       sx={{
-        maxWidth: 1600 / (zoom / 100),
+        maxWidth: 1800 / (zoom / 100),
         mx: "auto",
-        p: { xs: 2.5, md: 4 },
+        p: { xs: 1.5, md: 2 },
         minHeight: "100vh",
       }}
     >
       <Box
         sx={{
-          display: {
-            md:
-              workspace.selected === "manager" &&
-              auth.status === "authenticated"
-                ? "grid"
-                : "block",
-          },
-          gridTemplateColumns: "216px minmax(0,1fr)",
+          display: { md: auth.status === "authenticated" ? "grid" : "block" },
+          gridTemplateColumns: "auto minmax(0,1fr)",
           gap: 3,
           alignItems: "start",
         }}
       >
-        {auth.status === "authenticated" &&
-          workspace.selected === "manager" && (
-            <Paper
-              component="aside"
-              sx={{ p: 2, position: { md: "sticky" }, top: 24 }}
-            >
-              <Typography
-                sx={{ fontWeight: 700, fontSize: 21 }}
-                color="primary"
-              >
-                ESS / STAFF
-              </Typography>
-              <Typography variant="caption" color="text.secondary">
-                Không gian làm việc
-              </Typography>
-              <Stack
-                component="nav"
-                aria-label="Menu quản lý"
-                direction={{ xs: "row", md: "column" }}
-                sx={{
-                  gap: 0.5,
-                  mt: 2,
-                  overflowX: { xs: "auto", md: "visible" },
-                }}
-              >
-                {[
-                  ["Tổng quan", "/home/"],
-                  ["Học sinh", "/manage/list/?entity=students"],
-                  ["Giảng viên", "/manage/list/?entity=teachers"],
-                  ["Lớp học", "/manage/list/?entity=classes"],
-                  ["Tài khoản", "/manage/list/?entity=accounts"],
-                  ["Nhãn phụ trách", "/manage/list/?entity=labels"],
-                  ["Kho tài liệu", "/materials/"],
-                  ["Storage & dung lượng", "/storages/"],
-                  ["Duyệt xóa", "/deletion-requests/"],
-                  ["Thông báo", "/notifications/"],
-                  ["Cảnh báo", "/manage/warnings/"],
-                  ["Nhật ký", "/manage/audit/"],
-                ].map(([label, href]) => (
-                  <Button
-                    component={Link}
-                    key={href}
-                    href={href}
-                    sx={{
-                      justifyContent: "flex-start",
-                      whiteSpace: "nowrap",
-                      flexShrink: 0,
-                    }}
-                  >
-                    {label}
-                  </Button>
-                ))}
-              </Stack>
-            </Paper>
-          )}
+        {auth.status === "authenticated" && <Suspense><Sidebar manager={workspace.selected === "manager"} appName={settings.appName} /></Suspense>}
         <Box sx={{ minWidth: 0 }}>
           <Stack
             component="header"
             direction="row"
             useFlexGap
             sx={{
-              ...{ mb: { xs: 3, md: 4 } },
+              ...{ mb: 2, py: 1 },
               alignItems: "center",
               justifyContent: "space-between",
               flexWrap: "wrap",
@@ -277,9 +223,7 @@ export function Shell({ children }: { children: ReactNode }) {
                 textDecoration: "none",
               }}
             >
-              {workspace.selected === "manager"
-                ? "Staff Portal / Quản lý"
-                : "◈ ESS"}
+              {settings.appName}
             </Typography>
             <Stack
               direction="row"
@@ -311,22 +255,8 @@ export function Shell({ children }: { children: ReactNode }) {
                     <MenuItem value="teacher">Giảng viên</MenuItem>
                   </TextField>
                 )}
-              {auth.status === "authenticated" && workspace.selected === "teacher" && <LibraryNavigation/>}
               <DisplayTools />
-              <TextField select label="Ngôn ngữ" value="vi" sx={{ width: 125 }}>
-                <MenuItem value="vi">Tiếng Việt</MenuItem>
-              </TextField>
-              <TextField
-                select
-                label="Giao diện"
-                value={mode}
-                onChange={(e) => setMode(e.target.value as typeof mode)}
-                sx={{ width: 150 }}
-              >
-                <MenuItem value="light">Sáng</MenuItem>
-                <MenuItem value="dark">Tối</MenuItem>
-                <MenuItem value="system">Theo hệ thống</MenuItem>
-              </TextField>
+              <PreferencesMenu />
               {auth.status === "authenticated" && (
                 <>
                   <Typography
@@ -339,9 +269,7 @@ export function Shell({ children }: { children: ReactNode }) {
                       : "Giảng viên"}{" "}
                     · {auth.session?.teacher.name}
                   </Typography>
-                  <Button loading={logoutState.isLoading} onClick={signOut}>
-                    Đăng xuất
-                  </Button>
+<Tooltip title="Đăng xuất"><IconButton aria-label="Đăng xuất" disabled={logoutState.isLoading} onClick={signOut}><LogoutIcon /></IconButton></Tooltip>
                 </>
               )}
               {useMock && (
@@ -378,7 +306,7 @@ export function Shell({ children }: { children: ReactNode }) {
           >
             {useMock
               ? "Bản demo · Dữ liệu giả lập được lưu trên thiết bị này."
-              : "ESS · Cổng thông tin giảng viên"}
+              : `${settings.appName} · Cổng thông tin giảng viên`}
           </Typography>
         </Box>
       </Box>

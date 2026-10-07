@@ -16,7 +16,7 @@ import type {
 } from "@/types";
 import { verifiedSession, verifiedStaff } from "@/features/auth/contract";
 import { baseQuery } from "./base-query";
-const unwrap = <T>(r: Envelope<T>) => r.data;
+export const unwrap = <T>(r: Envelope<T>) => r.data;
 const tags = (type: "Students" | "Sessions" | "Results", id: string) => [
   { type, id },
 ];
@@ -29,6 +29,7 @@ export const createStaffApi = (query = baseQuery) =>
     refetchOnMountOrArgChange: false,
     tagTypes: [
       "Auth",
+      "ApplicationSettings", "SettingsProposals",
       "Management",
       "Dashboard",
       "Assignments",

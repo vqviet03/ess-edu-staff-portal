@@ -1,4 +1,5 @@
 "use client";
+import { exportPrefix } from "@/features/settings/branding";
 import { useState } from "react";
 import Alert from "@mui/material/Alert";
 import Accordion from "@mui/material/Accordion";
@@ -153,7 +154,7 @@ export function ExcelImport() {
                   setError("");
                   const blob = await template(a.id).unwrap();
                   const { download } = await import("./workbook");
-                  download(blob, `ESS_${a.id}.xlsx`);
+                  download(blob, `${exportPrefix()}_${a.id}.xlsx`);
                 } catch (e) {
                   setError(errorMessage(e));
                 }
@@ -303,7 +304,7 @@ export function ExcelImport() {
                           await import("./workbook");
                         download(
                           await errorWorkbook(data.errors),
-                          "ESS_loi_import.xlsx",
+                          `${exportPrefix()}_loi_import.xlsx`,
                         );
                       } catch (e) {
                         setError(errorMessage(e));

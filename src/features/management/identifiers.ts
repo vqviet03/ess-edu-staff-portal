@@ -12,4 +12,4 @@ export function availableIdentifier(root: string, used: Set<string>) {
     if (!used.has(candidate.toLowerCase())) return candidate;
   }
 }
-export function classPrefix(value: string) { return value.match(/^ess\d+(?=-|$)/i)?.[0].toLowerCase() ?? value; }
+export function classPrefix(value: string) { return value.match(/^[a-z][a-z0-9-]*?\d+(?=-|$)/i)?.[0].toLowerCase() ?? value; }

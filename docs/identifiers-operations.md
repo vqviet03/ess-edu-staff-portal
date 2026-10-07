@@ -7,8 +7,8 @@ HTTP đi qua cùng RTK Query baseQuery. WebSocket được quản lý bằng `li
 - Form mới học sinh/Staff: nhập họ tên gọi `POST /manager/identifiers/suggest`, debounce 350 ms, điền ID backend trả; response cũ không ghi đè khi người dùng đã sửa ID/tên.
 - Vũ Quốc Việt → `vq.viet`; Nguyễn Trung Anh → `nt.anh`. Backend bỏ dấu, viết thường chữ đầu các từ trước + dấu chấm + từ cuối. ID tùy chỉnh được giữ hoa/thường.
 - Nút **Kiểm tra trùng** gọi `/manager/identifiers/check`; `isAvailable:false` kèm ID gợi ý. Kiểm tra không giữ chỗ; backend kiểm tra lại ở preview.
-- CREATE bảng/Excel: ID trống sinh từ tên; ID đã nhập mà trùng thêm số 1, 2…; hiển thị ID cuối trong preview trước khi lưu. UPDATE yêu cầu ID ổn định, không đổi theo tên và không tự tạo khi thiếu ID.
-- Lớp mới: ID readonly `ess21`, `ess22`…; quản lý nhập/sửa `nameSuffix` (a1 → ess21-a1). Backend cấp số theo DB, form gợi ý không tự cấp quyền hoặc số. Preview giữ chỗ số lớp nên preview bỏ dở có thể để lại khoảng số. ID cũ không đổi.
+- CREATE bảng/Excel: ID trống sinh từ tên; ID đã nhập mà trùng thêm số 1, 2…; hiển thị ID cuối trong preview trước khi lưu. UPDATE dùng ID cũ để tìm; form từng hồ sơ cho đổi `newId` sau kiểm tra trùng, không tự đổi theo tên.
+- Lớp mới: gợi ý ID `ess21`, `ess22`… theo tiền tố cấu hình, quản lý có thể sửa ID/tên/mã; `nameSuffix` chỉ autofill lúc tạo (a1 → ess21-a1). Backend cấp số theo DB, form gợi ý không tự cấp quyền hoặc số. Preview giữ chỗ số lớp nên preview bỏ dở có thể để lại khoảng số. ID cũ không đổi.
 
 ```json
 POST /manager/identifiers/suggest
@@ -36,3 +36,5 @@ Manager cùng trường nhận CHANGE `{eventId,operationId,actorId,status,comma
 Không đổi env kết nối hoặc GitHub Pages/static routes. Build real cần backend mới và CORS cho `Prefer`, `Idempotency-Key`, origin `https://vqviet03.github.io`. Backend Cloud Run request billing xử lý qua worker khi có request/WebSocket; nếu scale về 0 khi mọi người offline, job được giữ để tiếp tục khi truy cập lại. Xử lý liên tục khi không ai online cần cấu hình CPU/min instance hoặc dịch vụ đánh thức queue ở backend; frontend không điều khiển setting đó.
 
 Socket gửi `NOTIFICATIONS` snapshot riêng tư khi đăng nhập/reconnect và `NOTIFICATION` khi có thông báo mới. Browser cập nhật list/count tại cache; không GET thông báo mặc định. Server dùng PostgreSQL LISTEN/NOTIFY, một session connection tới Notifications DB mỗi instance đang có socket. Với Neon endpoint pooler, chỉ listener bỏ hậu tố `-pooler` để dùng direct connection; REST giữ pooled connection hiện tại. Sau sự cố listener, snapshot khôi phục thông báo. Quyền người nhận được kiểm tra lại trước khi gửi. Không thêm migration/config.
+
+Chi tiết thay đổi mới: [ID, audit, branding, quota và xóa tài liệu](management-refinements.md).

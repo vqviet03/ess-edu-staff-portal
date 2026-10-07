@@ -14,7 +14,6 @@ import MenuItem from "@mui/material/MenuItem";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import { usePreviewChangesMutation, useSuggestIdentifierMutation, useCheckIdentifierMutation } from "@/api/management-api";
-import { classPrefix } from "./identifiers";
 import { errorMessage } from "@/api/base-query";
 import { confirmLeave, useUnsaved } from "@/shared/unsaved";
 import type { BulkPreview, Entity, ManagedRecord } from "./models";
@@ -41,10 +40,10 @@ export function EntityEditor({
   entity: Entity;
   record?: ManagedRecord;
   initial?: Record<string, unknown>;
-  close: (saved?: number) => void;
+  close: (saved?: number, newId?: string) => void;
 }) {
   const [baseVersion] = useState(record?.version);
-  const [customId, setCustomId] = useState(!!initial?.id), [identifierMessage, setIdentifierMessage] = useState("");
+  const [customId, setCustomId] = useState(!!record || !!initial?.id), [customName, setCustomName] = useState(!!initial?.name), [customCode, setCustomCode] = useState(!!initial?.code), [identifierMessage, setIdentifierMessage] = useState("");
   const [suggestIdentifier, suggesting] = useSuggestIdentifierMutation(), [checkIdentifier, checking] = useCheckIdentifierMutation();
   const generation = useRef(0);
   const [preview, state] = usePreviewChangesMutation(),
@@ -68,7 +67,6 @@ export function EntityEditor({
     defaultValues: {
       ...defaults(entity, entity === "accounts" ? crypto.randomUUID() : ""),
       ...record,
-      ...(entity === "classes" && record && "code" in record ? { nameSuffix: record.name.startsWith(classPrefix(record.code)) ? record.name.slice(classPrefix(record.code).length).replace(/^-/, "") : record.name } : {}),
       ...initial,
     },
   });
@@ -88,11 +86,18 @@ export function EntityEditor({
     return () => { clearTimeout(timer); active = false; };
   }, [entity, profile, record, fullName, customId, suggestIdentifier, setValue]);
   useEffect(() => {
-    if (record || entity !== "classes") return;
+    if (record || entity !== "classes" || customId) return;
     let active = true;
     void suggestIdentifier({ entity }).unwrap().then((r) => { if (active) setValue("id", r.id); }).catch((e) => { if (active) setIdentifierMessage(errorMessage(e)); });
     return () => { active = false; };
-  }, [entity, record, suggestIdentifier, setValue]);
+  }, [entity, record, customId, suggestIdentifier, setValue]);
+  const watchedId = useWatch({ control, name: "id" }), suffix = useWatch({ control, name: "nameSuffix" });
+  useEffect(() => {
+    if (record || entity !== "classes" || !watchedId) return;
+    const suggestion = String(watchedId) + (suffix ? "-" + String(suffix).trim().replace(/^-/, "") : "");
+    if (!customName) setValue("name", suggestion);
+    if (!customCode) setValue("code", suggestion);
+  }, [record, entity, watchedId, suffix, customName, customCode, setValue]);
   useUnsaved(isDirty && !data);
   return (
     <Dialog
@@ -111,7 +116,7 @@ export function EntityEditor({
           <PreviewPanel
             preview={data}
             close={() => setData(null)}
-            onSaved={close}
+            onSaved={(saved) => close(saved, data.changes.find(c => c.entity === entity)?.after.id)}
           />
         ) : (
           <Stack
@@ -123,7 +128,7 @@ export function EntityEditor({
                 setError("");
                 const result = await preview({
                     entity,
-                    rows: [{ ...values, version: baseVersion }],
+                    rows: [{ ...values, ...(record ? { id: record.id, ...(entity !== "accounts" && values.id !== record.id ? { newId: values.id } : {}) } : {}), version: baseVersion }],
                     clearFields: [
                       "nickname",
                       "dateOfBirth",
@@ -147,7 +152,7 @@ export function EntityEditor({
             })}
           >
             {error && <Alert severity="error">{error}</Alert>}
-            {fields[entity].map((key) => (
+            {fields[entity].filter(key => !(record && key === "nameSuffix")).map((key) => (
               <Controller
                 key={key}
                 control={control}
@@ -173,16 +178,16 @@ export function EntityEditor({
                       helperText={
                         fieldState.error?.message ??
                         (key === "id" && record
-                          ? "ID ổn định, không thay đổi"
+                          ? identifierMessage || "Quản lý có thể đổi ID. Liên kết và lịch sử được giữ; ID đăng nhập trùng ID cũ đổi theo."
                           : key === "id" && !record
-                            ? entity === "classes" ? "Tiền tố ess và số lớp do backend cấp; số được chốt khi xem trước." : identifierMessage || "Để trống để sinh từ tên; ID trùng sẽ thêm số trong preview."
-                            : key === "nameSuffix" ? "Ví dụ a1 → ess21-a1. Sửa hậu tố giữ nguyên ID lớp."
+                            ? entity === "classes" ? identifierMessage || "ID gợi ý; có thể nhập ID riêng và kiểm tra tồn tại." : identifierMessage || "Để trống để sinh từ tên; ID trùng sẽ thêm số trong preview."
+                            : key === "nameSuffix" ? "Chỉ dùng gợi ý khi tạo. Tên / mã lớp có thể nhập riêng."
                           : key === "profileId"
                             ? "Liên kết đúng ID hồ sơ đã có"
                             : "")
                       }
                       disabled={
-                        (key === "id" && (!!record || entity === "classes")) ||
+                        (key === "id" && !!record && entity === "accounts") ||
                         (entity === "accounts" &&
                           !!record &&
                           ["profileId", "kind"].includes(key)) ||
@@ -208,7 +213,9 @@ export function EntityEditor({
                           : undefined
                       }
                       onChange={(e) => {
-                        if (key === "id" && profile && !record) { generation.current++; setCustomId(true); setIdentifierMessage(""); }
+                        if (key === "id" && entity !== "accounts") { generation.current++; setCustomId(true); setIdentifierMessage(""); }
+                        if (key === "name") setCustomName(true);
+                        if (key === "code") setCustomCode(true);
                         if (key === "kind") {
                           setValue(
                             "roles",
@@ -239,16 +246,16 @@ export function EntityEditor({
                       ))}
                     </TextField>
                   );
-                  return <Stack spacing={1}>{input}{key === "id" && profile && !record && <Stack direction="row" spacing={1} sx={{ flexWrap: "wrap" }}>
+                  return <Stack spacing={1}>{input}{key === "id" && entity !== "accounts" && <Stack direction="row" spacing={1} sx={{ flexWrap: "wrap" }}>
                     <Button loading={checking.isLoading} disabled={!String(field.value ?? "").trim()} onClick={async () => {
                       try {
                         const requested = String(getValues("id"));
-                        const r = await checkIdentifier({ entity, id: requested }).unwrap();
+                        const r = await checkIdentifier({ entity, id: requested, excludeId: record?.id }).unwrap();
                         if (getValues("id") !== requested) return;
-                        setIdentifierMessage(r.isAvailable ? "ID có thể sử dụng; backend kiểm tra lại khi lưu." : `ID đã dùng. Gợi ý: ${r.id}. Backend sẽ thêm số khi xem trước.`);
+                        setIdentifierMessage(r.isAvailable ? "ID có thể sử dụng; backend kiểm tra lại khi lưu." : `ID đã dùng. Gợi ý: ${r.id}.${record ? " Hãy chọn ID khác trước khi lưu." : ""}`);
                       } catch (e) { setIdentifierMessage(errorMessage(e)); }
                     }}>Kiểm tra trùng</Button>
-                    <Button loading={suggesting.isLoading} onClick={() => { setCustomId(false); generation.current++; setIdentifierMessage(""); }}>Tự sinh từ tên</Button>
+                    {!record && profile && <Button loading={suggesting.isLoading} onClick={() => { setCustomId(false); generation.current++; setIdentifierMessage(""); }}>Tự sinh từ tên</Button>}
                   </Stack>}</Stack>;
                 }}
               />

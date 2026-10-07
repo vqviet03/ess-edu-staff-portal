@@ -20,13 +20,13 @@ Local/migration configuration: `ConnectionStrings__Materials` runtime pooled, `C
 
 Files use existing six **production** Neon projects/buckets: DOCUMENTS (text/PDF/Office), AUDIO, CURRICULUM, TESTS, IMAGES and OTHER. The destination is explicit; audio/images are constrained to corresponding storage. No public bucket or JWT in file URLs. Browser uploads use signed PUT URLs with Content-Type, then server HEAD verifies MIME/size (including thumbnail) before AVAILABLE. URLs last 10 minutes for PUT, 5 minutes for access/thumbnail. Thumbnail generation is client-side at upload, max 256px; PDF page 1 via lazy pdf.js. List rendering never downloads originals. Upload metadata requests are authenticated; object requests use only their signed URL.
 
-Configure `Storage:Areas:<AREA>:CapacityBytes` per private bucket, `Storage:MaxUploadBytes` (default 100 MiB), `Storage:LargeFileWarningBytes` (default 20 MiB). Capacity is the application quota (default 1 GiB per area), **not a promise of provider free-plan limits**. Used bytes include existing Core material uploads as well as soft-deactivated library files; pending/cancelled objects conservatively retain reservations. Physical storage is not deleted by frontend, and cancelled uploads require an operator reconciliation before releasing their reservation. Monitor actual Neon usage as well as these application counters. Neon bucket OPTIONS has been checked for PUT/Content-Type from the Pages origin; API CORS permits DELETE, X-Workspace, If-Match. Use Pages **origin** `https://vqviet03.github.io`, not its repository path.
+Configure `Storage:Areas:<AREA>:CapacityBytes` per private bucket, `Storage:MaxUploadBytes` (default 100 MiB), `Storage:LargeFileWarningBytes` (default 20 MiB). Capacity is the application quota (default 4.5 GB / 4,500,000,000 bytes per area), **not a promise of provider free-plan limits**. Used bytes include existing Core material uploads as well as soft-deactivated library files; pending/cancelled objects conservatively retain reservations. Physical storage is not deleted by frontend, and cancelled uploads require an operator reconciliation before releasing their reservation. Monitor actual Neon usage as well as these application counters. Neon bucket OPTIONS has been checked for PUT/Content-Type from the Pages origin; API CORS permits DELETE, X-Workspace, If-Match. Use Pages **origin** `https://vqviet03.github.io`, not its repository path.
 
 ## Authorization
 
 Student: only published posts/files attached in their ACTIVE enrollments; no warehouse listing, upload, rename or internal fields. Staff: shared library read and author names. Session-sourced files additionally require class access for teachers. Teacher: own-upload rename/request-deletion; edit posts only if current TEACHER role, active profile/account, ACTIVE assignment, editable ACTIVE class. Manager: folder/program/level CRUD, move, metadata/audit/storage read, deletion approval; manager-only cannot edit learning content. `X-Workspace:manager` prevents session edits even for dual-role accounts. Workspace never grants a role. `workspace=teacher`/header returns reduced file DTO even for dual-role users.
 
-All DELETEs are **soft**. Folder deactivation requires empty dependencies. Approval requires reason and `KEEP_UNAVAILABLE` (retain attachment as unavailable) or `DETACH` (remove attachment, retain audit). Soft deletion does not free physical bytes. Teacher/student DTO omits storageId/storageObjectKey and never exposes audit logs.
+Profile/folder/post/comment/notification DELETEs are **soft**. File DELETE/approved requests purge physical objects server-side; see [updated lifecycle](management-refinements.md). Folder deactivation requires empty dependencies. Approval requires reason and `KEEP_UNAVAILABLE` (retain attachment as unavailable) or `DETACH` (remove attachment, retain audit). File quota is released only after both original and thumbnail are successfully purged; DELETING remains counted. Teacher/student DTO omits storageId/storageObjectKey and never exposes audit logs.
 
 ## Endpoints
 
@@ -40,7 +40,8 @@ All DELETEs are **soft**. Folder deactivation requires empty dependencies. Appro
 | GET/PATCH | /materials/id | File / `{displayName,version}` |
 | POST | /materials/bulk-move | `{ids,folderId,versions:{[id]:version}}`, atomic max 100 |
 | GET | /materials/id/access-url?purpose=preview\|download | `{url,expiresAt}`; no persistent signed URL |
-| GET | /materials/id/audit-logs | manager, latest 100 audit records |
+| GET | /materials/id/audit-logs?page=&pageSize= | manager, paged audit + total + actor public/login ID and name |
+| GET/DELETE | /materials/id/deletion-impact / /materials/id | manager, usages / `{version,reason,linkAction}` physical purge queue |
 | POST | /materials/id/deletion-requests | `{reason,version}` |
 | GET | /material-deletion-requests | requests (own for teacher) + file + active post/session usages |
 | POST | /material-deletion-requests/id/decision | `{decision:APPROVED\|REJECTED,reason,linkAction,version}` |
@@ -70,3 +71,5 @@ PostInput = `{title,body,status:DRAFT|PUBLISHED,version,attachments:[{materialId
 Errors retain the existing `{error:{code,message,fieldErrors?}}` envelope. 400 invalid pagination/filter, 401 expired/revoked session, 403 denied, 404 unavailable entity, 409 version/dependency conflict, 410 expired upload, 422 invalid MIME/size/schema/quota, 429 existing auth throttling, 503 missing DB/storage/unavailable persistence. Never automatically retry mutations. Concurrent edits keep the client draft and show an error. Signed object responses never contain access JWT.
 
 Existing student endpoints `/me/classes/:classId/materials` and `/me/classes/:classId/materials/:materialId/access` also include/access AVAILABLE attachments of PUBLISHED posts in that exact class. Legacy Core materials remain compatible. Library files return the existing type contract (PDF/audio/video/link); image/other files open as signed links. The student frontend is unchanged; student feed/comment screens are outside this Staff Portal extension.
+
+Chi tiết thay đổi mới: [ID, audit, branding, quota và xóa tài liệu](management-refinements.md).
