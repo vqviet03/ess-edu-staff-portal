@@ -18,6 +18,8 @@ import {
   useChangeNotificationMutation,
   useReadNotificationsMutation,
 } from "@/api/library-api";
+import { useAppDispatch } from "@/store";
+import { libraryApi } from "@/api/library-api";
 import { useWorkspace } from "@/features/access/hooks";
 import { Feedback, NavButton, Title } from "@/shared/ui";
 import { MaterialBrowser } from "./browser";
@@ -37,7 +39,6 @@ export function StoragePage() {
   const { selected } = useWorkspace(),
     q = useStoragesQuery(undefined, {
       skip: selected !== "manager",
-      pollingInterval: 30000,
     });
   if (selected !== "manager")
     return <Feedback error={new Error("Chỉ quản lý được xem storage.")} />;
@@ -244,13 +245,15 @@ export const notificationTypes: Record<string, string> = {
   SYSTEM: "Hệ thống",
 };
 export function NotificationsPage() {
-  const [type, setType] = useState(""),
+  const dispatch = useAppDispatch(),
+    [type, setType] = useState(""),
     [read, setRead] = useState(""),
     [cursor, setCursor] = useState<string>(),
-    q = useNotificationsQuery(
-      { type, isRead: read === "" ? undefined : read === "true", cursor },
-      { pollingInterval: 30000 },
-    ),
+    filter = { type, isRead: read === "" ? undefined : read === "true", cursor },
+    filtered = !!type || !!read || !!cursor,
+    subscribed = useNotificationsQuery(filter, { skip: !filtered }),
+    cached = libraryApi.endpoints.notifications.useQueryState(filter),
+    q = filtered ? subscribed : { ...cached, refetch: () => dispatch(libraryApi.endpoints.notifications.initiate(filter, { forceRefetch: true, subscribe: false })) },
     [change] = useChangeNotificationMutation(),
     [all] = useReadNotificationsMutation(),
     [error, setError] = useState<unknown>();
@@ -259,7 +262,8 @@ export function NotificationsPage() {
       <Title
         title="Thông báo"
         subtitle={`${q.currentData?.unreadCount ?? 0} chưa đọc`}
-        actions={
+        actions={<Stack direction="row" spacing={1}>
+          <Button onClick={() => void q.refetch()}>Tải lại</Button>
           <Button
             onClick={async () => {
               try {
@@ -271,7 +275,7 @@ export function NotificationsPage() {
           >
             Đọc tất cả
           </Button>
-        }
+        </Stack>}
       />
       <Stack direction="row" spacing={1}>
         <TextField
@@ -307,7 +311,7 @@ export function NotificationsPage() {
         </TextField>
       </Stack>
       <Feedback
-        loading={q.isLoading}
+        loading={q.isLoading || (!filtered && q.isUninitialized)}
         error={q.error || error}
         retry={() => void q.refetch()}
       />

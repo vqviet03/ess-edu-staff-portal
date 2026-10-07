@@ -3,6 +3,8 @@ import { useDispatch, useSelector } from "react-redux";
 import { workspaceSlice } from "./workspace";
 import { operationsSlice, notificationReceived } from "./operations";
 import { relatedTags } from "@/features/operations/models";
+import { libraryApi } from "@/api/library-api";
+import { libraryNoticeReceived, librarySnapshotReceived, mergeNotice } from "@/features/materials/notification-state";
 import { api } from "@/api/api";
 import { authSlice, signedIn, signedOut, verified } from "./auth";
 import { writeSession } from "@/features/auth/storage";
@@ -21,11 +23,34 @@ export function makeStore(service = api) {
         .concat(service.middleware),
   });
   listener.startListening({
+    actionCreator: librarySnapshotReceived,
+    effect: (action, runtime) => {
+      const before = runtime.getOriginalState() as { operations: { librarySnapshot: unknown; libraryNotices: Record<string, boolean> } };
+      store.dispatch(libraryApi.util.upsertQueryData("notifications", {}, action.payload));
+      if (before.operations.librarySnapshot && action.payload.items.some((notice) => !before.operations.libraryNotices[notice.id]))
+        runtime.dispatch(service.util.invalidateTags(["Materials", "Folders", "Posts", "Comments", "Storages", "DeletionRequests"]));
+    },
+  });
+  listener.startListening({
+    actionCreator: libraryNoticeReceived,
+    effect: (action, runtime) => {
+      const before = runtime.getOriginalState() as { operations: { libraryNotices: Record<string, boolean> } };
+      if (before.operations.libraryNotices[action.payload.notice.id]) return;
+      for (const args of libraryApi.util.selectCachedArgsForQuery(store.getState(), "notifications")) {
+        store.dispatch(libraryApi.util.updateQueryData("notifications", args, (page) => mergeNotice(page, args, action.payload.notice)));
+      }
+      // Only an actual server change refreshes subscribed data; notices are
+      // patched locally and never cause another /notifications request.
+      runtime.dispatch(service.util.invalidateTags(["Materials", "Folders", "Posts", "Comments", "Storages", "DeletionRequests"]));
+    },
+  });
+  listener.startListening({
     actionCreator: notificationReceived,
     effect: (action, runtime) => {
-      const before = runtime.getOriginalState() as { operations: { notifications: Record<string, { eventId: string }> } };
-      if (before.operations.notifications[action.payload.operationId]?.eventId === action.payload.eventId) return;
-      runtime.dispatch(service.util.invalidateTags(action.payload.status === "DONE" ? relatedTags(action.payload.entities) : ["Operations", "ClassAccess"]));
+      const before = runtime.getOriginalState() as { operations: { notifications: Record<string, { eventId: string }>; localMutations: Record<string, boolean> }; auth: { session: {teacher: {id: string}} | null } };
+      if (before.operations.notifications[action.payload.operationId]) return;
+      if (action.payload.actorId === before.auth.session?.teacher.id && before.operations.localMutations[action.payload.operationId]) return;
+      if (action.payload.status === "DONE") runtime.dispatch(service.util.invalidateTags(relatedTags(action.payload.entities)));
     },
   });
   listener.startListening({

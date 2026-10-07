@@ -4,12 +4,16 @@ import {
   type FetchArgs,
   type FetchBaseQueryError,
 } from "@reduxjs/toolkit/query";
+import type { Teacher } from "@/types";
 import type { AuthState } from "@/store/auth";
 import { requestHeaders } from "./headers";
 import { apiConfiguration, resolveApiConfiguration } from "./config";
 import { expired } from "@/features/auth/storage";
 import { businessMutation, operationEnvelope } from "@/features/operations/models";
-import { operationReceived } from "@/store/operations";
+import { operationReceived, operationLocal, operationAbandoned } from "@/store/operations";
+import { waitForOperation } from "@/features/operations/channel";
+import { verifiedStaff } from "@/features/auth/contract";
+import { verified } from "@/store/auth";
 type Query = BaseQueryFn<string | FetchArgs, unknown, FetchBaseQueryError>;
 export const useMock = apiConfiguration.mock;
 export function createAppBaseQuery(config: {
@@ -38,6 +42,7 @@ export function createAppBaseQuery(config: {
         return headers;
       },
     });
+  const permissionRefreshes = new Map<string, Promise<void>>();
   return async (args, api, options) => {
     const request = typeof args === "string" ? { url: args } : args;
     if (config.configurationError || resolved.error)
@@ -66,33 +71,44 @@ export function createAppBaseQuery(config: {
     if (config.mock && auth.session && !publicRequest)
       headers.set("Authorization", `Bearer ${auth.session.accessToken}`);
     if (config.mock && !mock) mock = (await import("@/mock/adapter")).createMockAdapter();
-    if (businessMutation(request.url, request.method)) {
+    if (!config.mock && businessMutation(request.url, request.method)) {
       headers.set("Prefer", "respond-async");
       if (!headers.has("Idempotency-Key")) headers.set("Idempotency-Key", crypto.randomUUID());
     }
     const send = (arg: FetchArgs) => config.mock ? mock!(arg, api, options) : real(arg, api, options);
     const result = await send({ ...request, headers });
     if (result.error?.status === 401 && !publicRequest) endSession();
+    // A denied user action refreshes identity once; it never retries that action.
+    if (result.error?.status === 403 && !publicRequest && request.url !== "/auth/me" && originalToken && currentToken() === originalToken) {
+      let refresh = permissionRefreshes.get(originalToken);
+      if (!refresh) {
+        refresh = (async () => {
+          const identity = await send({ url: "/auth/me" });
+          if (currentToken() !== originalToken) return;
+          if (identity.error?.status === 401) { endSession(); return; }
+          if (identity.data && typeof identity.data === "object" && "data" in identity.data) {
+            try { api.dispatch(verified(verifiedStaff(identity.data.data as Teacher)));
+              if (!/^\/classes\/[^/]+\/access(?:\?|$)/.test(request.url)) api.dispatch({ type: "staffApi/invalidateTags", payload: ["ClassAccess"] }); } catch { /* Preserve the original forbidden response. */ }
+          }
+        })();
+        permissionRefreshes.set(originalToken, refresh);
+        void refresh.finally(() => permissionRefreshes.delete(originalToken));
+      }
+      await refresh;
+    }
     let operation = operationEnvelope(result.data);
     if (operation && businessMutation(request.url, request.method)) {
       api.dispatch(operationReceived(operation));
-      let failures = 0;
-      while (operation.status === "IN_PROGRESS" && !api.signal.aborted) {
-        await new Promise<void>((resolve) => {
-          const done = () => { clearTimeout(timer); api.signal.removeEventListener("abort", done); resolve(); };
-          const timer = setTimeout(done, 700); api.signal.addEventListener("abort", done, { once: true });
-        });
-        if (api.signal.aborted) break;
-        const next = await send({ url: `/operations/${encodeURIComponent(operation.operationId)}`, headers });
-        if (next.error) {
-          if (next.error.status === 401) { endSession(); return next; }
-          if (++failures >= 3) return { error: { status: "CUSTOM_ERROR", error: "Mất kết nối theo dõi. Tác vụ đã gửi vẫn được xử lý; xem thông báo trước khi gửi lại." } };
-          continue;
+      api.dispatch(operationLocal(operation.operationId));
+      if (operation.status === "IN_PROGRESS") {
+        try {
+          operation = await waitForOperation(originalToken!, operation.operationId, api.signal);
+          if (currentToken() !== originalToken) throw new Error("Phiên đăng nhập đã thay đổi.");
+          api.dispatch(operationReceived(operation));
+        } catch (error) {
+          api.dispatch(operationAbandoned(operation.operationId));
+          return { error: { status: "CUSTOM_ERROR", error: errorMessage(error) } };
         }
-        failures = 0;
-        const updated = operationEnvelope(next.data);
-        if (!updated) return { error: { status: "CUSTOM_ERROR", error: "Response tác vụ không hợp lệ." } };
-        operation = updated; api.dispatch(operationReceived(operation));
       }
       if (operation.status === "DONE") return { data: operation.result };
       if (operation.status === "FAILED") {

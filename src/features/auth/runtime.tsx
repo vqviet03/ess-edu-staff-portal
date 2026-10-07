@@ -2,10 +2,10 @@
 import { useEffect, type ReactNode } from "react";
 import { useStore } from "react-redux";
 import { useRouter } from "next/navigation";
-import { useMeQuery } from "@/api/api";
+import { api, useMeQuery } from "@/api/api";
 import { type RootState, useAppDispatch, useAppSelector } from "@/store";
 import { restore, signedOut, verified } from "@/store/auth";
-import { expired, readSession } from "./storage";
+import { expired, expiresAt, readSession } from "./storage";
 import { staffActive, workspaces } from "@/features/access/capabilities";
 import { Feedback, Shell } from "@/shared/ui";
 export function AuthRuntime() {
@@ -13,41 +13,44 @@ export function AuthRuntime() {
   const dispatch = useAppDispatch(),
     auth = useAppSelector((s) => s.auth);
   const me = useMeQuery(undefined, {
-    skip: !auth.session || auth.status === "guest" || auth.status === "booting",
-    pollingInterval: 60000,
-    refetchOnFocus: true,
+    skip: !auth.session || auth.status !== "validating",
   });
   useEffect(() => {
     if (store.getState().auth.status === "booting")
       dispatch(restore(readSession()));
   }, [dispatch, store]);
   useEffect(() => {
-    if (me.data && auth.session && me.data !== auth.session.teacher)
+    if (auth.status === "validating" && me.data && auth.session)
       dispatch(verified(me.data));
-  }, [me.data, auth.session, dispatch]);
+  }, [me.data, auth.status, auth.session, dispatch]);
   useEffect(() => {
     if (!auth.session) return;
     const check = () => {
       if (expired(auth.session!))
         dispatch(signedOut("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại."));
     };
-    check();
-    const timer = setInterval(check, 10000);
+    let timer: ReturnType<typeof setTimeout>;
+    const schedule = () => {
+      check();
+      if (!expired(auth.session!)) timer = setTimeout(schedule, Math.min(2147483647, Math.max(1, expiresAt(auth.session!) - Date.now())));
+    };
+    schedule();
     const onVisible = () => {
       if (!document.hidden) check();
     };
     document.addEventListener("visibilitychange", onVisible);
     return () => {
-      clearInterval(timer);
+      clearTimeout(timer);
       document.removeEventListener("visibilitychange", onVisible);
     };
   }, [auth.session, dispatch]);
   return null;
 }
 export function Guard({ children }: { children: ReactNode }) {
-  const auth = useAppSelector((s) => s.auth),
+  const dispatch = useAppDispatch(),
+    auth = useAppSelector((s) => s.auth),
     router = useRouter(),
-    me = useMeQuery(undefined, { skip: !auth.session });
+    me = api.endpoints.me.useQueryState(undefined);
   useEffect(() => {
     if (auth.status === "guest") router.replace("/login/");
   }, [auth.status, router]);
@@ -55,7 +58,7 @@ export function Guard({ children }: { children: ReactNode }) {
     <Shell>
       {auth.status === "authenticated" ? (
         me.error && "status" in me.error && me.error.status === 403 ? (
-          <Feedback error={me.error} retry={() => void me.refetch()} />
+          <Feedback error={me.error} retry={() => void dispatch(api.endpoints.me.initiate(undefined, { forceRefetch: true, subscribe: false }))} />
         ) : staffActive(auth.session?.teacher) &&
           workspaces(auth.session?.teacher).length ? (
           children
@@ -72,7 +75,7 @@ export function Guard({ children }: { children: ReactNode }) {
         <Feedback
           loading={!me.error}
           error={me.error}
-          retry={() => void me.refetch()}
+          retry={() => void dispatch(api.endpoints.me.initiate(undefined, { forceRefetch: true, subscribe: false }))}
         />
       )}
     </Shell>

@@ -40,8 +40,6 @@ const updated = [
   "Sessions",
   "Assessments",
   "Results",
-  "Auth",
-  "ClassAccess",
 ] as const;
 const binary = async (r: Response) => (r.ok ? r.blob() : r.json());
 export const managementApi = api.injectEndpoints({

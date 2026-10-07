@@ -1,5 +1,4 @@
 "use client";
-import { LibraryRefresh } from "@/features/materials/runtime";
 import { LibraryNavigation } from "@/features/materials/navigation";
 import type { ReactNode } from "react";
 import Link from "next/link";
@@ -178,7 +177,7 @@ export function Shell({ children }: { children: ReactNode }) {
   const { zoom } = useAppDisplay();
   const [reset, { isLoading }] = useResetDemoMutation();
   return (
-    <AppScale><LibraryRefresh/><Box
+    <AppScale><Box
       sx={{
         maxWidth: 1600 / (zoom / 100),
         mx: "auto",

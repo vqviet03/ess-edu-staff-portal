@@ -1,7 +1,8 @@
-import type { Page } from '@playwright/test';
+import type { Page, WebSocketRoute } from '@playwright/test';
 import { createMockAdapter } from '../../src/mock/adapter';
 import { seed, type Database } from '../../src/mock/fixtures';
 import { resolveApiConfiguration } from '../../src/api/config';
+import type { Notification } from '../../src/features/materials/models';
 import type { AuthSession, Envelope } from '../../src/types';
 import type { BaseQueryApi } from '@reduxjs/toolkit/query';
 
@@ -15,6 +16,7 @@ export async function installHttpFixture(page: Page, shared?: { get: () => strin
   const adapter = createMockAdapter({getItem: () => database.get(), setItem: (_key, next) => {database.set(next);}}, 0);
   const runtime = {signal: new AbortController().signal, abort() {}, dispatch: () => {}, getState: () => ({}), extra: undefined, endpoint: 'httpFixture', type: 'query'} as BaseQueryApi;
   let queue = Promise.resolve();
+  const sockets = new Set<WebSocketRoute>();
   await page.route(`${config.baseUrl}/**`, route => {
     queue = queue.then(async () => {
       const request = route.request();
@@ -47,14 +49,21 @@ export async function installHttpFixture(page: Page, shared?: { get: () => strin
     let token = '', cursor = '0', timer: ReturnType<typeof setInterval> | undefined;
     socket.onMessage(async message => {
       try {
-        const auth = JSON.parse(String(message)) as {type?: string; accessToken?: string; cursor?: string};
+        const auth = JSON.parse(String(message)) as {type?: string; accessToken?: string; cursor?: string; operationId?: string};
+        if (auth.type === 'WATCH' && token && auth.operationId) {
+          const result = await adapter({url:`/operations/${auth.operationId}`, headers:{Authorization:`Bearer ${token}`}}, runtime, {});
+          if (!result.error) socket.send(JSON.stringify({type:'OPERATION', data:(result.data as {data:unknown}).data}));
+          return;
+        }
         if (auth.type !== 'AUTH' || !auth.accessToken) {socket.close({code:1008, reason:'UNAUTHORIZED'});return;}
         token = auth.accessToken;
         const checked = await adapter({url:'/auth/me', headers:{Authorization:`Bearer ${token}`}}, runtime, {});
         if (checked.error) {socket.close({code:1008, reason:'UNAUTHORIZED'});return;}
         const db = JSON.parse(database.get()) as Database;
         cursor = auth.cursor ?? db.operationEvents?.at(-1)?.eventId ?? '0';
+        sockets.add(socket);
         socket.send(JSON.stringify({type:'READY', cursor}));
+        socket.send(JSON.stringify({type:'NOTIFICATIONS', data:{items:[],nextCursor:null,unreadCount:0}}));
         timer = setInterval(() => {
           const current = JSON.parse(database.get()) as Database;
           const me = current.tokens[token]?.teacher;
@@ -63,6 +72,9 @@ export async function installHttpFixture(page: Page, shared?: { get: () => strin
         }, 50);
       } catch {socket.close({code:1008, reason:'UNAUTHORIZED'});}
     });
-    socket.onClose(() => clearInterval(timer));
+    socket.onClose(() => { clearInterval(timer); sockets.delete(socket); });
   });
+  return { pushNotice: (notice: Notification) => {
+    for (const socket of sockets) socket.send(JSON.stringify({type:'NOTIFICATION', data:notice}));
+  }};
 }

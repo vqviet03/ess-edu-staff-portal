@@ -50,12 +50,12 @@ test("Conflict trả FAILED, giữ dữ liệu cũ và không tự retry mutatio
   const db = h.db(); db.management!.revision++; h.storage.setItem("", JSON.stringify(db));
   const failed = await h.call<Operation>(`/operations/${job.operationId}`); assert.equal(failed.status, "FAILED"); assert.equal(failed.error?.code, "VERSION_CONFLICT"); assert(!h.db().management?.students.some((s) => s.id === "nt.anh"));
 });
-test("RTK baseQuery gửi Prefer, báo IN_PROGRESS và trả kết quả cuối cùng cùng contract", async () => {
+test("Mock baseQuery xử lý trực tiếp, không tạo polling hoặc yêu cầu socket", async () => {
   const h = harness(); await h.login(); const p = await h.preview([{ fullName: "Nguyễn Lan" }]);
   const base = createAppBaseQuery({ mock: true, mockAdapter: h.mock });
   const r = await base({ url: "/manager/changes/commit", method: "POST", body: commit(p), headers: { "Idempotency-Key": "rtk-one" } }, h.runtime, {});
   assert(!r.error, JSON.stringify(r.error)); assert.equal((r.data as Envelope<{ updated: number }>).data.updated, 1);
-  assert(h.dispatched.some((a) => (a as { payload?: Operation }).payload?.status === "IN_PROGRESS")); assert(h.dispatched.some((a) => (a as { payload?: Operation }).payload?.status === "DONE"));
+  assert.equal(h.dispatched.length, 0);
 });
 test("Mã lớp cấp ess21, ess22; sửa hậu tố giữ nguyên ID", async () => {
   const h = harness(); await h.login(); const p = await h.preview([{ nameSuffix: "a1", schedule: "Thứ 3", totalUnits: 5 }], "classes");
@@ -72,5 +72,5 @@ test("Excel CREATE cho phép ID rỗng/trùng; UPDATE vẫn yêu cầu ID ổn �
 });
 test("Chỉ mutation nghiệp vụ dùng hàng đợi; thông báo invalidate đúng nhóm query", () => {
   assert(businessMutation("/manager/changes/commit", "POST")); assert(businessMutation("/assessments/a/results/batch", "PATCH")); assert(!businessMutation("/manager/changes/preview", "POST")); assert(!businessMutation("/auth/login", "POST"));
-  assert(relatedTags(["teachers"]).includes("ClassAccess")); assert(relatedTags(["results"]).includes("Results")); assert(!relatedTags(["labels"]).includes("Results"));
+  assert(!relatedTags(["teachers"]).includes("ClassAccess")); assert(!relatedTags(["accounts"]).includes("Auth")); assert(relatedTags(["results"]).includes("Results")); assert(!relatedTags(["labels"]).includes("Results"));
 });

@@ -206,7 +206,7 @@ function TreeBranch({
         limit: 30,
         workspace,
       },
-      { pollingInterval: 240000, refetchOnMountOrArgChange: 240 },
+      { },
     ),
     [expanded, setExpanded] = useState<Record<string, boolean>>({});
   return (
@@ -430,7 +430,7 @@ export function MaterialBrowser({
         limit: 40,
         workspace: workspace.selected ?? undefined,
       },
-      { pollingInterval: 240000, refetchOnMountOrArgChange: 240 },
+      { },
     ),
     [saveFolder, folderState] = useSaveFolderMutation(),
     [removeFolder] = useRemoveFolderMutation(),

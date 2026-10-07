@@ -364,7 +364,7 @@ export function SessionFeed({
   const [cursor, setCursor] = useState<string>(),
     list = usePostsQuery(
       { sessionId, cursor },
-      { pollingInterval: 240000, refetchOnMountOrArgChange: 240 },
+      { },
     ),
     [open, setOpen] = useState(false),
     [draft, setDraft] = useState<PostInput>({

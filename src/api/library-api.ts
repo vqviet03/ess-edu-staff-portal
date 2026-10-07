@@ -1,3 +1,4 @@
+import { notificationFilter, mergeNotice } from "@/features/materials/notification-state";
 import type { AuthState } from "@/store/auth";
 import { api } from "./api";
 import type { Envelope } from "@/types";
@@ -161,7 +162,7 @@ export const libraryApi = api.injectEndpoints({
     >({
       query: ({ id, ...body }) =>
         mutation(`/materials/${id}/deletion-requests`, body),
-      invalidatesTags: ["DeletionRequests", "Notifications"],
+      invalidatesTags: ["DeletionRequests"],
     }),
     decideDeletion: b.mutation<
       unknown,
@@ -180,7 +181,6 @@ export const libraryApi = api.injectEndpoints({
         "Materials",
         "Posts",
         "Storages",
-        "Notifications",
       ],
     }),
     uploadSettings: b.query<
@@ -289,7 +289,7 @@ export const libraryApi = api.injectEndpoints({
           q.id ? "PATCH" : "POST",
         ),
       transformResponse: unwrap<Post>,
-      invalidatesTags: ["Posts", "Materials", "Notifications"],
+      invalidatesTags: ["Posts", "Materials"],
     }),
     removePost: b.mutation<
       unknown,
@@ -407,7 +407,7 @@ export const libraryApi = api.injectEndpoints({
       invalidatesTags: (_, error, q) =>
         error
           ? []
-          : [{ type: "Comments", id: q.postId }, "Posts", "Notifications"],
+          : [{ type: "Comments", id: q.postId }, "Posts"],
     }),
     removeComment: b.mutation<
       unknown,
@@ -426,21 +426,52 @@ export const libraryApi = api.injectEndpoints({
       CursorPage<Notification>,
       { type?: string; isRead?: boolean; cursor?: string }
     >({
-      query: (q) => ({ url: "/notifications", params: q }),
+      query: (q) => ({ url: "/notifications", params: notificationFilter(q) }),
+      serializeQueryArgs: ({ queryArgs }) => notificationFilter(queryArgs),
+      keepUnusedDataFor: 86400,
       transformResponse: unwrap<CursorPage<Notification>>,
       providesTags: ["Notifications"],
     }),
     changeNotification: b.mutation<
-      unknown,
+      Notification,
       { id: string; version: number; isRead?: boolean; deleted?: boolean }
     >({
-      query: ({ id, deleted, ...body }) =>
-        mutation(`/notifications/${id}`, body, deleted ? "DELETE" : "PATCH"),
-      invalidatesTags: ["Notifications"],
+      query: ({ id, deleted, ...body }) => mutation(`/notifications/${id}`, body, deleted ? "DELETE" : "PATCH"),
+      transformResponse: unwrap<Notification>,
+      async onQueryStarted(arg, { dispatch, getState, queryFulfilled }) {
+        try {
+          const { data } = await queryFulfilled;
+          const state = getState() as Parameters<typeof libraryApi.util.selectCachedArgsForQuery>[0];
+          const filters = libraryApi.util.selectCachedArgsForQuery(state, "notifications");
+          const previous = filters.map((args) => libraryApi.endpoints.notifications.select(args)(state).data?.items.find((n) => n.id === arg.id)).find((n) => n !== undefined);
+          const delta = previous ? (arg.deleted ? -Number(!previous.isRead) : Number(!data.isRead) - Number(!previous.isRead)) : 0;
+          for (const args of filters) {
+            dispatch(libraryApi.util.updateQueryData("notifications", args, (page) => {
+              const unread = page.unreadCount;
+              if (arg.deleted) {
+                page.items = page.items.filter((n) => n.id !== arg.id);
+              } else mergeNotice(page, args, data);
+              if (unread !== undefined) page.unreadCount = Math.max(0, unread + delta);
+            }));
+          }
+        } catch { /* Failed writes preserve cached notices and the user's form. */ }
+      },
     }),
     readNotifications: b.mutation<unknown, void>({
       query: () => mutation("/notifications/read-all", {}),
-      invalidatesTags: ["Notifications"],
+      async onQueryStarted(_, { dispatch, getState, queryFulfilled }) {
+        try {
+          await queryFulfilled;
+          const state = getState() as Parameters<typeof libraryApi.util.selectCachedArgsForQuery>[0];
+          for (const args of libraryApi.util.selectCachedArgsForQuery(state, "notifications")) {
+            dispatch(libraryApi.util.updateQueryData("notifications", args, (page) => {
+              page.unreadCount = 0;
+              for (const notice of page.items) if (!notice.isRead) { notice.isRead = true; notice.version++; }
+              if (args.isRead === false) page.items = [];
+            }));
+          }
+        } catch { /* Keep unread state if the server rejects the action. */ }
+      },
     }),
   }),
 });

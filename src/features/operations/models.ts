@@ -32,8 +32,7 @@ export function relatedTags(entities: string[]) {
   const tags = new Set<"Auth" | "Management" | "Dashboard" | "Assignments" | "Warnings" | "Audit" | "Classes" | "Class" | "Students" | "Sessions" | "Assessments" | "Results" | "Reports" | "ClassAccess" | "Operations">(["Operations", "Audit"]);
   for (const entity of entities) {
     if (["students", "teachers", "classes", "accounts", "labels", "assignments", "enrollments"].includes(entity)) tags.add("Management");
-    if (["students", "teachers", "classes", "accounts", "assignments", "enrollments", "sessions"].includes(entity)) { tags.add("Dashboard"); tags.add("Warnings"); tags.add("ClassAccess"); tags.add("Classes"); tags.add("Class"); }
-    if (["teachers", "accounts"].includes(entity)) tags.add("Auth");
+    if (["students", "teachers", "classes", "accounts", "assignments", "enrollments", "sessions"].includes(entity)) { tags.add("Dashboard"); tags.add("Warnings"); tags.add("Classes"); tags.add("Class"); }
     if (["teachers", "accounts", "classes", "assignments", "labels"].includes(entity)) tags.add("Assignments");
     if (["students", "enrollments", "accounts"].includes(entity)) tags.add("Students");
     if (["sessions", "classes"].includes(entity)) tags.add("Sessions");

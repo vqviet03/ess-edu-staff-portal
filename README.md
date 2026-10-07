@@ -126,7 +126,7 @@ Kiểm tra: `npm run lint`, `npm run typecheck`, `npm test`, `npm run build`; br
 
 [Contract ID/tác vụ nền](docs/identifiers-operations.md): nhập tên gọi backend sinh ID, ID tùy chỉnh có nút kiểm tra trùng; CREATE bảng/Excel cho phép ID trống/trùng và xem ID đã cấp ở preview. Lớp tự cấp `ess21…`, hậu tố tên sửa riêng. Các ID hiện có giữ nguyên.
 
-Mutation gửi `Prefer: respond-async` và idempotency key, UI báo đang xử lý sau HTTP 202. WebSocket trong RTK Query nhận completion, Redux invalidate dữ liệu liên quan; polling là dự phòng và phục hồi sau reload. JWT gửi ở frame AUTH, không trên URL. Mock cũng có queue, events và lưu dữ liệu khi reload. Khi Cloud Run scale về 0/mọi client offline, job tiếp tục lúc truy cập lại; xử lý liên tục cần cấu hình backend riêng. Không cần thêm biến NEXT_PUBLIC hoặc thư viện.
+Mutation gửi `Prefer: respond-async` và idempotency key, UI báo đang xử lý sau HTTP 202. WebSocket trong RTK Query nhận completion, Redux invalidate dữ liệu liên quan; không có polling; kết quả đầy đủ đến qua socket OPERATION, WATCH xử lý kết quả đến trước HTTP 202 hoặc sau reconnect. Chỉ nút Kiểm tra trạng thái mới gọi GET trạng thái. JWT gửi ở frame AUTH, không trên URL. Mock xử lý mutation trực tiếp; các test hàng đợi backend riêng vẫn kiểm tra async/idempotency. Khi Cloud Run scale về 0/mọi client offline, job tiếp tục lúc truy cập lại; xử lý liên tục cần cấu hình backend riêng. Không cần thêm biến NEXT_PUBLIC hoặc thư viện.
 
 ## Công bố báo cáo sang trang học sinh
 
@@ -155,3 +155,11 @@ Luồng mới **chỉ dùng API thật**, không có seed tài liệu, không fa
 Cần deploy backend mới và cấu hình DB `ess-materials` trước khi merge/deploy frontend. Backend đã có các endpoints; [contract, quyền, quota và bước rollout](docs/material-library-api.md). PR không tự merge, workflow Pages chỉ deploy sau push vào dev. Browser PUT tới Neon bucket dùng signed URL, không gửi JWT. Hủy/retry riêng từng file; lỗi 409 giữ form để xem lại. Không xóa vật lý file từ frontend. Storage hiển thị quota ứng dụng đã cấu hình, giữ dung lượng file soft-delete/reservations; đối chiếu thêm giới hạn Neon thực tế.
 
 Học sinh đang dùng API `/me/classes/.../materials` vẫn nhận tài liệu được công bố từ post mới, không cần đổi frontend học sinh để tải các file này. Feed/bình luận học sinh cần màn hình riêng nếu bổ sung vào portal học sinh sau.
+
+### Request theo nhu cầu
+
+Không có polling ở bất kỳ màn hình nào; tắt refetch theo focus/reconnect/thời gian mount. Login/link dùng Staff trong response, reload chỉ xác minh `/auth/me` một lần ở AuthRuntime; Guard đọc cùng cache. JWT hết hạn kiểm tra tại browser, 401 xóa phiên/cache. Khi thao tác trả 403, baseQuery refresh `/auth/me` một lần cho các request đồng thời và kiểm tra lại ClassAccess nếu cần; không gửi lại thao tác bị từ chối. Quyền sửa cuối cùng luôn do backend quyết định.
+
+Thông báo mặc định/số chưa đọc được đẩy qua socket NOTIFICATIONS/NOTIFICATION và cập nhật cache trực tiếp, đọc/xóa không refetch danh sách. Chọn bộ lọc/trang hoặc bấm Tải lại mới gọi HTTP. Mutation async chỉ gửi một request, chờ OPERATION; socket mất kết nối không tạo HTTP fallback. Sự kiện CHANGE mới làm mới dữ liệu liên quan, khử trùng replay và không invalidate lần nữa với mutation đang được chính browser xử lý. Lỗi tác vụ không làm mới dữ liệu. Cache socket được giữ qua remount để tránh kết nối trùng; logout đóng socket.
+
+Rollout backend hỗ trợ OPERATION/WATCH và LISTEN/NOTIFY thông báo **trước** frontend. Không cần đổi env, secret hay chạy migration. CORS cache preflight 3600 giây (trình duyệt có thể giới hạn); OPTIONS vẫn có thể cần cho request khác origin. WebSocket còn được Cloud Run tính phí theo thời gian kết nối; bỏ polling không có nghĩa chi phí bằng 0.

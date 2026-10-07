@@ -75,10 +75,10 @@ test("Tác vụ async kiểm tra lại MANAGER tại commit và Idempotency-Key 
   h.edit((db) => { db.management!.accounts.find((a) => a.id === "acc-GV0001")!.roles.push("MANAGER"); });
   const failed = await h.call<Operation>(`/operations/${op.operationId}`); assert.equal(failed.status, "FAILED"); assert.equal(failed.error?.code, "MANAGER_PROTECTED"); assert(h.db().tokens[t.accessToken]);
 });
-test("RTK Query xử lý 202, đợi kết quả rồi trả policy và notification", async () => {
+test("Mock cập nhật policy trực tiếp, không cần API theo dõi định kỳ", async () => {
   const h = harness(); await h.manager(); const base = createAppBaseQuery({ mock: true, mockAdapter: h.mock });
   const r = await base({ url: policy, method: "PATCH", body: { sessionLifetimeMinutes: 15, version: 1, reason: "Đổi thời hạn" } }, h.runtime, {});
-  assert(!r.error, JSON.stringify(r.error)); assert.equal((r.data as Envelope<AccountSessionPolicy>).data.effectiveLifetimeMinutes, 15); assert.equal(h.db().operationEvents?.length, 1); assert(h.db().operationEvents![0].entities.includes("accounts"));
+  assert(!r.error, JSON.stringify(r.error)); assert.equal((r.data as Envelope<AccountSessionPolicy>).data.effectiveLifetimeMinutes, 15); assert.equal(h.db().operationEvents?.length ?? 0, 0);
 });
 
 test("Thời hạn lịch 10 năm, metadata và lịch sử còn sau logout, quyền chỉ quản lý", async () => {
