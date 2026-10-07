@@ -24,6 +24,8 @@ import type { Area, Storage } from "./models";
 import { areaLabels, bytes } from "./utils";
 import { MaterialBrowser } from "./browser";
 const blankConnection = (): StorageConnection => ({ endpoint: "", region: "ap-southeast-1", bucket: "", accessKeyId: "", secretAccessKey: "" });
+const usageLabels: Record<string, string> = { LOW: "Còn nhiều chỗ", NORMAL: "Bình thường", WATCH: "Cần theo dõi", HIGH: "Gần đầy", CRITICAL: "Sắp hết dung lượng" };
+const usageColor = (percent: number): "error" | "warning" | "info" | "primary" | "success" => percent >= 95 ? "error" : percent >= 80 ? "warning" : percent >= 60 ? "info" : percent >= 30 ? "primary" : "success";
 const lifecycleLabels = { ACTIVE: "Nhận upload", DRAINING: "Chỉ đọc / chuyển ra", INACTIVE: "Ngừng sử dụng" };
 export function StorageManagerPage() {
   const { selected } = useWorkspace(), q = useStoragesQuery(undefined, { skip: selected !== "manager" }), jobs = useTransfersQuery(undefined, { skip: selected !== "manager" }),
@@ -40,8 +42,8 @@ export function StorageManagerPage() {
       {q.currentData?.items.map(s => <Paper key={s.id} sx={{ p: 2.5 }}><Stack spacing={1.5}>
         <Typography variant="h6">{s.name ?? areaLabels[s.id as Area] ?? s.id}</Typography>
         <Typography variant="body2">{s.id} · {areaLabels[s.category ?? s.id as Area] ?? "Tài liệu"}</Typography>
-        <Stack direction="row" useFlexGap spacing={1} sx={{ flexWrap: "wrap" }}><Chip label={lifecycleLabels[s.lifecycle ?? "ACTIVE"]} /><Chip color={s.percentage >= 95 ? "error" : s.percentage >= 80 ? "warning" : "success"} label={`${s.percentage.toFixed(1)}% đã dùng / giữ chỗ`} />{s.configured === false && <Chip label="Chưa có kết nối" color="warning" />}</Stack>
-        <LinearProgress variant="determinate" value={Math.min(100, s.percentage)} color={s.percentage >= 95 ? "error" : s.percentage >= 80 ? "warning" : "primary"} sx={{ height: 8, borderRadius: 4 }} />
+        <Stack direction="row" useFlexGap spacing={1} sx={{ flexWrap: "wrap" }}><Chip label={lifecycleLabels[s.lifecycle ?? "ACTIVE"]} /><Chip color={usageColor(s.percentage)} label={`${usageLabels[s.status] ?? s.status} · ${s.percentage.toFixed(1)}% đã dùng / giữ chỗ`} />{s.configured === false && <Chip label="Chưa có kết nối" color="warning" />}</Stack>
+        <LinearProgress variant="determinate" value={Math.min(100, s.percentage)} color={usageColor(s.percentage)} sx={{ height: 8, borderRadius: 4 }} />
         <Typography variant="body2">Quota: {(s.totalBytes / 1e9).toLocaleString("vi-VN")} GB · Đã dùng {bytes(s.usedBytes)} · Giữ chỗ {bytes(s.reservedBytes)} · Còn {bytes(s.remainingBytes)}</Typography>
         <Stack direction="row" spacing={1} useFlexGap sx={{ flexWrap: "wrap" }}><Button onClick={() => setView(s)}>Xem file</Button><Button onClick={() => setEdit(s)}>Cấu hình</Button><Button color="warning" disabled={s.lifecycle === "INACTIVE" || removal.isLoading || s.usedBytes + s.reservedBytes > 0} onClick={async () => { const reason = window.prompt(`Ngừng sử dụng ${s.name ?? s.id}. Giữ lịch sử; không xóa bucket Neon. Nhập lý do:`); if (!reason?.trim()) return; try { await remove({ id: s.id, version: s.version ?? 1, reason }).unwrap(); setMessage("Đã ngừng sử dụng ổ."); } catch {} }}>Ngừng sử dụng</Button></Stack>
       </Stack></Paper>)}
