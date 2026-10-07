@@ -22,14 +22,14 @@ import { errorMessage } from "@/api/base-query";
 import { useUnsaved } from "@/shared/unsaved";
 import { areaLabels, bytes, defaultArea, validateUpload } from "./utils";
 import { uploadBuffers } from "./upload-transport";
-import type { Area, MaterialFile, UploadTicket } from "./models";
+import type { MaterialFile, UploadTicket } from "./models";
 function ticketExpired(value: string) {
   return Date.parse(value) <= Date.now();
 }
 interface Row {
   key: string;
   file: File;
-  area: Area;
+  area: string;
   progress: number;
   status: "WAITING" | "UPLOADING" | "DONE" | "ERROR" | "CANCELLED";
   error?: string;
@@ -76,6 +76,8 @@ export function UploadDialog({
     tickets = useRef(new Map<string, UploadTicket>()),
     [busy, setBusy] = useState(false),
     mounted = useRef(true);
+  const drives = settings.data?.storages ?? Object.entries(areaLabels).map(([id, name]) => ({ id, name, category: id }));
+  const initialDrive = (mime: string) => drives.find(s => s.category === defaultArea(mime))?.id ?? defaultArea(mime);
   useUnsaved(
     rows.some((r) => r.status === "WAITING" || r.status === "UPLOADING"),
   );
@@ -184,7 +186,7 @@ export function UploadDialog({
                       (file) => ({
                         key: crypto.randomUUID(),
                         file,
-                        area: defaultArea(file.type),
+                        area: initialDrive(file.type),
                         progress: 0,
                         status: "WAITING" as const,
                       }),
@@ -217,21 +219,10 @@ export function UploadDialog({
                 value={row.area}
                 disabled={row.status !== "WAITING"}
                 onChange={(e) =>
-                  patch(row.key, { area: e.target.value as Area })
+                  patch(row.key, { area: e.target.value })
                 }
               >
-                {Object.entries(areaLabels)
-                  .filter(
-                    ([area]) =>
-                      (!row.file.type.startsWith("image/") &&
-                        !row.file.type.startsWith("audio/")) ||
-                      area === defaultArea(row.file.type),
-                  )
-                  .map(([area, label]) => (
-                    <MenuItem key={area} value={area}>
-                      {label}
-                    </MenuItem>
-                  ))}
+                {drives.filter(s => (!row.file.type.startsWith("image/") && !row.file.type.startsWith("audio/")) || s.category === defaultArea(row.file.type)).map(s => <MenuItem key={s.id} value={s.id}>{s.name} ({s.id})</MenuItem>)}
               </TextField>
               <LinearProgress variant="determinate" value={row.progress} />
               <Typography variant="caption">

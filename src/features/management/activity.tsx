@@ -1,4 +1,5 @@
 "use client";
+import { publicId } from "@/shared/public-id";
 import {StorageNotice} from "@/features/materials/storage-notice";
 import { useState } from "react";
 import Button from "@mui/material/Button";
@@ -97,17 +98,17 @@ function Audit() {
                 {e.action} · {e.entity}
               </Typography>
               <Typography>
-                {new Date(e.at).toLocaleString("vi-VN")} · {e.actorName ?? "Hệ thống"} ({e.actorLoginId ?? e.actorUserId ?? e.actorId})
+                {new Date(e.at).toLocaleString("vi-VN")} · {e.actorName ?? "Hệ thống"} ({publicId(e.actorLoginId, e.actorUserId)})
               </Typography>
               <Typography sx={{ wordBreak: "break-word" }}>
-                ID: {(e.ids ?? []).join(", ")}
+                ID: {(e.ids ?? []).map(id => publicId(id)).filter(id => id !== "—").join(", ") || "—"}
               </Typography>
               <Typography sx={{ whiteSpace: "pre-wrap" }}>
                 {e.reason || "Không có ghi chú."}
               </Typography>
               {(Array.isArray(e.changes) ? e.changes : []).map((c) => (
                 <Typography key={c.id} variant="caption">
-                  {c.id}: {(c.fields ?? []).join(", ")}
+                  {publicId(c.id)}: {(c.fields ?? []).join(", ")}
                 </Typography>
               ))}
             </Card>

@@ -21,6 +21,7 @@ export type Area =
   | "OTHER";
 export interface MaterialFile {
   id: string;
+  publicId?: string;
   originalName: string;
   displayName: string;
   mimeType: string;
@@ -35,7 +36,7 @@ export interface MaterialFile {
   uploadSource: "session" | "library";
   sourceSessionId: string | null;
   sourcePostId: string | null;
-  storageId?: Area;
+  storageId?: string;
   storageObjectKey?: string;
   status: string;
   version: number;
@@ -86,7 +87,8 @@ export interface Comment {
   version: number;
 }
 export interface Storage {
-  id: Area;
+  id: string;
+  name?: string; category?: Area; lifecycle?: "ACTIVE" | "DRAINING" | "INACTIVE"; version?: number; configured?: boolean;
   totalBytes: number;
   usedBytes: number;
   reservedBytes: number;
@@ -121,7 +123,7 @@ export interface UploadInput {
   originalName: string;
   mimeType: string;
   sizeBytes: number;
-  storageId: Area;
+  storageId: string;
   folderId: string | null;
   uploadSource: "session" | "library";
   sourceSessionId?: string;
@@ -139,6 +141,7 @@ export interface UploadTicket {
   version: number;
 }
 export interface BrowserQuery {
+  storageId?: string;
   folderId: string | null;
   search: string;
   scope: "current" | "all";
@@ -148,3 +151,6 @@ export interface BrowserQuery {
   limit?: number;
   workspace?: string;
 }
+
+export interface StoragePageData extends CursorPage<Storage> { configurationEnabled?: boolean }
+export interface UploadSettings { maxUploadBytes: number; largeFileWarningBytes: number; areas: string[]; storages?: { id: string; name: string; category: Area }[] }

@@ -1,4 +1,5 @@
 "use client";
+import { publicId } from "@/shared/public-id";
 import { ReadOnlyNotice } from "@/features/access/hooks";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -104,7 +105,7 @@ function StudentForm({
       >
         {students.map((s) => (
           <MenuItem key={s.id} value={s.id}>
-            {s.name} {s.nickname ? `(${s.nickname})` : ""} · {s.id}
+            {s.name} {s.nickname ? `(${s.nickname})` : ""} · {publicId(s.publicId, s.studentCode, s.id)}
           </MenuItem>
         ))}
       </TextField>

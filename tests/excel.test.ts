@@ -23,6 +23,17 @@ async function edit(change: (book: Workbook) => void) {
   change(book);
   return new Blob([new Uint8Array(await book.xlsx.writeBuffer())]);
 }
+test("Excel displays public student IDs and resolves them to stable result keys", async () => {
+  const roster = students.map((s, i) => ({ ...s, publicId: `hoc.sinh${i + 1}` }));
+  const template = await createTemplate(context, a, roster, results), book = new Workbook();
+  await book.xlsx.load(await template.arrayBuffer());
+  assert.equal(book.getWorksheet("Scores")!.getCell("A2").value, "hoc.sinh1");
+  book.getWorksheet("Scores")!.getCell("C2").value = "PRESENT";
+  book.getWorksheet("Scores")!.getCell("D2").value = 0;
+  const imported = await parseWorkbook(new Blob([new Uint8Array(await book.xlsx.writeBuffer())]), context, a, roster, results);
+  assert.equal(imported.errors.length, 0);
+  assert.ok(imported.changes.every(c => roster.some(s => s.id === c.studentId)));
+});
 test("mẫu .xlsx thật, công thức chỉ đọc, ô trống giữ dữ liệu, 0 cập nhật, tiếng Việt/xuống dòng", async () => {
   const file = await edit((b) => {
     const s = b.getWorksheet("Scores")!;

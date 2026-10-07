@@ -152,7 +152,7 @@ export function EntityEditor({
             })}
           >
             {error && <Alert severity="error">{error}</Alert>}
-            {fields[entity].filter(key => !(record && key === "nameSuffix")).map((key) => (
+            {fields[entity].filter(key => !(record && key === "nameSuffix") && !(entity === "accounts" && key === "id")).map((key) => (
               <Controller
                 key={key}
                 control={control}

@@ -15,6 +15,8 @@ import type {
   PostInput,
   Reaction,
   Storage,
+  StoragePageData,
+  UploadSettings,
   UploadInput,
   UploadTicket,
 } from "@/features/materials/models";
@@ -187,20 +189,9 @@ export const libraryApi = api.injectEndpoints({
         "Storages",
       ],
     }),
-    uploadSettings: b.query<
-      {
-        maxUploadBytes: number;
-        largeFileWarningBytes: number;
-        areas: string[];
-      },
-      void
-    >({
+    uploadSettings: b.query<UploadSettings, void>({
       query: () => "/material-upload-settings",
-      transformResponse: unwrap<{
-        maxUploadBytes: number;
-        largeFileWarningBytes: number;
-        areas: string[];
-      }>,
+      transformResponse: unwrap<UploadSettings>, providesTags: ["Storages"],
     }),
     initiateUpload: b.mutation<UploadTicket, UploadInput>({
       query: (body) => mutation("/material-uploads/initiate", body),
@@ -260,9 +251,9 @@ export const libraryApi = api.injectEndpoints({
       },
       invalidatesTags: (_, error) => (error ? [] : ["Materials", "Storages"]),
     }),
-    storages: b.query<CursorPage<Storage>, void>({
+    storages: b.query<StoragePageData, void>({
       query: () => "/storages",
-      transformResponse: unwrap<CursorPage<Storage>>,
+      transformResponse: unwrap<StoragePageData>,
       providesTags: ["Storages"],
       keepUnusedDataFor: 10,
     }),

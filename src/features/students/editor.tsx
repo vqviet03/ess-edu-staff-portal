@@ -1,4 +1,5 @@
 "use client";
+import { publicId } from "@/shared/public-id";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import Alert from "@mui/material/Alert";
@@ -46,7 +47,7 @@ export function StudentEditor({
   };
   return (
     <Dialog open onClose={cancel} fullWidth maxWidth="sm">
-      <DialogTitle>Chỉnh sửa học sinh · {student.id}</DialogTitle>
+      <DialogTitle>Chỉnh sửa học sinh · {publicId(student.publicId, student.studentCode, student.id)}</DialogTitle>
       <form
         onSubmit={handleSubmit(async (values) => {
           try {

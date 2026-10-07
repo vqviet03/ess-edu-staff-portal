@@ -1,4 +1,5 @@
 "use client";
+import { publicId } from "@/shared/public-id";
 import { exportPrefix } from "@/features/settings/branding";
 import { useState } from "react";
 import Link from "next/link";
@@ -461,13 +462,13 @@ function EntityList({ entity }: { entity: Entity }) {
                         <TableCell>
                           <Checkbox
                             slotProps={{
-                              input: { "aria-label": `Chọn ${r.id}` },
+                              input: { "aria-label": `Chọn ${publicId("loginId" in r ? r.loginId : r.id)}` },
                             }}
                             checked={checked(r.id)}
                             onChange={(_, v) => select([r.id], v)}
                           />
                         </TableCell>
-                        <TableCell>{r.id}</TableCell>
+                        <TableCell>{publicId("loginId" in r ? r.loginId : r.id)}</TableCell>
                         <TableCell>
                           <Button component={Link} href={href(r.id)}>
                             {recordName(r)}
@@ -522,11 +523,11 @@ function EntityList({ entity }: { entity: Entity }) {
                           checked={checked(r.id)}
                           onChange={(_, v) => select([r.id], v)}
                           slotProps={{
-                            input: { "aria-label": `Chọn ${r.id}` },
+                            input: { "aria-label": `Chọn ${publicId("loginId" in r ? r.loginId : r.id)}` },
                           }}
                         />
                       }
-                      label={`${recordName(r)} · ${r.id}`}
+                      label={`${recordName(r)} · ${publicId("loginId" in r ? r.loginId : r.id)}`}
                     />
                     <Typography>{showValue(r.status)}</Typography>
                     {"totalUnits" in r && (

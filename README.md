@@ -169,3 +169,9 @@ Rollout backend hỗ trợ OPERATION/WATCH và LISTEN/NOTIFY thông báo **trư�
 Xem [contract cập nhật](docs/management-refinements.md). Audit có paging, ID đăng nhập/public ID và tên người thao tác; manager sửa public ID với nút kiểm tra trùng. Tên/mã lớp tự do, format chỉ gợi ý tạo. Sidebar thu/mở, header icon, nút quay lại và menu thư mục gọn hơn. `/manage/settings/` đề xuất tên ứng dụng/tiền tố lớp, cần tất cả quản lý khác đồng ý. Xóa tài liệu được server purge original + thumbnail; metadata và log giữ nguyên.
 
 Deploy backend có migration Core 012/Materials 003 trước frontend; đặt sáu quota GCP 4500000000 byte để ghi đè cấu hình cũ. Mock quản lý/cấu hình hoạt động khi bật demo; kho vẫn gọi backend thật như hiện tại. Workflow deploy dev giữ nguyên, PR không tự merge.
+
+## Quản lý storage (API thật)
+
+Không gian Quản lý → Storage: xem file theo ổ, thêm kết nối Neon S3, sửa quota/trạng thái, chuyển file cùng thumbnail sang ổ cùng nhóm. Tác vụ chạy ở backend và cập nhật qua socket, không thêm polling. UUID chỉ giữ cho routing/cache; giao diện và template điểm hiển thị public ID.
+
+Backend cần migration Core 012 và Materials 004 trước deploy. Cần cấu hình GCP Secret Manager một lần; sau đó thêm ổ trực tiếp trong ứng dụng. Xem `docs/storage-management.md` và tài liệu backend `docs/storage-registry.md`. Production storage keys không nằm trong env frontend, Redux/cache hoặc browser storage.

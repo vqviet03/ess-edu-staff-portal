@@ -1,4 +1,5 @@
 "use client";
+import { publicId } from "@/shared/public-id";
 import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Alert from "@mui/material/Alert";
@@ -119,7 +120,7 @@ function RelationshipEditor({
               <MenuItem value="">Chọn hồ sơ</MenuItem>
               {people.currentData?.items.map((p) => (
                 <MenuItem key={p.id} value={p.id}>
-                  {recordName(p)} · {p.id}
+                  {recordName(p)} · {publicId(p.id)}
                 </MenuItem>
               ))}
             </TextField>
@@ -268,7 +269,7 @@ function Profile() {
     <>
       <Title
         title={recordName(r)}
-        subtitle={`${entityLabels[entity]} · ${r.id} · ${showValue(r.status)}`}
+        subtitle={`${entityLabels[entity]} · ${publicId("loginId" in r ? r.loginId : r.id)} · ${showValue(r.status)}`}
         actions={
           <>
             <NavButton href={`/manage/list/?entity=${entity}`}>
@@ -318,8 +319,8 @@ function Profile() {
             >
               {Object.entries(r)
                 .filter(
-                  ([key]) =>
-                    ![
+                  ([key, value]) =>
+                    !(entity === "accounts" && key === "id") && !(/id$/i.test(key) && publicId(typeof value === "string" ? value : undefined) === "—") && ![
                       "createdAt",
                       "updatedAt",
                       "version",
@@ -502,10 +503,10 @@ function Profile() {
                         href={`/manage/profile/?entity=students&id=${encodeURIComponent(e.studentId)}`}
                       >
                         {d.students.find((s) => s.id === e.studentId)
-                          ?.fullName ?? e.studentId}
+                          ?.fullName ?? publicId(e.studentId)}
                       </NavButton>
                       <Typography>
-                        {e.studentId} · {showValue(e.status)}
+                        {publicId(e.studentId)} · {showValue(e.status)}
                       </Typography>
                       <NavButton href={`/reports/?classId=${encodeURIComponent(r.id)}&studentId=${encodeURIComponent(e.studentId)}`}>Báo cáo học tập</NavButton>
                       <Button
@@ -655,12 +656,12 @@ function AssignmentList({
               <TableRow key={a.id}>
                 <TableCell>
                   {d.teachers.find((t) => t.id === a.teacherId)?.fullName ??
-                    a.teacherId}
+                    publicId(a.teacherId)}
                   <br />
-                  {d.classes.find((c) => c.id === a.classId)?.name ?? a.classId}
+                  {d.classes.find((c) => c.id === a.classId)?.name ?? publicId(a.classId)}
                 </TableCell>
                 <TableCell>
-                  {d.labels.find((l) => l.id === a.labelId)?.name ?? a.labelId}
+                  {d.labels.find((l) => l.id === a.labelId)?.name ?? publicId(a.labelId)}
                 </TableCell>
                 <TableCell>{showValue(a.status)}</TableCell>
                 <TableCell>
@@ -680,8 +681,8 @@ function AssignmentList({
           <Box key={a.id}>
             <Typography sx={{ fontWeight: 600 }}>
               {d.teachers.find((t) => t.id === a.teacherId)?.fullName ??
-                a.teacherId}{" "}
-              · {d.classes.find((c) => c.id === a.classId)?.name ?? a.classId}
+                publicId(a.teacherId)}{" "}
+              · {d.classes.find((c) => c.id === a.classId)?.name ?? publicId(a.classId)}
             </Typography>
             <Typography>
               {d.labels.find((l) => l.id === a.labelId)?.name} ·{" "}
@@ -697,7 +698,7 @@ function AssignmentList({
             component="summary"
             sx={{ cursor: "pointer", minHeight: 44 }}
           >
-            Lịch sử {a.teacherId} / {a.classId} · {a.history.length} giai đoạn /
+            Lịch sử {publicId(a.teacherId)} / {publicId(a.classId)} · {a.history.length} giai đoạn /
             sự kiện
           </Typography>
           {a.history.map((h, i) => (
