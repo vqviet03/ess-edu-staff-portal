@@ -146,3 +146,7 @@ Xem [identifiers-operations.md](identifiers-operations.md). Mutation nghiệp v�
 ## Công bố báo cáo
 
 GET `/assessments/:assessmentId/publication` → `{data:{unitId:string|null,unitNumber:number|null,isPublished:boolean,sourceAssessmentId:string|null,publishedAt:string|null}}`. POST `/assessments/:id/publish` hoặc `/unpublish` body `{version}` → `{data:{published:boolean}}` (hoặc operation 202 khi có Prefer). Hoàn thành không tự công bố; publish yêu cầu quyền giảng viên của lớp, bài COMPLETED, Unit hợp lệ và roster đầy đủ. Snapshot là nguồn của API học sinh. SourceAssessmentId cho biết bài đang làm nguồn trong Unit; công bố bài khác thay nguồn sau xác nhận UI. Gỡ công bố trước khi sửa/mở lại nháp; dữ liệu nhập không bị xóa. Cache assessment/publication/results/classes và các phiên quản lý được làm mới.
+
+## Socket khi ứng dụng ở nền
+
+RTK Query chỉ giữ WebSocket khi ứng dụng hiển thị và có mạng. visibilitychange ẩn trang, offline, pagehide hoặc logout đóng socket và hủy reconnect. Foreground khôi phục đúng một kết nối, gửi AUTH cùng cursor cũ, nhận snapshot NOTIFICATIONS và replay CHANGE/OPERATION. Không gửi token trong URL; không tự GET me/operations/notifications theo timer hoặc khi focus. Mở lại có thể làm mới dữ liệu liên quan nếu server trả thay đổi đã bỏ lỡ. API kiểm tra quyền mọi request; socket kiểm tra trước khi đẩy dữ liệu. Backend Cloud Tasks có thể tiếp tục xử lý lúc mọi client offline; việc tạo queue/IAM thuộc rollout backend.

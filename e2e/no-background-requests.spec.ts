@@ -1,6 +1,36 @@
 import { test, expect } from "@playwright/test";
 import { installHttpFixture } from "./support/http-fixture";
 const base = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
+test("background closes the socket; foreground replays saved notices without HTTP polling", async ({page}) => {
+  test.skip(process.env.NEXT_PUBLIC_USE_MOCK === "true", "Checks the real transport lifecycle.");
+  const fixture = await installHttpFixture(page);
+  const requests: string[] = [];
+  page.on("request", request => { if(new URL(request.url()).hostname === "api.example.com" && request.method() !== "OPTIONS") requests.push(request.url()); });
+  await page.goto(`${base}/login/`); await page.getByLabel("ID giảng viên").fill("GV0001");
+  await page.getByLabel("Mật khẩu", {exact:true}).fill("Demo123!"); await page.getByRole("button", {name:"Đăng nhập",exact:true}).click();
+  await expect(page).toHaveURL(/\/home\//);
+  await expect.poll(() => fixture.connectionCounts().active).toBe(1);
+  expect(fixture.connectionCounts().connections).toBe(1);
+  const before = [...requests];
+  await page.evaluate(() => {
+    Object.defineProperty(document, "hidden", {configurable:true, value:true});
+    document.dispatchEvent(new Event("visibilitychange"));
+  });
+  await expect.poll(() => fixture.connectionCounts().active).toBe(0);
+  fixture.pushNotice({id:"missed",type:"MATERIAL",title:"Bài mới khi đang ở nền",href:"/materials/",isRead:false,version:1,createdAt:new Date().toISOString()});
+  await page.waitForTimeout(200); expect(fixture.connectionCounts().connections).toBe(1); expect(requests).toEqual(before);
+  await page.evaluate(() => {
+    Object.defineProperty(document, "hidden", {configurable:true, value:false});
+    document.dispatchEvent(new Event("visibilitychange"));
+    document.dispatchEvent(new Event("visibilitychange"));
+    window.dispatchEvent(new Event("online"));
+  });
+  await expect.poll(() => fixture.connectionCounts().active).toBe(1);
+  expect(fixture.connectionCounts().connections).toBe(2);
+  await expect(page.getByRole("link", {name:"Thông báo (1)",exact:true})).toBeVisible();
+  expect(requests.some(url => new URL(url).pathname === "/v1/notifications")).toBe(false);
+  expect(requests.some(url => new URL(url).pathname === "/v1/operations")).toBe(false);
+});
 test("idle/focus/reconnect send no HTTP; login/reload and notifications do not duplicate", async ({ page }) => {
   test.skip(process.env.NEXT_PUBLIC_USE_MOCK === "true", "Counts actual browser HTTP requests.");
   await installHttpFixture(page);

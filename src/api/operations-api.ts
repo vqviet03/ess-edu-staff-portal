@@ -8,10 +8,11 @@ import type { AuthState } from "@/store/auth";
 import { signedOut } from "@/store/auth";
 import { notificationReceived, operationReceived } from "@/store/operations";
 import { connectOperationChannel, receiveOperation } from "@/features/operations/channel";
+import { foregroundSocketAllowed } from "@/features/operations/foreground";
 export const operationsApi = api.injectEndpoints({ endpoints: (b) => ({
   liveEvents: b.query<{ online: boolean }, string>({
     queryFn: () => ({ data: { online: false } }),
-    keepUnusedDataFor: 60,
+    keepUnusedDataFor: 0,
     async onCacheEntryAdded(userId, { getState, dispatch, updateCachedData, cacheDataLoaded, cacheEntryRemoved }) {
       if (apiConfiguration.mock || typeof window === "undefined") return;
       let socket: WebSocket | undefined, reconnect: ReturnType<typeof setTimeout> | undefined, stopped = false, attempts = 0;
@@ -20,9 +21,16 @@ export const operationsApi = api.injectEndpoints({ endpoints: (b) => ({
       let cursor = "0", hasCursor = false;
       try { const saved = sessionStorage.getItem(key); hasCursor = saved !== null; cursor = saved ?? "0"; } catch {}
       const persist = () => { try { sessionStorage.setItem(key, cursor); } catch {} };
+      const allowed = () => foregroundSocketAllowed(document.hidden, navigator.onLine, stopped);
+      const pause = () => {
+        clearTimeout(reconnect); disconnect?.(); disconnect = undefined;
+        const previous = socket; socket = undefined;
+        if (previous) { previous.onclose = null; previous.onmessage = null; previous.onopen = null; previous.close(1000, "BACKGROUND"); }
+        updateCachedData((state) => { state.online = false; });
+      };
       const connect = () => {
         const session = (getState() as unknown as { auth: AuthState }).auth.session;
-        if (stopped || !session || session.teacher.id !== userId) return;
+        if (!allowed() || !session || session.teacher.id !== userId || socket?.readyState === WebSocket.OPEN || socket?.readyState === WebSocket.CONNECTING) return;
         const url = new URL(apiConfiguration.baseUrl + "/events/ws"); url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
         socket = new WebSocket(url);
         socket.onopen = () => socket?.send(JSON.stringify({ type: "AUTH", accessToken: session.accessToken, ...(hasCursor ? { cursor } : {}) }));
@@ -53,15 +61,33 @@ export const operationsApi = api.injectEndpoints({ endpoints: (b) => ({
         };
         socket.onclose = (event) => {
           if (stopped) return;
+          socket = undefined;
           disconnect?.(); disconnect = undefined;
           updateCachedData((state) => { state.online = false; });
           if (event.code === 1008 && event.reason === "UNAUTHORIZED") { dispatch(signedOut("Phiên đăng nhập đã hết hạn.")); dispatch(api.util.resetApiState()); return; }
-          reconnect = setTimeout(connect, Math.min(60000, 3000 * 2 ** attempts++));
+          if (allowed()) reconnect = setTimeout(connect, Math.min(60000, 3000 * 2 ** attempts++));
         };
       };
-      try { await cacheDataLoaded; connect(); await cacheEntryRemoved; }
+      const resume = () => { if (allowed()) { clearTimeout(reconnect); connect(); } else pause(); };
+      try {
+        await cacheDataLoaded;
+        document.addEventListener("visibilitychange", resume);
+        window.addEventListener("offline", pause);
+        window.addEventListener("online", resume);
+        window.addEventListener("pagehide", pause);
+        window.addEventListener("pageshow", resume);
+        connect(); await cacheEntryRemoved;
+      }
       catch { /* Cache may be removed during logout before initialization. */ }
-      finally { stopped = true; disconnect?.(); clearTimeout(reconnect); socket?.close(); }
+      finally {
+        stopped = true;
+        document.removeEventListener("visibilitychange", resume);
+        window.removeEventListener("offline", pause);
+        window.removeEventListener("online", resume);
+        window.removeEventListener("pagehide", pause);
+        window.removeEventListener("pageshow", resume);
+        pause();
+      }
     },
   }),
   operations: b.query<{ items: Operation[] }, void>({ query: () => "/operations", transformResponse: (r: Envelope<{ items: Operation[] }>) => r.data, providesTags: ["Operations"] }),
