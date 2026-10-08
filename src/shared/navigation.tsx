@@ -57,7 +57,7 @@ export function Sidebar({ manager, appName }: { manager: boolean; appName: strin
     </Stack>
     <Stack component="nav" aria-label={manager ? "Menu quản lý" : "Menu giảng viên"} direction={{ xs: "row", md: "column" }} sx={{ gap: .5, mt: 1, overflowX: { xs: "auto", md: "visible" } }}>
       {items.filter(i => !i.manager || manager).map(item => {
-        const active = item.entity ? ["/manage/list/", "/manage/profile/", "/manage/excel/"].includes(pathname) && params.get("entity") === item.entity : pathname === item.href || (item.href === "/home/" && ["/class/", "/session/", "/assessment/", "/scores/", "/student-score/", "/import/", "/reports/"].includes(pathname));
+        const active = item.entity ? ["/manage/list/", "/manage/profile/", "/manage/excel/"].includes(pathname) && params.get("entity") === item.entity : pathname === item.href || (item.href === "/home/" && ["/class/", "/student/", "/session/", "/assessment/", "/scores/", "/student-score/", "/import/", "/reports/"].includes(pathname));
         const Icon = item.icon;
         return <Tooltip key={item.href} title={collapsed ? item.label : ""} placement="right"><ListItemButton component={Link} href={item.href} aria-label={item.label + (item.href === "/notifications/" && notices.data?.unreadCount ? ` (${notices.data.unreadCount})` : "")} aria-current={active ? "page" : undefined} selected={active} sx={{ borderRadius: 2, minHeight: 44, px: collapsed ? 1.5 : 1, justifyContent: collapsed ? "center" : "flex-start", flexShrink: 0, "&.Mui-selected": { bgcolor: "action.selected", color: "primary.main", boxShadow: "inset 3px 0 0 currentColor" } }}>
           <ListItemIcon sx={{ minWidth: collapsed ? 0 : 36, color: "inherit" }}><Badge badgeContent={item.href === "/notifications/" ? notices.data?.unreadCount : 0} color="error"><Icon /></Badge></ListItemIcon>
@@ -72,7 +72,7 @@ export function BackButton() {
   if (["/home/", "/login/", "/login/link/", "/activate/"].includes(pathname)) return null;
   let target = "/home/";
   if (pathname === "/manage/profile/") target = `/manage/list/?entity=${encodeURIComponent(p.get("entity") ?? "students")}`;
-  if (pathname === "/session/" || pathname === "/reports/") target = `/class/?classId=${encodeURIComponent(p.get("classId") ?? "")}`;
+  if (["/session/", "/reports/", "/student/"].includes(pathname)) target = `/class/?classId=${encodeURIComponent(p.get("classId") ?? "")}&tab=${pathname === "/session/" ? "progress" : "profile"}`;
   if (pathname === "/assessment/") target = `/session/?${new URLSearchParams({ classId: p.get("classId") ?? "", sessionId: p.get("sessionId") ?? "" })}`;
   if (["/scores/", "/student-score/", "/import/"].includes(pathname)) target = `/assessment/?${new URLSearchParams({ classId: p.get("classId") ?? "", sessionId: p.get("sessionId") ?? "", assessmentId: p.get("assessmentId") ?? "" })}`;
   return <Box><Tooltip title="Quay lại"><IconButton component={Link} href={target} aria-label="Quay lại"><ArrowBack /></IconButton></Tooltip></Box>;

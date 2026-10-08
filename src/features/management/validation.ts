@@ -7,6 +7,7 @@ const id = z
   .trim()
   .regex(/^[A-Za-z0-9][A-Za-z0-9_.-]{1,63}$/, "ID gồm 2–64 chữ, số, dấu . _ -");
 export const profileStatus = z.enum(["ACTIVE", "PAUSED", "INACTIVE"]);
+export const profileStatusPatchInput = z.object({ status: profileStatus });
 export const rolesInput = z
   .array(z.enum(["TEACHER", "MANAGER"]))
   .min(1, "Chọn ít nhất một vai trò")

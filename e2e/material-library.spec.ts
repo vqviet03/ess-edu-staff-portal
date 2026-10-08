@@ -772,7 +772,7 @@ test("class thread defaults first, session materials synchronize, and authors ca
   ).toHaveCount(0);
 });
 
-test("manager class thread only reads and deletes, with profile edit in the second tab", async ({
+test("manager class thread only reads and deletes, with profile edit in the third tab", async ({
   page,
 }) => {
   await fixture(page, true);

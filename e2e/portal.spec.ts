@@ -91,14 +91,14 @@ test("sửa học sinh, tạo phiên và bài 2 kỹ năng; phiên mới không 
   await login(page);
   await page.goto("class/?classId=class-green");
   await page.getByRole("tab", { name: "Hồ sơ & quan hệ", exact: true }).click();
-  await page.getByRole("button", { name: "Sửa Hữu Văn" }).click();
+  await page.getByRole("button", { name: "Thao tác học sinh Hữu Văn", exact: true }).click();
+  await page.getByRole("menuitem", { name: "Chỉnh sửa thông tin học sinh", exact: true }).click();
   await page.getByLabel("Biệt danh").fill("Bon mới");
   await page.getByRole("button", { name: "Lưu học sinh" }).click();
   await expect(
     page.getByRole("cell", { name: "Bon mới", exact: true }),
   ).toBeVisible();
-  await page.getByRole("tab", { name: "Hồ sơ & quan hệ", exact: true }).click();
-  await page.getByRole("tab", { name: "Phiên học", exact: true }).click();
+  await page.getByRole("tab", { name: "Tiến độ lớp", exact: true }).click();
   await page
     .getByRole("button", { name: "Tạo phiên học", exact: true })
     .click();
