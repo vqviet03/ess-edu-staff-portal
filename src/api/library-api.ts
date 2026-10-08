@@ -1,4 +1,7 @@
-import { notificationFilter, mergeNotice } from "@/features/materials/notification-state";
+import {
+  notificationFilter,
+  mergeNotice,
+} from "@/features/materials/notification-state";
 import type { AuthState } from "@/store/auth";
 import { api } from "./api";
 import type { Envelope } from "@/types";
@@ -13,6 +16,8 @@ import type {
   Notification,
   Post,
   PostInput,
+  PostType,
+  ThreadSession,
   Reaction,
   Storage,
   StoragePageData,
@@ -131,29 +136,62 @@ export const libraryApi = api.injectEndpoints({
       transformResponse: unwrap<{ url: string; expiresAt: string }>,
       keepUnusedDataFor: 0,
     }),
-    content: b.query<string, { id: string; purpose: "preview" | "download" | "thumbnail" }>({
-      query: ({ id, purpose }) => ({ url: `/materials/${id}/content`, params: { purpose }, responseHandler: async (res) => res.ok ? URL.createObjectURL(await res.blob()) : res.json() }),
+    content: b.query<
+      string,
+      { id: string; purpose: "preview" | "download" | "thumbnail" }
+    >({
+      query: ({ id, purpose }) => ({
+        url: `/materials/${id}/content`,
+        params: { purpose },
+        responseHandler: async (res) =>
+          res.ok ? URL.createObjectURL(await res.blob()) : res.json(),
+      }),
       keepUnusedDataFor: 0,
-      async onCacheEntryAdded(_, { cacheDataLoaded, cacheEntryRemoved }) { let url: string | undefined; try { url = (await cacheDataLoaded).data; await cacheEntryRemoved; } catch {} finally { if (url?.startsWith("blob:")) URL.revokeObjectURL(url); } },
+      async onCacheEntryAdded(_, { cacheDataLoaded, cacheEntryRemoved }) {
+        let url: string | undefined;
+        try {
+          url = (await cacheDataLoaded).data;
+          await cacheEntryRemoved;
+        } catch {
+        } finally {
+          if (url?.startsWith("blob:")) URL.revokeObjectURL(url);
+        }
+      },
     }),
-    saveUploadRoute: b.mutation<unknown, {source: string; fileType: string; storageId: string; version: number}>({ query: body => mutation("/material-upload-routes", body, "PUT"), invalidatesTags: (_, error) => error ? [] : ["Storages"] }),
+    saveUploadRoute: b.mutation<
+      unknown,
+      { source: string; fileType: string; storageId: string; version: number }
+    >({
+      query: (body) => mutation("/material-upload-routes", body, "PUT"),
+      invalidatesTags: (_, error) => (error ? [] : ["Storages"]),
+    }),
     auditFile: b.query<
       CursorPage<{
         id: string;
         actorId: string;
-        actorUserId?: string; actorLoginId?: string; actorName?: string;
+        actorUserId?: string;
+        actorLoginId?: string;
+        actorName?: string;
         action: string;
         changesJson: string;
         createdAt: string;
       }>,
       string | { id: string; page: number; pageSize?: number }
     >({
-      query: (q) => ({ url: `/materials/${typeof q === "string" ? q : q.id}/audit-logs`, params: typeof q === "string" ? {} : { page: q.page, pageSize: q.pageSize ?? 20 } }),
+      query: (q) => ({
+        url: `/materials/${typeof q === "string" ? q : q.id}/audit-logs`,
+        params:
+          typeof q === "string"
+            ? {}
+            : { page: q.page, pageSize: q.pageSize ?? 20 },
+      }),
       transformResponse: unwrap<
         CursorPage<{
           id: string;
           actorId: string;
-          actorUserId?: string; actorLoginId?: string; actorName?: string;
+          actorUserId?: string;
+          actorLoginId?: string;
+          actorName?: string;
           action: string;
           changesJson: string;
           createdAt: string;
@@ -161,8 +199,37 @@ export const libraryApi = api.injectEndpoints({
       >,
       providesTags: ["Materials"],
     }),
-    deletionImpact: b.query<{ file: MaterialFile; usages: DeletionItem["usages"] }, string>({ query: id => `/materials/${id}/deletion-impact`, transformResponse: unwrap<{ file: MaterialFile; usages: DeletionItem["usages"] }>, providesTags: ["Materials", "Posts"] }),
-    deleteFile: b.mutation<{ status: string }, { id: string; version: number; reason: string; linkAction: "KEEP_UNAVAILABLE" | "DETACH" }>({ query: ({ id, ...body }) => ({ url: `/materials/${id}`, method: "DELETE", body }), transformResponse: unwrap<{ status: string }>, invalidatesTags: (_, e) => e ? [] : ["Materials", "Posts", "Storages", "DeletionRequests", "Audit"] }),
+    deletionImpact: b.query<
+      { file: MaterialFile; usages: DeletionItem["usages"] },
+      string
+    >({
+      query: (id) => `/materials/${id}/deletion-impact`,
+      transformResponse: unwrap<{
+        file: MaterialFile;
+        usages: DeletionItem["usages"];
+      }>,
+      providesTags: ["Materials", "Posts"],
+    }),
+    deleteFile: b.mutation<
+      { status: string },
+      {
+        id: string;
+        version: number;
+        reason: string;
+        linkAction: "KEEP_UNAVAILABLE" | "DETACH";
+      }
+    >({
+      query: ({ id, ...body }) => ({
+        url: `/materials/${id}`,
+        method: "DELETE",
+        body,
+      }),
+      transformResponse: unwrap<{ status: string }>,
+      invalidatesTags: (_, e) =>
+        e
+          ? []
+          : ["Materials", "Posts", "Storages", "DeletionRequests", "Audit"],
+    }),
     deletionRequests: b.query<CursorPage<DeletionItem>, void>({
       query: () => "/material-deletion-requests",
       transformResponse: unwrap<CursorPage<DeletionItem>>,
@@ -188,16 +255,12 @@ export const libraryApi = api.injectEndpoints({
     >({
       query: ({ id, ...body }) =>
         mutation(`/material-deletion-requests/${id}/decision`, body),
-      invalidatesTags: [
-        "DeletionRequests",
-        "Materials",
-        "Posts",
-        "Storages",
-      ],
+      invalidatesTags: ["DeletionRequests", "Materials", "Posts", "Storages"],
     }),
     uploadSettings: b.query<UploadSettings, void>({
       query: () => "/material-upload-settings",
-      transformResponse: unwrap<UploadSettings>, providesTags: ["Storages"],
+      transformResponse: unwrap<UploadSettings>,
+      providesTags: ["Storages"],
     }),
     initiateUpload: b.mutation<UploadTicket, UploadInput>({
       query: (body) => mutation("/material-uploads/initiate", body),
@@ -268,7 +331,35 @@ export const libraryApi = api.injectEndpoints({
       transformResponse: unwrap<CursorPage<Storage>>,
       providesTags: ["Storages"],
     }),
-    posts: b.query<CursorPage<Post>, { sessionId: string; cursor?: string }>({
+    threadSessions: b.query<{ items: ThreadSession[] }, string>({
+      query: (id) => `/classes/${id}/thread-sessions`,
+      transformResponse: unwrap<{ items: ThreadSession[] }>,
+      providesTags: ["Sessions"],
+    }),
+    classThreads: b.query<
+      CursorPage<Post>,
+      {
+        classId: string;
+        cursor?: string;
+        sessionId?: string;
+        postType?: PostType;
+        workspace?: string;
+      }
+    >({
+      query: ({ classId, cursor, sessionId, postType }) => ({
+        url: `/classes/${classId}/threads`,
+        params: { cursor, sessionId, postType, limit: 10 },
+      }),
+      transformResponse: unwrap<CursorPage<Post>>,
+      providesTags: (r) => [
+        "Posts",
+        ...(r?.items.map((p) => ({ type: "Posts" as const, id: p.id })) ?? []),
+      ],
+    }),
+    posts: b.query<
+      CursorPage<Post>,
+      { sessionId: string; cursor?: string; workspace?: string }
+    >({
       query: (q) => ({
         url: `/sessions/${q.sessionId}/posts`,
         params: { cursor: q.cursor, limit: 10 },
@@ -281,11 +372,15 @@ export const libraryApi = api.injectEndpoints({
     }),
     savePost: b.mutation<
       Post,
-      { id?: string; sessionId: string; body: PostInput }
+      { id?: string; sessionId?: string; classId?: string; body: PostInput }
     >({
       query: (q) =>
         mutation(
-          q.id ? `/posts/${q.id}` : `/sessions/${q.sessionId}/posts`,
+          q.id
+            ? `/posts/${q.id}`
+            : q.classId
+              ? `/classes/${q.classId}/threads`
+              : `/sessions/${q.sessionId}/posts`,
           q.body,
           q.id ? "PATCH" : "POST",
         ),
@@ -303,7 +398,8 @@ export const libraryApi = api.injectEndpoints({
       unknown,
       {
         id: string;
-        sessionId: string;
+        sessionId?: string | null;
+        classId?: string;
         cursor?: string;
         reaction: Reaction | null;
       }
@@ -314,21 +410,37 @@ export const libraryApi = api.injectEndpoints({
           q.reaction ? { reaction: q.reaction } : undefined,
           q.reaction ? "PUT" : "DELETE",
         ),
-      async onQueryStarted(q, { dispatch, queryFulfilled }) {
-        const patch = dispatch(
-          libraryApi.util.updateQueryData(
-            "posts",
-            { sessionId: q.sessionId, cursor: q.cursor },
-            (draft) => {
-              const p = draft.items.find((p) => p.id === q.id);
-              if (p) reactionUpdate(p, q.reaction);
-            },
-          ),
-        );
+      async onQueryStarted(q, { dispatch, getState, queryFulfilled }) {
+        const patches = [
+          ...libraryApi.util
+            .selectCachedArgsForQuery(getState(), "posts")
+            .map((args) =>
+              dispatch(
+                libraryApi.util.updateQueryData("posts", args, (draft) => {
+                  const p = draft.items.find((p) => p.id === q.id);
+                  if (p) reactionUpdate(p, q.reaction);
+                }),
+              ),
+            ),
+          ...libraryApi.util
+            .selectCachedArgsForQuery(getState(), "classThreads")
+            .map((args) =>
+              dispatch(
+                libraryApi.util.updateQueryData(
+                  "classThreads",
+                  args,
+                  (draft) => {
+                    const p = draft.items.find((p) => p.id === q.id);
+                    if (p) reactionUpdate(p, q.reaction);
+                  },
+                ),
+              ),
+            ),
+        ];
         try {
           await queryFulfilled;
         } catch {
-          patch.undo();
+          patches.forEach((p) => p.undo());
         }
       },
       invalidatesTags: (_, error, q) =>
@@ -407,9 +519,7 @@ export const libraryApi = api.injectEndpoints({
         }
       },
       invalidatesTags: (_, error, q) =>
-        error
-          ? []
-          : [{ type: "Comments", id: q.postId }, "Posts"],
+        error ? [] : [{ type: "Comments", id: q.postId }, "Posts"],
     }),
     removeComment: b.mutation<
       unknown,
@@ -438,25 +548,46 @@ export const libraryApi = api.injectEndpoints({
       Notification,
       { id: string; version: number; isRead?: boolean; deleted?: boolean }
     >({
-      query: ({ id, deleted, ...body }) => mutation(`/notifications/${id}`, body, deleted ? "DELETE" : "PATCH"),
+      query: ({ id, deleted, ...body }) =>
+        mutation(`/notifications/${id}`, body, deleted ? "DELETE" : "PATCH"),
       transformResponse: unwrap<Notification>,
       async onQueryStarted(arg, { dispatch, getState, queryFulfilled }) {
         try {
           const { data } = await queryFulfilled;
-          const state = getState() as Parameters<typeof libraryApi.util.selectCachedArgsForQuery>[0];
-          const filters = libraryApi.util.selectCachedArgsForQuery(state, "notifications");
-          const previous = filters.map((args) => libraryApi.endpoints.notifications.select(args)(state).data?.items.find((n) => n.id === arg.id)).find((n) => n !== undefined);
-          const delta = previous ? (arg.deleted ? -Number(!previous.isRead) : Number(!data.isRead) - Number(!previous.isRead)) : 0;
+          const state = getState() as Parameters<
+            typeof libraryApi.util.selectCachedArgsForQuery
+          >[0];
+          const filters = libraryApi.util.selectCachedArgsForQuery(
+            state,
+            "notifications",
+          );
+          const previous = filters
+            .map((args) =>
+              libraryApi.endpoints.notifications
+                .select(args)(state)
+                .data?.items.find((n) => n.id === arg.id),
+            )
+            .find((n) => n !== undefined);
+          const delta = previous
+            ? arg.deleted
+              ? -Number(!previous.isRead)
+              : Number(!data.isRead) - Number(!previous.isRead)
+            : 0;
           for (const args of filters) {
-            dispatch(libraryApi.util.updateQueryData("notifications", args, (page) => {
-              const unread = page.unreadCount;
-              if (arg.deleted) {
-                page.items = page.items.filter((n) => n.id !== arg.id);
-              } else mergeNotice(page, args, data);
-              if (unread !== undefined) page.unreadCount = Math.max(0, unread + delta);
-            }));
+            dispatch(
+              libraryApi.util.updateQueryData("notifications", args, (page) => {
+                const unread = page.unreadCount;
+                if (arg.deleted) {
+                  page.items = page.items.filter((n) => n.id !== arg.id);
+                } else mergeNotice(page, args, data);
+                if (unread !== undefined)
+                  page.unreadCount = Math.max(0, unread + delta);
+              }),
+            );
           }
-        } catch { /* Failed writes preserve cached notices and the user's form. */ }
+        } catch {
+          /* Failed writes preserve cached notices and the user's form. */
+        }
       },
     }),
     readNotifications: b.mutation<unknown, void>({
@@ -464,15 +595,28 @@ export const libraryApi = api.injectEndpoints({
       async onQueryStarted(_, { dispatch, getState, queryFulfilled }) {
         try {
           await queryFulfilled;
-          const state = getState() as Parameters<typeof libraryApi.util.selectCachedArgsForQuery>[0];
-          for (const args of libraryApi.util.selectCachedArgsForQuery(state, "notifications")) {
-            dispatch(libraryApi.util.updateQueryData("notifications", args, (page) => {
-              page.unreadCount = 0;
-              for (const notice of page.items) if (!notice.isRead) { notice.isRead = true; notice.version++; }
-              if (args.isRead === false) page.items = [];
-            }));
+          const state = getState() as Parameters<
+            typeof libraryApi.util.selectCachedArgsForQuery
+          >[0];
+          for (const args of libraryApi.util.selectCachedArgsForQuery(
+            state,
+            "notifications",
+          )) {
+            dispatch(
+              libraryApi.util.updateQueryData("notifications", args, (page) => {
+                page.unreadCount = 0;
+                for (const notice of page.items)
+                  if (!notice.isRead) {
+                    notice.isRead = true;
+                    notice.version++;
+                  }
+                if (args.isRead === false) page.items = [];
+              }),
+            );
           }
-        } catch { /* Keep unread state if the server rejects the action. */ }
+        } catch {
+          /* Keep unread state if the server rejects the action. */
+        }
       },
     }),
   }),
@@ -504,6 +648,8 @@ export const {
   useStoragesQuery,
   useStorageAlertsQuery,
   usePostsQuery,
+  useClassThreadsQuery,
+  useThreadSessionsQuery,
   useSavePostMutation,
   useRemovePostMutation,
   useReactionMutation,

@@ -31,5 +31,6 @@ test("class ID suggestion is editable and changing name keeps class ID", async (
   const dialog = page.getByRole("dialog"); await expect(dialog.getByLabel("ID", { exact: true })).toHaveValue("ess21"); await expect(dialog.getByLabel("ID", { exact: true })).toBeEnabled();
   await dialog.getByLabel("Hậu tố tên lớp").fill("a1"); await dialog.getByLabel("Lịch học").fill("Thứ 3 · 18:00"); await save(page);
   await go(page, "/manage/profile/?entity=classes&id=ess21"); await expect(page.getByRole("heading", { name: "ess21-a1", exact: true })).toBeVisible();
+  await page.getByRole("tab", { name: "Hồ sơ & quan hệ", exact: true }).click();
   await page.getByRole("button", { name: "Chỉnh sửa hồ sơ / trạng thái" }).click(); await dialog.getByLabel("Tên", {exact:true}).fill("ess21-b2"); await save(page); await expect(page.getByRole("heading", { name: "ess21-b2", exact: true })).toBeVisible();
 });

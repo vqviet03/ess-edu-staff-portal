@@ -28,6 +28,7 @@ test("audit deep link paginates, sidebar collapses with active icon, edit IDs an
   await expect(page.getByRole("link", { name: "Nhật ký", exact: true })).toHaveAttribute("aria-current", "page");
   await page.getByRole("button", { name: "Mở menu" }).click();
   await page.goto(`${base}/manage/profile/?entity=students&id=${encodeURIComponent(db.management.students[0].id)}`);
+  await page.getByRole("tab", { name: "Hồ sơ & quan hệ", exact: true }).click();
   await page.getByRole("button", { name: "Chỉnh sửa hồ sơ / trạng thái" }).click();
   const dialog = page.getByRole("dialog"); await expect(dialog.getByLabel("ID", { exact: true })).toBeEnabled();
   await dialog.getByLabel("ID", { exact: true }).fill("student.renamed");

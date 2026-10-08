@@ -1,5 +1,7 @@
 "use client";
-import {MaterialThumbnail} from "./thumbnail";
+import { PostSurface, postTypeLabels } from "./post-surface";
+import { useWorkspace } from "@/features/access/hooks";
+import Autocomplete from "@mui/material/Autocomplete";
 import { useState } from "react";
 import Box from "@mui/material/Box";
 import Paper from "@mui/material/Paper";
@@ -16,6 +18,8 @@ import Alert from "@mui/material/Alert";
 import Chip from "@mui/material/Chip";
 import {
   usePostsQuery,
+  useClassThreadsQuery,
+  useThreadSessionsQuery,
   useSavePostMutation,
   useRemovePostMutation,
   useReactionMutation,
@@ -27,22 +31,11 @@ import { useAppSelector } from "@/store";
 import { Feedback, NavButton } from "@/shared/ui";
 import { useUnsaved } from "@/shared/unsaved";
 import { errorMessage } from "@/api/base-query";
-import type {
-  Attachment,
-  MaterialFile,
-  Post,
-  PostInput,
-  Reaction,
-} from "./models";
-import { bytes, fileKind } from "./utils";
+import type { Attachment, MaterialFile, Post, PostInput } from "./models";
+
 import { MaterialBrowser } from "./browser";
 import { MaterialViewer } from "./viewer";
 import { UploadDialog } from "./upload";
-const reactionLabels: Record<Reaction, string> = {
-  LIKE: "👍 Thích",
-  LOVE: "♥ Yêu thích",
-  CELEBRATE: "🎉 Tuyệt vời",
-};
 function Comments({ post }: { post: Post }) {
   const me = useAppSelector((s) => s.auth.session?.teacher),
     [cursor, setCursor] = useState<string>(),
@@ -86,7 +79,11 @@ function Comments({ post }: { post: Post }) {
           <Typography sx={{ whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}>
             {c.body}
           </Typography>
-          {c.attachments?.map(file => <Button key={file.id} onClick={() => setPreview(file)}>{file.displayName}</Button>)}
+          {c.attachments?.map((file) => (
+            <Button key={file.id} onClick={() => setPreview(file)}>
+              {file.displayName}
+            </Button>
+          ))}
           <Stack direction="row">
             <Button
               disabled={c.version === 0}
@@ -163,10 +160,30 @@ function Comments({ post }: { post: Post }) {
         onChange={(e) => setBody(e.target.value)}
         slotProps={{ htmlInput: { maxLength: 5000 } }}
       />
-      <Button onClick={() => setUpload(true)}>Đính kèm ảnh / file / audio / video</Button>
-      {attachments.map(file => <Chip key={file.id} label={file.displayName} onDelete={() => setAttachments(old => old.filter(f => f.id !== file.id))}/>)}
-      {upload && <UploadDialog folderId={null} sessionId={post.sessionId} postId={post.id} close={() => setUpload(false)} added={file => setAttachments(old => [...old, file])}/>}
-      {preview && <MaterialViewer file={preview} close={() => setPreview(null)}/>}
+      <Button onClick={() => setUpload(true)}>
+        Đính kèm ảnh / file / audio / video
+      </Button>
+      {attachments.map((file) => (
+        <Chip
+          key={file.id}
+          label={file.displayName}
+          onDelete={() =>
+            setAttachments((old) => old.filter((f) => f.id !== file.id))
+          }
+        />
+      ))}
+      {upload && (
+        <UploadDialog
+          folderId={null}
+          sessionId={post.sessionId ?? undefined}
+          postId={post.id}
+          close={() => setUpload(false)}
+          added={(file) => setAttachments((old) => [...old, file])}
+        />
+      )}
+      {preview && (
+        <MaterialViewer file={preview} close={() => setPreview(null)} />
+      )}
       <Button
         variant="contained"
         disabled={(!body.trim() && !attachments.length) || state.isLoading}
@@ -179,7 +196,7 @@ function Comments({ post }: { post: Post }) {
               version: editing?.version,
               body,
               parentId: parent,
-              materialIds: attachments.map(file => file.id),
+              materialIds: attachments.map((file) => file.id),
             }).unwrap();
             setBody("");
             setAttachments([]);
@@ -204,183 +221,119 @@ function PostCard({
   edit,
 }: {
   post: Post;
-  sessionId: string;
+  sessionId?: string;
   cursor?: string;
   editable: boolean;
-  edit: (p: Post) => void;
+  edit: (post: Post) => void;
 }) {
-  const [showComments, setShowComments] = useState(false),
+  const me = useAppSelector((s) => s.auth.session?.teacher),
+    [showComments, setShowComments] = useState(false),
     [preview, setPreview] = useState<MaterialFile | null>(null),
     [reaction, state] = useReactionMutation(),
     [remove] = useRemovePostMutation(),
     [error, setError] = useState<unknown>();
+  const canEdit =
+    editable && post.authorId === me?.id && post.canEdit !== false;
+  const canDelete =
+    post.canDelete ?? (!!me?.roles?.includes("MANAGER") || canEdit);
   return (
-    <Paper
-      sx={{
-        p: { xs: 2, md: 3 },
-        border: 1,
-        borderColor: "divider",
-        borderRadius: 2,
-      }}
-    >
-      <Stack spacing={2}>
-        <Stack
-          direction="row"
-          useFlexGap
-          sx={{ justifyContent: "space-between", flexWrap: "wrap" }}
-        >
-          <Box>
-            <Typography sx={{ fontWeight: 700 }}>{post.authorName}</Typography>
-            <Typography variant="caption" color="text.secondary">
-              Người đăng: {post.publisherName} ·{" "}
-              {new Date(post.createdAt).toLocaleString("vi-VN")}
-            </Typography>
-          </Box>
-          {post.status === "DRAFT" && <Chip label="Nháp" />}
-          {editable && (
-            <Stack direction="row">
-              <Button onClick={() => edit(post)}>Sửa bài</Button>
-              <Button
-                onClick={async () => {
-                  const reason = window.prompt("Lý do ngừng bài đăng:");
-                  if (!reason?.trim()) return;
-                  try {
-                    await remove({
-                      id: post.id,
-                      version: post.version,
-                      reason,
-                    }).unwrap();
-                  } catch (e) {
-                    setError(e);
-                  }
-                }}
-              >
-                Ngừng
-              </Button>
-            </Stack>
-          )}
-        </Stack>
-        <Typography variant="h5">{post.title}</Typography>
-        <Typography sx={{ whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}>
-          {post.body}
-        </Typography>
-        {(["LESSON", "GUIDE", "AUDIO"] as Attachment["group"][]).map(
-          (group) => {
-            const attachments = post.attachments.filter(
-              (a) => a.group === group,
-            );
-            return attachments.length ? (
-              <Stack key={group} spacing={1}>
-                <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                  {group === "LESSON"
-                    ? "Bài học"
-                    : group === "GUIDE"
-                      ? "Hướng dẫn"
-                      : "Audio"}
-                </Typography>
-                {attachments.map((a) => (
-                  <Button
-                    key={a.materialId}
-                    variant="outlined"
-                    disabled={!a.available || !a.file}
-                    onClick={() => setPreview(a.file)}
-                    sx={{
-                      justifyContent: "flex-start",
-                      textTransform: "none",
-                      gap: 2,
-                      p: 1.5,
-                    }}
-                  >
-                    {a.file?.thumbnailUrl && (
-                      <MaterialThumbnail id={a.file.id}/>
-                    )}
-                    <Box sx={{ minWidth: 0, textAlign: "left" }}>
-                      <Typography
-                        sx={{
-                          ...{ overflowWrap: "anywhere" },
-                          fontWeight: 600,
-                        }}
-                      >
-                        {a.file?.displayName ?? "Tài liệu không còn khả dụng"}
-                      </Typography>
-                      <Typography variant="caption">
-                        {a.file
-                          ? `${fileKind(a.file.mimeType)} · ${bytes(a.file.sizeBytes)}`
-                          : "Đã ngừng sử dụng"}
-                      </Typography>
-                    </Box>
-                  </Button>
-                ))}
-              </Stack>
-            ) : null;
-          },
-        )}
-        <Typography variant="body2" color="text.secondary">
-          {post.reactions
-            .filter((r) => r.count > 0)
-            .map((r) => `${reactionLabels[r.reaction]} ${r.count}`)
-            .join(" · ") || "Chưa có tương tác"}{" "}
-          · {post.reactions.reduce((n, r) => n + r.count, 0)} tương tác ·{" "}
-          {post.commentCount} bình luận
-        </Typography>
-        <Stack direction="row" useFlexGap spacing={1} sx={{ flexWrap: "wrap" }}>
-          {Object.entries(reactionLabels).map(([value, label]) => (
-            <Button
-              key={value}
-              variant={post.myReaction === value ? "contained" : "outlined"}
-              aria-pressed={post.myReaction === value}
-              disabled={state.isLoading}
-              onClick={async () => {
+    <>
+      <PostSurface
+        post={post}
+        viewerName={me?.name ?? "Bạn"}
+        commentOpen={showComments}
+        openComments={() => setShowComments((s) => !s)}
+        preview={setPreview}
+        reacting={state.isLoading}
+        onReaction={async (value) => {
+          setError(undefined);
+          try {
+            await reaction({
+              id: post.id,
+              sessionId,
+              classId: post.classId,
+              cursor,
+              reaction: post.myReaction === value ? null : value,
+            }).unwrap();
+          } catch (e) {
+            setError(e);
+          }
+        }}
+        onEdit={canEdit ? () => edit(post) : undefined}
+        onDelete={
+          canDelete
+            ? async () => {
+                const reason = window.prompt("Lý do xóa bài đăng:");
+                if (!reason?.trim()) return;
                 setError(undefined);
                 try {
-                  await reaction({
+                  await remove({
                     id: post.id,
-                    sessionId,
-                    cursor,
-                    reaction:
-                      post.myReaction === value ? null : (value as Reaction),
+                    version: post.version,
+                    reason,
                   }).unwrap();
                 } catch (e) {
                   setError(e);
                 }
-              }}
-            >
-              {label}
-            </Button>
-          ))}
-          <Button onClick={() => setShowComments((s) => !s)}>
-            Bình luận ({post.commentCount})
-          </Button>
-        </Stack>
-        <Feedback error={error} />
-        {showComments && <Comments post={post} />}
-      </Stack>
+              }
+            : undefined
+        }
+      >
+        <Comments post={post} />
+      </PostSurface>
+      <Feedback error={error} />
       {preview && (
         <MaterialViewer file={preview} close={() => setPreview(null)} />
       )}
-    </Paper>
+    </>
   );
+}
+function emptyDraft(sessionId?: string): PostInput {
+  return {
+    title: "",
+    body: "",
+    status: "PUBLISHED",
+    attachments: [],
+    version: 1,
+    postType: sessionId ? "SESSION_MATERIAL" : "DISCUSSION",
+    sessionId: sessionId ?? null,
+  };
+}
+export function ClassThreadFeed({
+  classId,
+  editable,
+}: {
+  classId: string;
+  editable: boolean;
+}) {
+  return <SessionFeed classId={classId} editable={editable} />;
 }
 export function SessionFeed({
   sessionId,
+  classId,
   editable,
 }: {
-  sessionId: string;
+  sessionId?: string;
+  classId?: string;
   editable: boolean;
 }) {
+  const { selected } = useWorkspace();
+  const workspace = selected ?? undefined;
   const [cursor, setCursor] = useState<string>(),
-    list = usePostsQuery(
-      { sessionId, cursor },
-      { },
+    sessionList = usePostsQuery(
+      { sessionId: sessionId ?? "", cursor, workspace },
+      { skip: !sessionId },
     ),
-    [open, setOpen] = useState(false),
-    [draft, setDraft] = useState<PostInput>({
-      title: "",
-      body: "",
-      status: "PUBLISHED",
-      attachments: [],
-      version: 1,
+    classList = useClassThreadsQuery(
+      { classId: classId ?? "", cursor, workspace },
+      { skip: !classId || !!sessionId },
+    ),
+    list = sessionId ? sessionList : classList,
+    sessions = useThreadSessionsQuery(classId ?? "", {
+      skip: !classId || !editable,
     }),
+    [open, setOpen] = useState(false),
+    [draft, setDraft] = useState<PostInput>(() => emptyDraft(sessionId)),
     [editingId, setEditingId] = useState<string>(),
     [chosen, setChosen] = useState<Record<string, MaterialFile>>({}),
     [picker, setPicker] = useState(false),
@@ -430,7 +383,7 @@ export function SessionFeed({
           }}
         >
           <Typography color="text.secondary">
-            Chia sẻ tài liệu cho buổi học này…
+            Chia sẻ tài liệu, thông báo hoặc trao đổi với lớp…
           </Typography>
           <Button variant="contained" onClick={() => setOpen(true)}>
             + Đăng bài
@@ -473,6 +426,8 @@ export function SessionFeed({
                   body: post.body,
                   status: post.status,
                   version: post.version,
+                  postType: post.postType ?? "SESSION_MATERIAL",
+                  sessionId: post.sessionId,
                   attachments: post.attachments
                     .filter((a) => a.available)
                     .map((a) => ({ materialId: a.materialId, group: a.group })),
@@ -490,7 +445,7 @@ export function SessionFeed({
             />
           ))}
           {list.currentData && !list.currentData.items.length && (
-            <Feedback empty="Chưa có bài đăng tài liệu trong phiên học này." />
+            <Feedback empty="Chưa có bài đăng trong lớp hoặc phiên học này." />
           )}
           <Stack direction="row">
             {cursor && (
@@ -509,7 +464,9 @@ export function SessionFeed({
         </Stack>
         <Paper sx={{ p: 2.5, position: { lg: "sticky" }, top: 24 }}>
           <Stack spacing={2}>
-            <Typography variant="h6">Trong phiên này</Typography>
+            <Typography variant="h6">
+              {sessionId ? "Trong phiên này" : "Thread lớp học"}
+            </Typography>
             <Typography>
               {list.currentData?.items.length ?? 0} bài trên trang ·{" "}
               {list.currentData?.items.reduce(
@@ -538,11 +495,64 @@ export function SessionFeed({
         fullWidth
         maxWidth="md"
       >
-        <DialogTitle>
-          {editingId ? "Sửa bài đăng" : "Đăng bài tài liệu"}
-        </DialogTitle>
+        <DialogTitle>{editingId ? "Sửa bài đăng" : "Đăng bài"}</DialogTitle>
         <DialogContent>
           <Stack spacing={2} sx={{ pt: 1 }}>
+            {!sessionId && (
+              <>
+                <TextField
+                  select
+                  label="Loại bài đăng"
+                  value={draft.postType ?? "DISCUSSION"}
+                  onChange={(e) => {
+                    setDraft((d) => ({
+                      ...d,
+                      postType: e.target.value as PostInput["postType"],
+                      sessionId: null,
+                    }));
+                    setDirty(true);
+                  }}
+                >
+                  {Object.entries(postTypeLabels).map(([value, label]) => (
+                    <MenuItem key={value} value={value}>
+                      {label}
+                    </MenuItem>
+                  ))}
+                </TextField>
+                {draft.postType === "SESSION_MATERIAL" && (
+                  <>
+                    <Autocomplete
+                      options={sessions.currentData?.items ?? []}
+                      value={
+                        sessions.currentData?.items.find(
+                          (s) => s.id === draft.sessionId,
+                        ) ?? null
+                      }
+                      getOptionLabel={(s) => `${s.name} · ${s.date}`}
+                      isOptionEqualToValue={(a, b) => a.id === b.id}
+                      loading={sessions.isLoading}
+                      onChange={(_, v) => {
+                        setDraft((d) => ({ ...d, sessionId: v?.id ?? null }));
+                        setDirty(true);
+                      }}
+                      renderInput={(params) => (
+                        <TextField
+                          {...params}
+                          label="Chọn phiên học"
+                          required
+                          placeholder="Tìm tên phiên hoặc ngày học"
+                        />
+                      )}
+                    />
+                    <Feedback
+                      loading={sessions.isLoading}
+                      error={sessions.error}
+                      retry={() => void sessions.refetch()}
+                    />
+                  </>
+                )}
+              </>
+            )}
             <TextField
               label="Tiêu đề"
               value={draft.title}
@@ -595,7 +605,7 @@ export function SessionFeed({
                 sx={{ alignItems: "center" }}
               >
                 <Typography sx={{ flex: 1, overflowWrap: "anywhere" }}>
-                  {chosen[a.materialId]?.displayName ?? a.materialId}
+                  {chosen[a.materialId]?.displayName ?? "Tài liệu"}
                 </Typography>
                 <TextField
                   select
@@ -643,21 +653,24 @@ export function SessionFeed({
           <Button onClick={() => setOpen(false)}>Đóng / giữ nháp</Button>
           <Button
             variant="contained"
-            disabled={!draft.title.trim() || state.isLoading}
+            disabled={
+              !draft.title.trim() ||
+              state.isLoading ||
+              (draft.postType === "SESSION_MATERIAL" && !draft.sessionId)
+            }
             onClick={async () => {
               setError(undefined);
               try {
-                await save({ id: editingId, sessionId, body: draft }).unwrap();
+                await save({
+                  id: editingId,
+                  sessionId,
+                  classId,
+                  body: draft,
+                }).unwrap();
                 setOpen(false);
                 setDirty(false);
                 setEditingId(undefined);
-                setDraft({
-                  title: "",
-                  body: "",
-                  status: "PUBLISHED",
-                  attachments: [],
-                  version: 1,
-                });
+                setDraft(emptyDraft(sessionId));
                 setChosen({});
                 setSuccess("Đã lưu bài đăng.");
               } catch (e) {
@@ -692,7 +705,11 @@ export function SessionFeed({
       {upload && (
         <UploadDialog
           folderId={null}
-          sessionId={sessionId}
+          sessionId={
+            draft.postType === "SESSION_MATERIAL"
+              ? (draft.sessionId ?? sessionId)
+              : undefined
+          }
           added={(file) => add([file])}
           close={() => setUpload(false)}
         />

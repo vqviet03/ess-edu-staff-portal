@@ -90,12 +90,14 @@ test("sửa học sinh, tạo phiên và bài 2 kỹ năng; phiên mới không 
 }) => {
   await login(page);
   await page.goto("class/?classId=class-green");
+  await page.getByRole("tab", { name: "Hồ sơ & quan hệ", exact: true }).click();
   await page.getByRole("button", { name: "Sửa Hữu Văn" }).click();
   await page.getByLabel("Biệt danh").fill("Bon mới");
   await page.getByRole("button", { name: "Lưu học sinh" }).click();
   await expect(
     page.getByRole("cell", { name: "Bon mới", exact: true }),
   ).toBeVisible();
+  await page.getByRole("tab", { name: "Hồ sơ & quan hệ", exact: true }).click();
   await page.getByRole("tab", { name: "Phiên học", exact: true }).click();
   await page
     .getByRole("button", { name: "Tạo phiên học", exact: true })

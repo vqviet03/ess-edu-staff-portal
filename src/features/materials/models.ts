@@ -2,7 +2,8 @@ export interface CursorPage<T> {
   items: T[];
   nextCursor: string | null;
   total?: number;
-  page?: number; pageSize?: number;
+  page?: number;
+  pageSize?: number;
   unreadCount?: number;
 }
 export interface Folder {
@@ -50,9 +51,23 @@ export interface Attachment {
   file: MaterialFile | null;
 }
 export type Reaction = "LIKE" | "LOVE" | "CELEBRATE";
+export type PostType = "SESSION_MATERIAL" | "ANNOUNCEMENT" | "DISCUSSION";
+export interface ThreadSession {
+  id: string;
+  name: string;
+  date: string;
+  unitNumber: number | null;
+  status: string;
+}
 export interface Post {
   id: string;
-  sessionId: string;
+  sessionId: string | null;
+  postType?: PostType;
+  editedAt?: string | null;
+  sessionName?: string | null;
+  className?: string;
+  canEdit?: boolean;
+  canDelete?: boolean;
   classId: string;
   title: string;
   body: string;
@@ -70,6 +85,8 @@ export interface Post {
   commentCount: number;
 }
 export interface PostInput {
+  postType?: PostType;
+  sessionId?: string | null;
   title: string;
   body: string;
   status: Post["status"];
@@ -89,7 +106,11 @@ export interface Comment {
 }
 export interface Storage {
   id: string;
-  name?: string; category?: Area; lifecycle?: "ACTIVE" | "DRAINING" | "INACTIVE"; version?: number; configured?: boolean;
+  name?: string;
+  category?: Area;
+  lifecycle?: "ACTIVE" | "DRAINING" | "INACTIVE";
+  version?: number;
+  configured?: boolean;
   totalBytes: number;
   usedBytes: number;
   reservedBytes: number;
@@ -100,7 +121,12 @@ export interface Storage {
   largeFileWarningBytes: number;
 }
 export interface DeletionItem {
-  purge?: { status: string; attempts: number; lastError: string | null; nextAttemptAt: string } | null;
+  purge?: {
+    status: string;
+    attempts: number;
+    lastError: string | null;
+    nextAttemptAt: string;
+  } | null;
   request: {
     id: string;
     materialId: string;
@@ -153,6 +179,19 @@ export interface BrowserQuery {
   workspace?: string;
 }
 
-export interface StoragePageData extends CursorPage<Storage> { configurationEnabled?: boolean }
-export interface UploadRoute { source: "comment" | "session" | "library"; fileType: string; storageId: string; version: number }
-export interface UploadSettings { routes?: UploadRoute[]; maxUploadBytes: number; largeFileWarningBytes: number; areas: string[]; storages?: { id: string; name: string; category: Area }[] }
+export interface StoragePageData extends CursorPage<Storage> {
+  configurationEnabled?: boolean;
+}
+export interface UploadRoute {
+  source: "comment" | "session" | "library";
+  fileType: string;
+  storageId: string;
+  version: number;
+}
+export interface UploadSettings {
+  routes?: UploadRoute[];
+  maxUploadBytes: number;
+  largeFileWarningBytes: number;
+  areas: string[];
+  storages?: { id: string; name: string; category: Area }[];
+}
