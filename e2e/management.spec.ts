@@ -204,6 +204,7 @@ test("ngừng/khôi phục giảng viên rồi xác nhận phân công; cảnh b
   await page.getByRole("button", { name: "Kiểm tra & xem trước" }).click();
   await confirmPreview(page);
   await go(page, "/manage/profile/?entity=classes&id=class-single");
+  await page.getByRole("tab", {name:"Hồ sơ & quan hệ",exact:true}).click();
   await page
     .getByRole("button", { name: "Cập nhật phụ trách", exact: true })
     .first()

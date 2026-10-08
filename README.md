@@ -176,3 +176,5 @@ Deploy backend có migration Core 012/Materials 003 trước frontend; đặt s�
 Không gian Quản lý → Storage: xem file theo ổ, thêm kết nối Neon S3, sửa quota/trạng thái, chuyển file cùng thumbnail sang ổ cùng nhóm. Tác vụ chạy ở backend và cập nhật qua socket, không thêm polling. UUID chỉ giữ cho routing/cache; giao diện và template điểm hiển thị public ID.
 
 Backend cần migration Core 012 và Materials 004 trước deploy. Cần cấu hình GCP Secret Manager một lần; sau đó thêm ổ trực tiếp trong ứng dụng. Xem `docs/storage-management.md` và tài liệu backend `docs/storage-registry.md`. Production storage keys không nằm trong env frontend, Redux/cache hoặc browser storage.
+
+Thread lớp, quyền tác giả và triển khai: [docs/class-thread-posts.md](docs/class-thread-posts.md).

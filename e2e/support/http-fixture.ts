@@ -30,6 +30,13 @@ export async function installHttpFixture(page: Page, shared?: { get: () => strin
       } else if (request.postData()) body = request.postDataJSON();
       const url = new URL(request.url());
       const endpoint = url.pathname.slice(prefix.length) + url.search;
+      const classThread = url.pathname.slice(prefix.length).match(/^\/classes\/([^/]+)\/(threads|thread-sessions)$/);
+      if (classThread && request.method() === 'GET') {
+        const db = JSON.parse(database.get()) as Database;
+        const items = classThread[2] === 'threads' ? [] : db.sessions.filter(s => s.classId === classThread[1]);
+        await route.fulfill({status:200, headers:cors, contentType:'application/json', body:JSON.stringify({data:{items,nextCursor:null}})});
+        return;
+      }
       const response = await adapter({url:endpoint, method:request.method(), headers:request.headers(), body}, runtime, {});
       if (!response.error && ['/auth/login','/auth/link/exchange'].includes(endpoint)) {
         const session = (response.data as Envelope<AuthSession>).data;

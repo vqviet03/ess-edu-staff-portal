@@ -47,7 +47,7 @@ const file = (id: string, folderId: string): MaterialFile => ({
   createdAt: "2026-10-06T00:00:00Z",
   updatedAt: "2026-10-06T00:00:00Z",
 });
-async function fixture(page: Page) {
+async function fixture(page: Page, withPost = false) {
   await installHttpFixture(page);
   const folders: Folder[] = [
       {
@@ -72,8 +72,43 @@ async function fixture(page: Page) {
         version: 1,
       },
     ],
-    files = [file("a", "one"), file("b", "two")];
-  const posts: Post[] = [];
+    files = [
+      file("a", "one"),
+      file("b", "two"),
+      {
+        ...file("audio", "one"),
+        displayName: "Listening Unit 3.wav",
+        mimeType: "audio/wav",
+        sizeBytes: 160044,
+      },
+    ];
+  let actorId = "GV0001";
+  const posts: Post[] = withPost
+    ? [
+        {
+          id: "new-post",
+          classId: "class-green",
+          sessionId: null,
+          postType: "ANNOUNCEMENT",
+          title: "Thông báo của lớp",
+          body: "Thông tin cần biết",
+          status: "PUBLISHED",
+          authorId: actorId,
+          authorName: "Nguyễn Minh Anh",
+          publishedBy: actorId,
+          publisherName: "Nguyễn Minh Anh",
+          createdAt: "2026-10-08T08:00:00Z",
+          updatedAt: "2026-10-08T08:00:00Z",
+          version: 1,
+          canEdit: true,
+          canDelete: true,
+          attachments: [],
+          reactions: [],
+          myReaction: null,
+          commentCount: 0,
+        },
+      ]
+    : [];
   const signedRequests: {
     authorization: string | undefined;
     mime: string | undefined;
@@ -116,6 +151,11 @@ async function fixture(page: Page) {
       await route.fulfill({ status: 204, headers: cors });
       return;
     }
+    if (path === "/auth/login") {
+      actorId = route.request().postDataJSON().teacherId;
+      await route.fallback();
+      return;
+    }
     let data: unknown;
     if (path === "/material-folders")
       data = {
@@ -143,11 +183,38 @@ async function fixture(page: Page) {
     else if (path === "/notifications")
       data = { items: [], nextCursor: null, unreadCount: 0 };
     else if (path === "/storage-alerts") data = { items: [], nextCursor: null };
-    else if (path === "/materials/a/content") {
+    else if (path === "/materials/audio/content") {
       expect(route.request().headers().authorization).toMatch(/^Bearer /);
-      await route.fulfill({status:200,headers:cors,contentType:"application/pdf",body:samplePdf()});return;
-    }
-    else if (path === "/materials/a/access-url")
+      const wav = Buffer.alloc(160044);
+      wav.write("RIFF");
+      wav.writeUInt32LE(160036, 4);
+      wav.write("WAVEfmt ", 8);
+      wav.writeUInt32LE(16, 16);
+      wav.writeUInt16LE(1, 20);
+      wav.writeUInt16LE(1, 22);
+      wav.writeUInt32LE(8000, 24);
+      wav.writeUInt32LE(16000, 28);
+      wav.writeUInt16LE(2, 32);
+      wav.writeUInt16LE(16, 34);
+      wav.write("data", 36);
+      wav.writeUInt32LE(160000, 40);
+      await route.fulfill({
+        status: 200,
+        headers: cors,
+        contentType: "audio/wav",
+        body: wav,
+      });
+      return;
+    } else if (path === "/materials/a/content") {
+      expect(route.request().headers().authorization).toMatch(/^Bearer /);
+      await route.fulfill({
+        status: 200,
+        headers: cors,
+        contentType: "application/pdf",
+        body: samplePdf(),
+      });
+      return;
+    } else if (path === "/materials/a/access-url")
       data = {
         url: "https://files.example.test/pdf",
         expiresAt: "2099-01-01T00:00:00Z",
@@ -211,18 +278,67 @@ async function fixture(page: Page) {
         return;
       }
       data = { items: [], nextCursor: null };
-    } else if (path === "/sessions/session-3/posts") {
+    } else if (path === "/classes/class-green/thread-sessions") {
+      data = {
+        items: [
+          {
+            id: "session-3",
+            name: "Unit 3",
+            date: "2026-10-08",
+            unitNumber: 3,
+            status: "DRAFT",
+          },
+        ],
+        nextCursor: null,
+      };
+    } else if (path === "/posts/new-post" && method === "PATCH") {
+      const post = posts.find((p) => p.id === "new-post")!;
+      const input = route.request().postDataJSON();
+      Object.assign(post, input, {
+        editedAt: "2026-10-08T09:00:00Z",
+        version: post.version + 1,
+        attachments: input.attachments.map(
+          (a: { materialId: string; group: string }) => ({
+            ...a,
+            available: true,
+            file: files.find((f) => f.id === a.materialId),
+          }),
+        ),
+      });
+      data = post;
+    } else if (path === "/posts/new-post" && method === "DELETE") {
+      posts.splice(
+        posts.findIndex((p) => p.id === "new-post"),
+        1,
+      );
+      data = { deleted: true };
+    } else if (
+      path === "/sessions/session-3/posts" ||
+      path === "/classes/class-green/threads"
+    ) {
       if (method === "POST") {
         const body = route.request().postDataJSON();
         const p: Post = {
           ...body,
           id: "new-post",
-          sessionId: "session-3",
+          sessionId: path.includes("/sessions/")
+            ? "session-3"
+            : (body.sessionId ?? null),
+          postType: path.includes("/sessions/")
+            ? "SESSION_MATERIAL"
+            : body.postType,
+          editedAt: null,
+          canEdit: true,
+          canDelete: true,
+          className: "Juniors 03",
+          sessionName:
+            body.sessionId || path.includes("/sessions/") ? "Unit 3" : null,
+          version: 1,
           classId: "class-green",
-          authorId: "teacher-green",
-          authorName: "Giảng viên",
-          publishedBy: "teacher-green",
-          publisherName: "Giảng viên",
+          authorId: actorId,
+          authorName: "Nguyễn Minh Anh",
+          publishedBy: actorId,
+          publisherName: "Nguyễn Minh Anh",
           createdAt: "2026-10-06T00:00:00Z",
           updatedAt: "2026-10-06T00:00:00Z",
           reactions: [],
@@ -238,7 +354,22 @@ async function fixture(page: Page) {
         };
         posts.push(p);
         data = p;
-      } else data = { items: posts, nextCursor: null };
+      } else
+        data = {
+          items: (path.includes("/sessions/")
+            ? posts.filter((p) => p.sessionId === "session-3")
+            : posts
+          ).map((p) => ({
+            ...p,
+            canEdit:
+              route.request().headers()["x-workspace"] === "teacher" &&
+              p.authorId === actorId,
+            canDelete:
+              route.request().headers()["x-workspace"] === "manager" ||
+              p.authorId === actorId,
+          })),
+          nextCursor: null,
+        };
     } else if (path === "/posts/new-post/reaction") {
       await route.fulfill({
         status: 409,
@@ -272,30 +403,84 @@ async function login(page: Page, id = "GV0001") {
   await page.getByRole("button", { name: "Đăng nhập", exact: true }).click();
   await expect(page).toHaveURL(/\/home\//);
 }
-test("manager folder actions use ellipsis and physical deletion reviews usage", async ({ page }) => {
+test("manager folder actions use ellipsis and physical deletion reviews usage", async ({
+  page,
+}) => {
   await fixture(page);
-  const cors = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "authorization,content-type,x-workspace", "Access-Control-Allow-Methods": "GET,DELETE,OPTIONS" };
+  const cors = {
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Headers": "authorization,content-type,x-workspace",
+    "Access-Control-Allow-Methods": "GET,DELETE,OPTIONS",
+  };
   let removed = false;
-  await page.route(`${api}/materials/a/deletion-impact`, async route => {
-    if (route.request().method() === "OPTIONS") return route.fulfill({ status: 204, headers: cors });
-    await route.fulfill({ json: { data: { file: { ...file("a", "one"), thumbnailBytes: 200, storageBytes: 1200 }, usages: [] } }, headers: cors });
+  await page.route(`${api}/materials/a/deletion-impact`, async (route) => {
+    if (route.request().method() === "OPTIONS")
+      return route.fulfill({ status: 204, headers: cors });
+    await route.fulfill({
+      json: {
+        data: {
+          file: {
+            ...file("a", "one"),
+            thumbnailBytes: 200,
+            storageBytes: 1200,
+          },
+          usages: [],
+        },
+      },
+      headers: cors,
+    });
   });
-  await page.route(`${api}/materials/a`, async route => {
-    if (route.request().method() === "OPTIONS") return route.fulfill({ status: 204, headers: cors });
-    const body = route.request().postDataJSON(); expect(body.version).toBe(1); expect(body.linkAction).toBe("DETACH"); expect(body.reason).toBe("Không sử dụng"); removed = true;
-    await route.fulfill({ json: { data: { id: "a", status: "DELETING" } }, headers: cors });
+  await page.route(`${api}/materials/a`, async (route) => {
+    if (route.request().method() === "OPTIONS")
+      return route.fulfill({ status: 204, headers: cors });
+    const body = route.request().postDataJSON();
+    expect(body.version).toBe(1);
+    expect(body.linkAction).toBe("DETACH");
+    expect(body.reason).toBe("Không sử dụng");
+    removed = true;
+    await route.fulfill({
+      json: { data: { id: "a", status: "DELETING" } },
+      headers: cors,
+    });
   });
-  await page.route(`${api}/materials?**`, async route => { const folder = new URL(route.request().url()).searchParams.get("folderId"); await route.fulfill({ json: { data: { items: folder === "one" && !removed ? [file("a", "one")] : [], nextCursor: null } }, headers: cors }); });
-  await login(page, "MG0001"); await page.goto(`${base}/materials/`);
-  await expect(page.getByRole("button", { name: "Sửa thư mục Juniors" })).toHaveCount(0);
+  await page.route(`${api}/materials?**`, async (route) => {
+    const folder = new URL(route.request().url()).searchParams.get("folderId");
+    await route.fulfill({
+      json: {
+        data: {
+          items: folder === "one" && !removed ? [file("a", "one")] : [],
+          nextCursor: null,
+        },
+      },
+      headers: cors,
+    });
+  });
+  await login(page, "MG0001");
+  await page.goto(`${base}/materials/`);
+  await expect(
+    page.getByRole("button", { name: "Sửa thư mục Juniors" }),
+  ).toHaveCount(0);
   await page.getByRole("button", { name: "Thao tác thư mục Juniors" }).click();
-  await expect(page.getByRole("menuitem", { name: "Sửa thư mục" })).toBeVisible(); await page.keyboard.press("Escape");
+  await expect(
+    page.getByRole("menuitem", { name: "Sửa thư mục" }),
+  ).toBeVisible();
+  await page.keyboard.press("Escape");
   await page.getByRole("button", { name: "Juniors", exact: true }).click();
-  await page.getByRole("button", { name: "Thông tin Bài học a.pdf" }).click(); await page.getByRole("button", { name: "Xóa tài liệu", exact: true }).click();
-  const dialog = page.getByRole("dialog"); await expect(dialog.getByText(/Thumbnail: 200/)).toBeVisible();
-  await expect(dialog.getByRole("button", { name: "Xác nhận xóa" })).toBeDisabled();
-  await dialog.getByLabel("Lý do xóa").fill("Không sử dụng"); await dialog.getByRole("checkbox").check(); await dialog.getByRole("button", { name: "Xác nhận xóa" }).click();
-  await expect(page.getByText(/Đã ẩn tài liệu/)).toBeVisible(); await expect(page.getByRole("checkbox", { name: "Chọn Bài học a.pdf" })).toHaveCount(0); expect(removed).toBeTruthy();
+  await page.getByRole("button", { name: "Thông tin Bài học a.pdf" }).click();
+  await page.getByRole("button", { name: "Xóa tài liệu", exact: true }).click();
+  const dialog = page.getByRole("dialog");
+  await expect(dialog.getByText(/Thumbnail: 200/)).toBeVisible();
+  await expect(
+    dialog.getByRole("button", { name: "Xác nhận xóa" }),
+  ).toBeDisabled();
+  await dialog.getByLabel("Lý do xóa").fill("Không sử dụng");
+  await dialog.getByRole("checkbox").check();
+  await dialog.getByRole("button", { name: "Xác nhận xóa" }).click();
+  await expect(page.getByText(/Đã ẩn tài liệu/)).toBeVisible();
+  await expect(
+    page.getByRole("checkbox", { name: "Chọn Bài học a.pdf" }),
+  ).toHaveCount(0);
+  expect(removed).toBeTruthy();
 });
 test("grid across nested folders, tree selection and mobile bounds", async ({
   page,
@@ -369,9 +554,11 @@ test("picker attaches files across folders; draft survives tabs; reaction rolls 
   await expect(
     page.getByRole("heading", { name: "Hướng dẫn Unit 1" }),
   ).toBeVisible();
-  await page.getByRole("button", { name: "👍 Thích", exact: true }).click();
+  await page.getByRole("button", { name: "♥ Yêu thích", exact: true }).click();
   await expect(page.getByText("Dữ liệu đã đổi, thử lại.")).toBeVisible();
-  await expect(page.getByText(/Chưa có tương tác/)).toBeVisible();
+  await expect(
+    page.getByText("0 lượt tương tác", { exact: true }),
+  ).toBeVisible();
   const commentsLoaded = page.waitForResponse(
     (r) =>
       r.url().includes("/posts/new-post/comments") &&
@@ -444,18 +631,282 @@ test("PDF viewer loads static worker under basePath and zooms without selecting 
     .click();
   const dialog = page.getByRole("dialog");
   await expect(dialog.getByText("1/1", { exact: true })).toBeVisible();
-  await expect.poll(() => dialog.locator("canvas").evaluate(node => {
-    const canvas = node as HTMLCanvasElement;
-    return canvas.width > 0 && Math.abs(canvas.width / canvas.height - 2) < 0.02 && canvas.height <= window.innerHeight * 0.69;
-  })).toBe(true);
-  await dialog.getByRole("button", {name: "Cuộn dọc", exact: true}).click();
-  await expect(dialog.getByRole("button", {name: "Lật trang", exact: true})).toBeVisible();
-  await dialog.getByRole("button", {name: "Toàn màn hình", exact: true}).click();
-  await expect(dialog.getByRole("button", {name: "Thu về cửa sổ", exact: true})).toBeVisible();
+  await expect
+    .poll(() =>
+      dialog.locator("canvas").evaluate((node) => {
+        const canvas = node as HTMLCanvasElement;
+        return (
+          canvas.width > 0 &&
+          Math.abs(canvas.width / canvas.height - 2) < 0.02 &&
+          canvas.height <= window.innerHeight * 0.69
+        );
+      }),
+    )
+    .toBe(true);
+  await dialog.getByRole("button", { name: "Cuộn dọc", exact: true }).click();
+  await expect(
+    dialog.getByRole("button", { name: "Lật trang", exact: true }),
+  ).toBeVisible();
+  await dialog
+    .getByRole("button", { name: "Toàn màn hình", exact: true })
+    .click();
+  await expect(
+    dialog.getByRole("button", { name: "Thu về cửa sổ", exact: true }),
+  ).toBeVisible();
   await dialog.getByRole("button", { name: "+", exact: true }).click();
   await expect(dialog.getByText("125%", { exact: true })).toBeVisible();
   await dialog.getByRole("button", { name: "Đóng", exact: true }).click();
   await expect(
     page.getByRole("checkbox", { name: "Chọn Bài học a.pdf" }),
   ).not.toBeChecked();
+});
+
+test("class thread defaults first, session materials synchronize, and authors can edit/delete", async ({
+  page,
+}) => {
+  await fixture(page);
+  await login(page);
+  await page.goto(`${base}/class/?classId=class-green`);
+  await expect(
+    page.getByRole("tab", { name: "Thread", exact: true }),
+  ).toHaveAttribute("aria-selected", "true");
+  await page.getByRole("button", { name: "+ Đăng bài", exact: true }).click();
+  await page
+    .getByLabel("Tiêu đề", { exact: true })
+    .fill("Bài học phiên Unit 3");
+  await page.getByLabel("Loại bài đăng", { exact: true }).click();
+  await page
+    .getByRole("option", { name: "Tài liệu phiên học", exact: true })
+    .click();
+  await expect(
+    page.getByRole("button", { name: "Lưu bài", exact: true }),
+  ).toBeDisabled();
+  await page.getByRole("combobox", { name: "Chọn phiên học" }).fill("Unit 3");
+  await page.getByRole("option", { name: /Unit 3/ }).click();
+  await page
+    .getByRole("button", { name: "Thêm từ kho", exact: true })
+    .last()
+    .click();
+  const picker = page.getByRole("dialog").last();
+  await picker.getByRole("button", { name: "Juniors", exact: true }).click();
+  await picker.getByRole("checkbox", { name: "Chọn Bài học a.pdf" }).check();
+  await picker.getByRole("button", { name: "Level 1", exact: true }).click();
+  await picker.getByRole("checkbox", { name: "Chọn Bài học b.pdf" }).check();
+  await picker.getByRole("button", { name: "Thêm 2 file vào bài" }).click();
+  await page.getByRole("button", { name: "Lưu bài", exact: true }).click();
+  await expect(
+    page.getByRole("heading", { name: "Bài học phiên Unit 3", exact: true }),
+  ).toBeVisible();
+  await page.getByRole("tab", { name: "Hồ sơ & quan hệ", exact: true }).click();
+  await page.getByRole("tab", { name: "Thread", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Thao tác bài đăng", exact: true })
+    .click();
+  await page.getByRole("menuitem", { name: "Sửa bài", exact: true }).click();
+  await page
+    .getByLabel("Tiêu đề", { exact: true })
+    .fill("Bài học Unit 3 cập nhật");
+  await page.getByRole("button", { name: "Lưu bài", exact: true }).click();
+  await expect(page.getByText("Đã chỉnh sửa", { exact: true })).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Xem Bài học a.pdf", exact: true }),
+  ).toBeEnabled();
+  await page.screenshot({
+    path: "test-results/class-thread-desktop-light.png",
+    fullPage: true,
+  });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.getByRole("button", { name: "Giao diện", exact: true }).click();
+  await page.getByRole("menuitem", { name: "Tối", exact: true }).click();
+  await expect(
+    page.getByRole("menuitem", { name: "Tối", exact: true }),
+  ).toHaveCount(0);
+  await page.screenshot({
+    path: "test-results/class-thread-mobile-dark.png",
+    fullPage: true,
+  });
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+  ).toBeTruthy();
+  await page.goto(`${base}/session/?classId=class-green&sessionId=session-3`);
+  await expect(
+    page.getByRole("heading", { name: "Bài học Unit 3 cập nhật", exact: true }),
+  ).toBeVisible();
+  page.once("dialog", (dialog) => dialog.accept("Không còn dùng"));
+  await page
+    .getByRole("button", { name: "Thao tác bài đăng", exact: true })
+    .click();
+  await page.getByRole("menuitem", { name: "Xóa bài", exact: true }).click();
+  await expect(
+    page.getByRole("heading", { name: "Bài học Unit 3 cập nhật", exact: true }),
+  ).toHaveCount(0);
+});
+
+test("manager class thread only reads and deletes, with profile edit in the second tab", async ({
+  page,
+}) => {
+  await fixture(page, true);
+  await login(page, "MG0001");
+  await page.goto(`${base}/manage/profile/?entity=classes&id=class-green`);
+  await expect(
+    page.getByRole("tab", { name: "Thread", exact: true }),
+  ).toHaveAttribute("aria-selected", "true");
+  await expect(
+    page.getByRole("button", { name: "+ Đăng bài", exact: true }),
+  ).toHaveCount(0);
+  await expect(
+    page.getByRole("button", { name: "Chỉnh sửa hồ sơ / trạng thái" }),
+  ).not.toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Thông báo của lớp", exact: true }),
+  ).toBeVisible();
+  await page
+    .getByRole("button", { name: "Thao tác bài đăng", exact: true })
+    .click();
+  await expect(
+    page.getByRole("menuitem", { name: "Sửa bài", exact: true }),
+  ).toHaveCount(0);
+  page.once("dialog", (dialog) => dialog.accept("Không phù hợp"));
+  await page.getByRole("menuitem", { name: "Xóa bài", exact: true }).click();
+  await expect(
+    page.getByRole("heading", { name: "Thông báo của lớp", exact: true }),
+  ).toHaveCount(0);
+  await page.getByRole("tab", { name: "Hồ sơ & quan hệ", exact: true }).click();
+  await expect(
+    page.getByRole("button", { name: "Chỉnh sửa hồ sơ / trạng thái" }),
+  ).toBeVisible();
+});
+
+test("inline audio loads on demand with auth, controls speed and downloads through the API", async ({
+  page,
+}) => {
+  await fixture(page);
+  await login(page);
+  await page.goto(`${base}/class/?classId=class-green`);
+  await page.getByRole("button", { name: "+ Đăng bài", exact: true }).click();
+  await page.getByLabel("Tiêu đề", { exact: true }).fill("Bài luyện nghe");
+  await page
+    .getByRole("button", { name: "Thêm từ kho", exact: true })
+    .last()
+    .click();
+  const picker = page.getByRole("dialog").last();
+  await picker.getByRole("button", { name: "Juniors", exact: true }).click();
+  await picker
+    .getByRole("checkbox", { name: "Chọn Listening Unit 3.wav" })
+    .check();
+  await picker.getByRole("button", { name: "Thêm 1 file vào bài" }).click();
+  let loads = 0;
+  page.on("request", (r) => {
+    if (r.url().includes("/materials/audio/content") && r.method() === "GET")
+      loads++;
+  });
+  await page.getByRole("button", { name: "Lưu bài", exact: true }).click();
+  await expect(
+    page.getByRole("heading", { name: "Bài luyện nghe", exact: true }),
+  ).toBeVisible();
+  expect(loads).toBe(0);
+  await page
+    .getByRole("button", { name: "Phát Listening Unit 3.wav", exact: true })
+    .click();
+  await expect(page.locator("audio")).toHaveAttribute("src", /^blob:/);
+  await expect
+    .poll(() =>
+      page.locator("audio").evaluate((a) => (a as HTMLAudioElement).duration),
+    )
+    .toBe(10);
+  await page
+    .getByRole("combobox", { name: "Tốc độ audio Listening Unit 3.wav" })
+    .click();
+  await expect(page.getByRole("option")).toHaveCount(8);
+  await page.getByRole("option", { name: "1.5x", exact: true }).click();
+  await expect(page.locator("audio")).toHaveJSProperty("playbackRate", 1.5);
+  await page
+    .getByRole("button", { name: "Tạm dừng Listening Unit 3.wav", exact: true })
+    .click();
+  await page
+    .getByRole("button", { name: "Phát Listening Unit 3.wav", exact: true })
+    .click();
+  await expect(
+    page.getByRole("button", {
+      name: "Tạm dừng Listening Unit 3.wav",
+      exact: true,
+    }),
+  ).toBeVisible();
+  await page
+    .getByRole("button", { name: "Tạm dừng Listening Unit 3.wav", exact: true })
+    .click();
+  expect(loads).toBe(1);
+  await page.getByRole("button", { name: "Tải tài liệu", exact: true }).click();
+  const download = page.waitForEvent("download");
+  await page
+    .getByRole("menuitem", { name: "Listening Unit 3.wav", exact: true })
+    .click();
+  expect((await download).suggestedFilename()).toBe("Listening Unit 3.wav");
+  expect(loads).toBe(2);
+});
+
+test("dual-role workspace changes do not reuse manager-only post permission cache", async ({
+  page,
+}) => {
+  await fixture(page);
+  // The base dual-role fixture has an ENDED assignment; model an actively assigned teacher here.
+  await page.route(`${api}/classes/class-green/access`, async (route) => {
+    const headers = {
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Headers": "authorization,content-type,x-workspace",
+      "Access-Control-Allow-Methods": "GET,OPTIONS",
+    };
+    if (route.request().method() === "OPTIONS")
+      return route.fulfill({ status: 204, headers });
+    return route.fulfill({
+      headers,
+      json: {
+        data: {
+          classId: "class-green",
+          canView: true,
+          assignmentStatus: "ACTIVE",
+          assignmentConfirmed: true,
+          classStatus: "ACTIVE",
+          profileStatus: "ACTIVE",
+          accountStatus: "ACTIVE",
+        },
+      },
+    });
+  });
+  await login(page, "BOTH0001");
+  await page.getByRole("combobox", { name: "Không gian", exact: true }).click();
+  await page.getByRole("option", { name: "Giảng viên", exact: true }).click();
+  await page.goto(`${base}/class/?classId=class-green`);
+  await page.getByRole("button", { name: "+ Đăng bài", exact: true }).click();
+  await page
+    .getByLabel("Tiêu đề", { exact: true })
+    .fill("Thông báo của tác giả");
+  await page.getByLabel("Loại bài đăng", { exact: true }).click();
+  await page.getByRole("option", { name: "Thông báo", exact: true }).click();
+  await page.getByRole("button", { name: "Lưu bài", exact: true }).click();
+  await expect(
+    page.getByRole("heading", { name: "Thông báo của tác giả", exact: true }),
+  ).toBeVisible();
+  await page.getByRole("combobox", { name: "Không gian", exact: true }).click();
+  await page.getByRole("option", { name: "Quản lý", exact: true }).click();
+  await expect(
+    page.getByRole("button", { name: "+ Đăng bài", exact: true }),
+  ).toHaveCount(0);
+  await page
+    .getByRole("button", { name: "Thao tác bài đăng", exact: true })
+    .click();
+  await expect(
+    page.getByRole("menuitem", { name: "Sửa bài", exact: true }),
+  ).toHaveCount(0);
+  await page.keyboard.press("Escape");
+  await page.getByRole("combobox", { name: "Không gian", exact: true }).click();
+  await page.getByRole("option", { name: "Giảng viên", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Thao tác bài đăng", exact: true })
+    .click();
+  await expect(
+    page.getByRole("menuitem", { name: "Sửa bài", exact: true }),
+  ).toBeVisible();
 });

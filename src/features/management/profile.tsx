@@ -1,4 +1,6 @@
 "use client";
+import { ClassThreadFeed } from "@/features/materials/feed";
+import { useClassCapabilities } from "@/features/access/hooks";
 import { publicId } from "@/shared/public-id";
 import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -222,11 +224,13 @@ export function ProfilePage() {
   );
 }
 function Profile() {
-  const router = useRouter(), p = useSearchParams(),
+  const router = useRouter(),
+    p = useSearchParams(),
     raw = p.get("entity"),
     entity: Entity =
       raw && Object.hasOwn(entityLabels, raw) ? (raw as Entity) : "students",
     id = p.get("id") ?? "";
+  const access = useClassCapabilities(entity === "classes" ? id : "");
   const q = useManagementDetailQuery({ entity, id }, { skip: !id }),
     [edit, setEdit] = useState(false),
     [createAccount, setCreateAccount] = useState(false),
@@ -259,7 +263,10 @@ function Profile() {
   if (!d || !r) return <Feedback empty="Không có hồ sơ." />;
   const account = entity === "accounts" && "roles" in r ? r : d.accounts[0];
   const saved = (n?: number, newId?: string) => {
-    if (n && newId && newId !== id) router.replace(`/manage/profile/?entity=${entity}&id=${encodeURIComponent(newId)}`);
+    if (n && newId && newId !== id)
+      router.replace(
+        `/manage/profile/?entity=${entity}&id=${encodeURIComponent(newId)}`,
+      );
     setEdit(false);
     setCreateAccount(false);
     setRelationship(null);
@@ -275,9 +282,11 @@ function Profile() {
             <NavButton href={`/manage/list/?entity=${entity}`}>
               ← Danh sách
             </NavButton>
-            <Button variant="contained" onClick={() => setEdit(true)}>
-              Chỉnh sửa hồ sơ / trạng thái
-            </Button>
+            {(entity !== "classes" || tab === 1) && (
+              <Button variant="contained" onClick={() => setEdit(true)}>
+                Chỉnh sửa hồ sơ / trạng thái
+              </Button>
+            )}
             {(entity === "students" || entity === "teachers") &&
               !d.accounts.length && (
                 <Button onClick={() => setCreateAccount(true)}>
@@ -294,21 +303,36 @@ function Profile() {
         scrollButtons="auto"
         sx={{ mb: 2 }}
       >
+        {entity === "classes" && <Tab label="Thread" />}
         <Tab label="Hồ sơ & quan hệ" />
-        {entity === "classes" && <Tab label="Nội dung học tập · Chỉ xem" />}
       </Tabs>
-      {tab === 1 && entity === "classes" ? (
-        <Card>
-          <Alert severity="info" sx={{ mb: 2 }}>
-            Không gian Quản lý chỉ xem phiên, schema và điểm. Chuyển sang Giảng
-            viên để sửa lớp đang phụ trách.
-          </Alert>
-          <NavButton href={`/class/?classId=${encodeURIComponent(r.id)}`}>
-            Xem phiên học, schema, điểm & báo cáo
-          </NavButton>
-        </Card>
+      {entity === "classes" && tab === 0 ? (
+        <>
+          <Feedback
+            loading={access.loading}
+            error={access.error}
+            retry={() => void access.retry()}
+          />
+          {access.access && (
+            <ClassThreadFeed
+              key={access.access.classId}
+              classId={access.access.classId}
+              editable={false}
+            />
+          )}
+        </>
       ) : (
         <Stack spacing={2.5}>
+          {entity === "classes" && (
+            <Card>
+              <NavButton
+                href={`/class/?classId=${encodeURIComponent(access.access?.classId ?? r.id)}`}
+              >
+                Xem phiên học, schema, điểm & báo cáo
+              </NavButton>
+            </Card>
+          )}
+
           <Card>
             <Box
               sx={{
@@ -320,7 +344,14 @@ function Profile() {
               {Object.entries(r)
                 .filter(
                   ([key, value]) =>
-                    !(entity === "accounts" && key === "id") && !(/id$/i.test(key) && publicId(typeof value === "string" ? value : undefined) === "—") && ![
+                    !(entity === "accounts" && key === "id") &&
+                    !(
+                      /id$/i.test(key) &&
+                      publicId(
+                        typeof value === "string" ? value : undefined,
+                      ) === "—"
+                    ) &&
+                    ![
                       "createdAt",
                       "updatedAt",
                       "version",
@@ -393,7 +424,13 @@ function Profile() {
               )}
             </Card>
           )}
-          {account && <AccountSessions accountId={account.id} loginId={account.loginId} onSaved={setMessage} />}
+          {account && (
+            <AccountSessions
+              accountId={account.id}
+              loginId={account.loginId}
+              onSaved={setMessage}
+            />
+          )}
           {d.classes.length > 0 && entity !== "classes" && (
             <Card>
               <Typography variant="h5" sx={{ mb: 2 }}>
@@ -408,7 +445,13 @@ function Profile() {
                       {c.name}
                     </NavButton>
                     <Typography>{showValue(c.status)}</Typography>
-                    {entity === "students" && <NavButton href={`/reports/?classId=${encodeURIComponent(c.id)}&studentId=${encodeURIComponent(r.id)}`}>Báo cáo học tập</NavButton>}
+                    {entity === "students" && (
+                      <NavButton
+                        href={`/reports/?classId=${encodeURIComponent(c.id)}&studentId=${encodeURIComponent(r.id)}`}
+                      >
+                        Báo cáo học tập
+                      </NavButton>
+                    )}
                     <Progress
                       completed={c.completedUnits}
                       total={c.totalUnits}
@@ -508,7 +551,11 @@ function Profile() {
                       <Typography>
                         {publicId(e.studentId)} · {showValue(e.status)}
                       </Typography>
-                      <NavButton href={`/reports/?classId=${encodeURIComponent(r.id)}&studentId=${encodeURIComponent(e.studentId)}`}>Báo cáo học tập</NavButton>
+                      <NavButton
+                        href={`/reports/?classId=${encodeURIComponent(r.id)}&studentId=${encodeURIComponent(e.studentId)}`}
+                      >
+                        Báo cáo học tập
+                      </NavButton>
                       <Button
                         onClick={() =>
                           setRelationship({
@@ -658,10 +705,12 @@ function AssignmentList({
                   {d.teachers.find((t) => t.id === a.teacherId)?.fullName ??
                     publicId(a.teacherId)}
                   <br />
-                  {d.classes.find((c) => c.id === a.classId)?.name ?? publicId(a.classId)}
+                  {d.classes.find((c) => c.id === a.classId)?.name ??
+                    publicId(a.classId)}
                 </TableCell>
                 <TableCell>
-                  {d.labels.find((l) => l.id === a.labelId)?.name ?? publicId(a.labelId)}
+                  {d.labels.find((l) => l.id === a.labelId)?.name ??
+                    publicId(a.labelId)}
                 </TableCell>
                 <TableCell>{showValue(a.status)}</TableCell>
                 <TableCell>
@@ -682,7 +731,9 @@ function AssignmentList({
             <Typography sx={{ fontWeight: 600 }}>
               {d.teachers.find((t) => t.id === a.teacherId)?.fullName ??
                 publicId(a.teacherId)}{" "}
-              · {d.classes.find((c) => c.id === a.classId)?.name ?? publicId(a.classId)}
+              ·{" "}
+              {d.classes.find((c) => c.id === a.classId)?.name ??
+                publicId(a.classId)}
             </Typography>
             <Typography>
               {d.labels.find((l) => l.id === a.labelId)?.name} ·{" "}
@@ -698,8 +749,8 @@ function AssignmentList({
             component="summary"
             sx={{ cursor: "pointer", minHeight: 44 }}
           >
-            Lịch sử {publicId(a.teacherId)} / {publicId(a.classId)} · {a.history.length} giai đoạn /
-            sự kiện
+            Lịch sử {publicId(a.teacherId)} / {publicId(a.classId)} ·{" "}
+            {a.history.length} giai đoạn / sự kiện
           </Typography>
           {a.history.map((h, i) => (
             <Typography key={i} variant="body2" sx={{ py: 1 }}>
