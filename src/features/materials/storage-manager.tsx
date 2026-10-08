@@ -14,7 +14,7 @@ import Dialog from "@mui/material/Dialog";
 import DialogTitle from "@mui/material/DialogTitle";
 import DialogContent from "@mui/material/DialogContent";
 import DialogActions from "@mui/material/DialogActions";
-import { useStoragesQuery } from "@/api/library-api";
+import { useStoragesQuery, useUploadSettingsQuery } from "@/api/library-api";
 import { useSaveStorageMutation, useProbeStorageMutation, useDeactivateStorageMutation, useTransfersQuery, useRetryTransferMutation, useCancelTransferMutation } from "@/api/storage-api";
 import { useWorkspace } from "@/features/access/hooks";
 import { Feedback, Title } from "@/shared/ui";
@@ -22,13 +22,14 @@ import { useUnsaved } from "@/shared/unsaved";
 import { stageConnection, type StorageConnection } from "./storage-connections";
 import type { Area, Storage } from "./models";
 import { areaLabels, bytes } from "./utils";
+import {UploadRouting,uploadKindLabels} from "./upload-routing";
 import { MaterialBrowser } from "./browser";
 const blankConnection = (): StorageConnection => ({ endpoint: "", region: "ap-southeast-1", bucket: "", accessKeyId: "", secretAccessKey: "" });
 const usageLabels: Record<string, string> = { LOW: "Còn nhiều chỗ", NORMAL: "Bình thường", WATCH: "Cần theo dõi", HIGH: "Gần đầy", CRITICAL: "Sắp hết dung lượng" };
 const usageColor = (percent: number): "error" | "warning" | "info" | "primary" | "success" => percent >= 95 ? "error" : percent >= 80 ? "warning" : percent >= 60 ? "info" : percent >= 30 ? "primary" : "success";
 const lifecycleLabels = { ACTIVE: "Nhận upload", DRAINING: "Chỉ đọc / chuyển ra", INACTIVE: "Ngừng sử dụng" };
 export function StorageManagerPage() {
-  const { selected } = useWorkspace(), q = useStoragesQuery(undefined, { skip: selected !== "manager" }), jobs = useTransfersQuery(undefined, { skip: selected !== "manager" }),
+  const { selected } = useWorkspace(), q = useStoragesQuery(undefined, { skip: selected !== "manager" }), jobs = useTransfersQuery(undefined, { skip: selected !== "manager" }), routing = useUploadSettingsQuery(undefined, {skip: selected !== "manager"}),
     [edit, setEdit] = useState<Storage | null | undefined>(), [view, setView] = useState<Storage | null>(null), [message, setMessage] = useState(""),
     [remove, removal] = useDeactivateStorageMutation(), [retry, retryState] = useRetryTransferMutation(), [cancel, cancelState] = useCancelTransferMutation();
   if (selected !== "manager") return <Feedback error={new Error("Chỉ quản lý được cấu hình storage.")} />;
@@ -44,11 +45,13 @@ export function StorageManagerPage() {
         <Typography variant="body2">{s.id} · {areaLabels[s.category ?? s.id as Area] ?? "Tài liệu"}</Typography>
         <Stack direction="row" useFlexGap spacing={1} sx={{ flexWrap: "wrap" }}><Chip label={lifecycleLabels[s.lifecycle ?? "ACTIVE"]} /><Chip color={usageColor(s.percentage)} label={`${usageLabels[s.status] ?? s.status} · ${s.percentage.toFixed(1)}% đã dùng / giữ chỗ`} />{s.configured === false && <Chip label="Chưa có kết nối" color="warning" />}</Stack>
         <LinearProgress variant="determinate" value={Math.min(100, s.percentage)} color={usageColor(s.percentage)} sx={{ height: 8, borderRadius: 4 }} />
+        <Typography variant="body2">Nhận mặc định: {routing.currentData?.routes?.filter(r => r.storageId === s.id).map(r => `${{comment:"Bình luận",session:"Phiên học",library:"Kho"}[r.source]} / ${uploadKindLabels[r.fileType] ?? r.fileType}`).join(", ") || "Chưa có quy tắc"}</Typography>
         <Typography variant="body2">Quota: {(s.totalBytes / 1e9).toLocaleString("vi-VN")} GB · Đã dùng {bytes(s.usedBytes)} · Giữ chỗ {bytes(s.reservedBytes)} · Còn {bytes(s.remainingBytes)}</Typography>
         <Stack direction="row" spacing={1} useFlexGap sx={{ flexWrap: "wrap" }}><Button onClick={() => setView(s)}>Xem file</Button><Button onClick={() => setEdit(s)}>Cấu hình</Button><Button color="warning" disabled={s.lifecycle === "INACTIVE" || removal.isLoading || s.usedBytes + s.reservedBytes > 0} onClick={async () => { const reason = window.prompt(`Ngừng sử dụng ${s.name ?? s.id}. Giữ lịch sử; không xóa bucket Neon. Nhập lý do:`); if (!reason?.trim()) return; try { await remove({ id: s.id, version: s.version ?? 1, reason }).unwrap(); setMessage("Đã ngừng sử dụng ổ."); } catch {} }}>Ngừng sử dụng</Button></Stack>
       </Stack></Paper>)}
     </Box>
     <Typography variant="body2" color="text.secondary">Quota là giới hạn ứng dụng, cần phù hợp hạn mức Neon thực tế. Neon có thể giữ phiên bản đã xóa theo chính sách lưu giữ của nhà cung cấp.</Typography>
+    <UploadRouting />
     <Typography variant="h6">Tác vụ chuyển storage (100 lượt gần nhất)</Typography>
     <Feedback loading={jobs.isLoading} error={jobs.error} retry={() => void jobs.refetch()} />
     {!jobs.isLoading && !jobs.error && !jobs.currentData?.items.length && <Feedback empty="Chưa có tác vụ chuyển." />}

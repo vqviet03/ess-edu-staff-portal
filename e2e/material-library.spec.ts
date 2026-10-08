@@ -143,6 +143,10 @@ async function fixture(page: Page) {
     else if (path === "/notifications")
       data = { items: [], nextCursor: null, unreadCount: 0 };
     else if (path === "/storage-alerts") data = { items: [], nextCursor: null };
+    else if (path === "/materials/a/content") {
+      expect(route.request().headers().authorization).toMatch(/^Bearer /);
+      await route.fulfill({status:200,headers:cors,contentType:"application/pdf",body:samplePdf()});return;
+    }
     else if (path === "/materials/a/access-url")
       data = {
         url: "https://files.example.test/pdf",
@@ -440,7 +444,14 @@ test("PDF viewer loads static worker under basePath and zooms without selecting 
     .click();
   const dialog = page.getByRole("dialog");
   await expect(dialog.getByText("1/1", { exact: true })).toBeVisible();
-  await expect(dialog.locator("canvas")).toHaveJSProperty("width", 300);
+  await expect.poll(() => dialog.locator("canvas").evaluate(node => {
+    const canvas = node as HTMLCanvasElement;
+    return canvas.width > 0 && Math.abs(canvas.width / canvas.height - 2) < 0.02 && canvas.height <= window.innerHeight * 0.69;
+  })).toBe(true);
+  await dialog.getByRole("button", {name: "Cuộn dọc", exact: true}).click();
+  await expect(dialog.getByRole("button", {name: "Lật trang", exact: true})).toBeVisible();
+  await dialog.getByRole("button", {name: "Toàn màn hình", exact: true}).click();
+  await expect(dialog.getByRole("button", {name: "Thu về cửa sổ", exact: true})).toBeVisible();
   await dialog.getByRole("button", { name: "+", exact: true }).click();
   await expect(dialog.getByText("125%", { exact: true })).toBeVisible();
   await dialog.getByRole("button", { name: "Đóng", exact: true }).click();

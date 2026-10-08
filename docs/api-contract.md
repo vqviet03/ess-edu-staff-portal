@@ -1,5 +1,7 @@
 # ESS staff API · v1
 
+Thread/file authentication bổ sung: [thread-materials.md](thread-materials.md). Binary file access bắt buộc Bearer; không dùng public/signed GET nữa.
+
 Base URL công khai từ NEXT_PUBLIC_API_BASE_URL, ví dụ `https://api.example.com/v1`. HTTPS. ID string (URL-encode), datetime ISO 8601 UTC; date/dateOfBirth YYYY-MM-DD hoặc null. Không có điểm là null, không thay bằng 0. JSON thành công `{ "data": T, "meta"?: {...} }`; list dùng data array. POST tạo trả 201 hoặc 200; mutations trả đối tượng đã lưu và version mới. File template trả binary XLSX, không bọc JSON.
 
 ## Models

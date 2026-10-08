@@ -10,6 +10,86 @@ import {
   type PDFDocumentProxy,
 } from "pdfjs-dist";
 GlobalWorkerOptions.workerSrc = `${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/pdf/pdf.worker.min.mjs`;
+function PdfPage({
+  pdf,
+  page,
+  zoom,
+}: {
+  pdf: PDFDocumentProxy;
+  page: number;
+  zoom: number;
+}) {
+  const holder = useRef<HTMLDivElement>(null),
+    canvas = useRef<HTMLCanvasElement>(null),
+    [visible, setVisible] = useState(false),
+    [width, setWidth] = useState(600),
+    [error, setError] = useState<unknown>();
+  useEffect(() => {
+    const node = holder.current;
+    if (!node) return;
+    const observer = new IntersectionObserver(
+      (entries) => setVisible(entries[0].isIntersecting),
+      { rootMargin: "200px" },
+    );
+    observer.observe(node);
+    const size = new ResizeObserver((entries) =>
+      setWidth(entries[0].contentRect.width),
+    );
+    size.observe(node);
+    return () => {
+      observer.disconnect();
+      size.disconnect();
+    };
+  }, []);
+  useEffect(() => {
+    if (!visible) return;
+    let active = true,
+      task:
+        | ReturnType<Awaited<ReturnType<PDFDocumentProxy["getPage"]>>["render"]>
+        | undefined;
+    void pdf
+      .getPage(page)
+      .then((p) => {
+        if (!active || !canvas.current) return;
+        const original = p.getViewport({ scale: 1 }),
+          view = p.getViewport({
+            scale:
+              Math.min(
+                width / original.width,
+                (window.innerHeight * 0.68) / original.height,
+              ) * zoom,
+          });
+        canvas.current.width = view.width;
+        canvas.current.height = view.height;
+        task = p.render({ canvas: canvas.current, viewport: view });
+        return task.promise;
+      })
+      .catch((e) => {
+        if (active && e?.name !== "RenderingCancelledException") setError(e);
+      });
+    return () => {
+      active = false;
+      task?.cancel();
+    };
+  }, [pdf, page, zoom, visible, width]);
+  return (
+    <div
+      ref={holder}
+      style={{
+        minHeight: visible ? 100 : 600,
+        width: "100%",
+        marginBottom: 16,
+      }}
+    >
+      <Feedback error={error} />
+      <canvas
+        ref={canvas}
+        aria-label={`Trang ${page}`}
+        style={{ display: "block", margin: "auto" }}
+      />
+    </div>
+  );
+}
 export default function PdfViewer({
   url,
   retry,
@@ -17,17 +97,13 @@ export default function PdfViewer({
   url: string;
   retry: () => void;
 }) {
-  const canvas = useRef<HTMLCanvasElement>(null),
-    [pdf, setPdf] = useState<PDFDocumentProxy | null>(null),
+  const [pdf, setPdf] = useState<PDFDocumentProxy | null>(null),
     [page, setPage] = useState(1),
-    [scale, setScale] = useState(1),
-    [error, setError] = useState<unknown>(),
-    [loading, setLoading] = useState(true);
+    [zoom, setZoom] = useState(1),
+    [mode, setMode] = useState<"pages" | "scroll">("pages"),
+    [error, setError] = useState<unknown>();
   useEffect(() => {
     let active = true;
-    setLoading(true);
-    setError(undefined);
-    setPdf(null);
     const task = getDocument({ url, isEvalSupported: false });
     task.promise
       .then((p) => {
@@ -37,86 +113,59 @@ export default function PdfViewer({
         }
       })
       .catch((e) => {
-        if (active) {
-          setError(e);
-          setLoading(false);
-        }
+        if (active) setError(e);
       });
     return () => {
       active = false;
       void task.destroy();
     };
   }, [url]);
-  useEffect(() => {
-    if (!pdf) return;
-    let active = true;
-    let render:
-      | ReturnType<Awaited<ReturnType<PDFDocumentProxy["getPage"]>>["render"]>
-      | undefined;
-    setLoading(true);
-    setError(undefined);
-    pdf
-      .getPage(page)
-      .then((p) => {
-        if (!active || !canvas.current) return;
-        const view = p.getViewport({ scale }),
-          node = canvas.current;
-        node.width = view.width;
-        node.height = view.height;
-        render = p.render({ canvas: node, viewport: view });
-        return render.promise;
-      })
-      .then(() => {
-        if (active) setLoading(false);
-      })
-      .catch((e) => {
-        if (active) {
-          setError(e);
-          setLoading(false);
-        }
-      });
-    return () => {
-      active = false;
-      render?.cancel();
-    };
-  }, [pdf, page, scale]);
   return (
     <Stack spacing={2}>
-      <Stack direction="row" useFlexGap spacing={1} sx={{ flexWrap: "wrap" }}>
-        <Button disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>
-          ← Trang
+      <Stack direction="row" spacing={1} useFlexGap sx={{ flexWrap: "wrap" }}>
+        <Button onClick={() => setMode(mode === "pages" ? "scroll" : "pages")}>
+          {mode === "pages" ? "Cuộn dọc" : "Lật trang"}
         </Button>
-        <Typography sx={{ alignSelf: "center" }}>
-          {page}/{pdf?.numPages ?? "…"}
-        </Typography>
+        {mode === "pages" && (
+          <>
+            <Button disabled={page <= 1} onClick={() => setPage((v) => v - 1)}>
+              ←
+            </Button>
+            <Typography sx={{ alignSelf: "center" }}>
+              {page}/{pdf?.numPages ?? "…"}
+            </Typography>
+            <Button
+              disabled={!pdf || page >= pdf.numPages}
+              onClick={() => setPage((v) => v + 1)}
+            >
+              →
+            </Button>
+          </>
+        )}
         <Button
-          disabled={!pdf || page >= pdf.numPages}
-          onClick={() => setPage((p) => p + 1)}
-        >
-          Trang →
-        </Button>
-        <Button
-          disabled={scale <= 0.5}
-          onClick={() => setScale((s) => Math.max(0.5, s - 0.25))}
+          disabled={zoom <= 0.25}
+          onClick={() => setZoom((v) => v - 0.25)}
         >
           −
         </Button>
+        <Button onClick={() => setZoom(1)}>Vừa khung</Button>
         <Typography sx={{ alignSelf: "center" }}>
-          {Math.round(scale * 100)}%
+          {Math.round(zoom * 100)}%
         </Typography>
-        <Button
-          disabled={scale >= 3}
-          onClick={() => setScale((s) => Math.min(3, s + 0.25))}
-        >
+        <Button disabled={zoom >= 3} onClick={() => setZoom((v) => v + 0.25)}>
           +
         </Button>
       </Stack>
-      <Feedback loading={loading} error={error} retry={retry} />
-      <div style={{ overflow: "auto", maxHeight: "65vh" }}>
-        <canvas
-          ref={canvas}
-          style={{ display: "block", margin: "auto", maxWidth: "none" }}
-        />
+      <Feedback loading={!pdf && !error} error={error} retry={retry} />
+      <div style={{ overflow: "auto", maxHeight: "75vh" }}>
+        {pdf &&
+          (mode === "pages" ? (
+            <PdfPage key={page} pdf={pdf} page={page} zoom={zoom} />
+          ) : (
+            Array.from({ length: pdf.numPages }, (_, i) => (
+              <PdfPage key={i} pdf={pdf} page={i + 1} zoom={zoom} />
+            ))
+          ))}
       </div>
     </Stack>
   );

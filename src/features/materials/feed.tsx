@@ -1,4 +1,5 @@
 "use client";
+import {MaterialThumbnail} from "./thumbnail";
 import { useState } from "react";
 import Box from "@mui/material/Box";
 import Paper from "@mui/material/Paper";
@@ -47,6 +48,9 @@ function Comments({ post }: { post: Post }) {
     [cursor, setCursor] = useState<string>(),
     query = useCommentsQuery({ postId: post.id, cursor }),
     [body, setBody] = useState(""),
+    [upload, setUpload] = useState(false),
+    [attachments, setAttachments] = useState<MaterialFile[]>([]),
+    [preview, setPreview] = useState<MaterialFile | null>(null),
     [parent, setParent] = useState<string>(),
     [editing, setEditing] = useState<{ id: string; version: number } | null>(
       null,
@@ -54,7 +58,7 @@ function Comments({ post }: { post: Post }) {
     [save, state] = useSaveCommentMutation(),
     [remove] = useRemoveCommentMutation(),
     [error, setError] = useState<unknown>();
-  useUnsaved(!!body.trim());
+  useUnsaved(!!body.trim() || attachments.length > 0);
   return (
     <Stack spacing={1.5}>
       <Feedback
@@ -82,6 +86,7 @@ function Comments({ post }: { post: Post }) {
           <Typography sx={{ whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}>
             {c.body}
           </Typography>
+          {c.attachments?.map(file => <Button key={file.id} onClick={() => setPreview(file)}>{file.displayName}</Button>)}
           <Stack direction="row">
             <Button
               disabled={c.version === 0}
@@ -98,6 +103,7 @@ function Comments({ post }: { post: Post }) {
                   if (c.version === 0) return;
                   setEditing({ id: c.id, version: c.version });
                   setBody(c.body);
+                  setAttachments(c.attachments ?? []);
                   setParent(undefined);
                 }}
               >
@@ -157,9 +163,13 @@ function Comments({ post }: { post: Post }) {
         onChange={(e) => setBody(e.target.value)}
         slotProps={{ htmlInput: { maxLength: 5000 } }}
       />
+      <Button onClick={() => setUpload(true)}>Đính kèm ảnh / file / audio / video</Button>
+      {attachments.map(file => <Chip key={file.id} label={file.displayName} onDelete={() => setAttachments(old => old.filter(f => f.id !== file.id))}/>)}
+      {upload && <UploadDialog folderId={null} sessionId={post.sessionId} postId={post.id} close={() => setUpload(false)} added={file => setAttachments(old => [...old, file])}/>}
+      {preview && <MaterialViewer file={preview} close={() => setPreview(null)}/>}
       <Button
         variant="contained"
-        disabled={!body.trim() || state.isLoading}
+        disabled={(!body.trim() && !attachments.length) || state.isLoading}
         onClick={async () => {
           setError(undefined);
           try {
@@ -169,8 +179,10 @@ function Comments({ post }: { post: Post }) {
               version: editing?.version,
               body,
               parentId: parent,
+              materialIds: attachments.map(file => file.id),
             }).unwrap();
             setBody("");
+            setAttachments([]);
             setParent(undefined);
             setEditing(null);
             setCursor(undefined);
@@ -280,13 +292,7 @@ function PostCard({
                     }}
                   >
                     {a.file?.thumbnailUrl && (
-                      <Box
-                        component="img"
-                        src={a.file.thumbnailUrl}
-                        alt=""
-                        loading="lazy"
-                        sx={{ width: 64, height: 64, objectFit: "contain" }}
-                      />
+                      <MaterialThumbnail id={a.file.id}/>
                     )}
                     <Box sx={{ minWidth: 0, textAlign: "left" }}>
                       <Typography
@@ -322,6 +328,7 @@ function PostCard({
             <Button
               key={value}
               variant={post.myReaction === value ? "contained" : "outlined"}
+              aria-pressed={post.myReaction === value}
               disabled={state.isLoading}
               onClick={async () => {
                 setError(undefined);
