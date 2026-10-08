@@ -79,15 +79,20 @@ export function Providers({ children }: { children: ReactNode }) {
           shape: { borderRadius: 16 },
           components: {
             MuiButton: {
-              defaultProps: { disableElevation: true },
-              styleOverrides: { root: { minHeight: 44, borderRadius: 8 } },
+              defaultProps: { disableElevation: true, size: "small" },
+              styleOverrides: { root: { borderRadius: 8, "@media (pointer: coarse)": {minHeight:44} } },
             },
             MuiIconButton: {
-              styleOverrides: { root: { minWidth: 44, minHeight: 44 } },
+              defaultProps: {size:"small"},
+              styleOverrides: { root: {"@media (pointer: coarse)": { minWidth:44,minHeight:44 }} },
             },
             MuiTextField: { defaultProps: { size: "small", fullWidth: true } },
+            MuiFormControl: {defaultProps:{size:"small"}},
+            MuiSelect: {defaultProps:{size:"small"}},
+            MuiInputBase: {defaultProps:{size:"small"}},
+            MuiChip: {defaultProps:{size:"small"}},
             MuiOutlinedInput: {
-              styleOverrides: { root: { borderRadius: 8, minHeight: 46 } },
+              styleOverrides: { root: { borderRadius: 8 } },
             },
             MuiPaper: {
               defaultProps: { elevation: 0 },
@@ -119,7 +124,8 @@ export function Providers({ children }: { children: ReactNode }) {
               styleOverrides: { root: { height: 7, borderRadius: 10 } },
             },
             MuiCheckbox: {
-              styleOverrides: { root: { minWidth: 44, minHeight: 44 } },
+              defaultProps: {size:"small"},
+              styleOverrides: { root: {"@media (pointer: coarse)": { minWidth:44,minHeight:44 }} },
             },
           },
         },

@@ -1,5 +1,13 @@
 "use client";
 import { Comments } from "./comments";
+import { IconAction } from "@/shared/icon-action";
+import FirstPage from "@mui/icons-material/FirstPage";
+import ArrowForward from "@mui/icons-material/ArrowForward";
+import Add from "@mui/icons-material/Add";
+import FolderOutlined from "@mui/icons-material/FolderOutlined";
+import IconButton from "@mui/material/IconButton";
+import Tooltip from "@mui/material/Tooltip";
+import Link from "next/link";
 import { PostSurface, postTypeLabels } from "./post-surface";
 import { useWorkspace } from "@/features/access/hooks";
 import Autocomplete from "@mui/material/Autocomplete";
@@ -25,7 +33,7 @@ import {
   useReactionMutation,
 } from "@/api/library-api";
 import { useAppSelector } from "@/store";
-import { Feedback, NavButton } from "@/shared/ui";
+import { Feedback } from "@/shared/ui";
 import { useUnsaved } from "@/shared/unsaved";
 import { errorMessage } from "@/api/base-query";
 import type { Attachment, MaterialFile, Post, PostInput } from "./models";
@@ -198,7 +206,10 @@ export function SessionFeed({
       {editable && (
         <Paper
           sx={{
-            p: 2,
+            p: 1.5,
+            width: "100%",
+            maxWidth: 600,
+            mx: "auto",
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
@@ -208,18 +219,20 @@ export function SessionFeed({
           <Typography color="text.secondary">
             Chia sẻ tài liệu, thông báo hoặc trao đổi với lớp…
           </Typography>
-          <Button variant="contained" onClick={() => setOpen(true)}>
-            + Đăng bài
-          </Button>
+          <IconAction
+            label="+ Đăng bài"
+            icon={<Add fontSize="small" />}
+            onClick={() => setOpen(true)}
+          />
         </Paper>
       )}
       <Box
         sx={{
           display: "grid",
-          gridTemplateColumns: {
-            xs: "minmax(0,1fr)",
-            lg: "minmax(0,2fr) minmax(240px,1fr)",
-          },
+          gridTemplateColumns: "minmax(0,1fr)",
+          width: "100%",
+          maxWidth: 680,
+          mx: "auto",
           gap: 3,
           alignItems: "start",
         }}
@@ -272,20 +285,26 @@ export function SessionFeed({
           )}
           <Stack direction="row">
             {cursor && (
-              <Button onClick={() => setCursor(undefined)}>Bài mới nhất</Button>
+              <IconAction
+                label="Bài mới nhất"
+                icon={<FirstPage fontSize="small" />}
+                onClick={() => setCursor(undefined)}
+              />
             )}
             {list.currentData?.nextCursor && (
-              <Button
+              <IconAction
+                label="Bài tiếp theo"
+                icon={<ArrowForward fontSize="small" />}
                 onClick={() =>
                   setCursor(list.currentData?.nextCursor ?? undefined)
                 }
-              >
-                Bài tiếp theo
-              </Button>
+              />
             )}
           </Stack>
         </Stack>
-        <Paper sx={{ p: 2.5, position: { lg: "sticky" }, top: 24 }}>
+        <Paper
+          sx={{ p: 1.5, order: -1, width: "100%", maxWidth: 600, mx: "auto" }}
+        >
           <Stack spacing={2}>
             <Typography variant="h6">
               {sessionId ? "Trong phiên này" : "Thread lớp học"}
@@ -298,16 +317,24 @@ export function SessionFeed({
               ) ?? 0}{" "}
               tài liệu
             </Typography>
-            <NavButton href="/materials/">Xem kho tài liệu</NavButton>
+            <Tooltip title="Xem kho tài liệu">
+              <IconButton
+                component={Link}
+                href="/materials/"
+                aria-label="Xem kho tài liệu"
+              >
+                <FolderOutlined fontSize="small" />
+              </IconButton>
+            </Tooltip>
             {editable && (
-              <Button
+              <IconAction
+                label="Thêm từ kho"
+                icon={<Add fontSize="small" />}
                 onClick={() => {
                   setOpen(true);
                   setPicker(true);
                 }}
-              >
-                Thêm từ kho
-              </Button>
+              />
             )}
           </Stack>
         </Paper>
