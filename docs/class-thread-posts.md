@@ -4,7 +4,7 @@ Thiết kế: https://www.figma.com/design/LN3m3ZToWXHZCrfjMfXZmG (desktop 1:45,
 
 ## Màn hình
 
-Staff: lớp mở **Thread** mặc định, **Hồ sơ & quan hệ** ở tab thứ hai. Các chức năng tiến độ, hồ sơ, phân công, phiên học và bài kiểm tra hiện có được giữ. Không gian Quản lý đặt chỉnh sửa hồ sơ/trạng thái trong tab thứ hai.
+Staff: lớp mở **Thread** mặc định, **Tiến độ lớp** ở tab thứ hai, **Hồ sơ & quan hệ** ở tab thứ ba. Các chức năng hồ sơ, phân công, phiên học và bài kiểm tra hiện có được giữ. Không gian Quản lý đặt chỉnh sửa hồ sơ/trạng thái trong tab thứ ba.
 
 Học sinh: **Thread / Tài liệu / Báo cáo kết quả**. Tab Tài liệu chỉ lấy bài loại SESSION_MATERIAL, có bộ lọc phiên học tìm theo tên/ngày. Báo cáo giữ các Unit, số liệu và controls hiện tại; chỉ tải khi mở tab. `/home/?tab=report` mở trực tiếp báo cáo.
 
@@ -67,3 +67,13 @@ Thanh Viết bình luận là input trực tiếp, luôn giữ cùng bản nháp
 Tương tác dùng Material Icons (Thích/Yêu thích/Tuyệt vời); nút chính đổi icon và màu theo lựa chọn, có bỏ tương tác và rollback khi lỗi. Các nút tương tác/tải là icon, giữ tooltip và aria-label. Không tải bình luận trước khi người dùng mở danh sách hoặc nhập nội dung; không thêm polling hay API backend mới.
 
 Điều chỉnh tương tác này chỉ thay frontend, không cần migration hay cấu hình GCP mới.
+
+## Chi tiết lớp trên Staff Portal
+
+Cả Quản lý và Giảng viên dùng cùng thứ tự: **Thread → Tiến độ lớp → Hồ sơ & quan hệ**. Tab Tiến độ lớp chứa Unit và danh sách phiên, không có tab học sinh/phiên lồng bên trong. Giữ nguyên schema, bài đánh giá, nhập điểm và Excel trong từng phiên.
+
+Tab Hồ sơ & quan hệ chứa hồ sơ/phân công/ghi danh và bảng học sinh: ID công khai, họ tên, biệt danh, ngày sinh, trạng thái. Click dòng hoặc Enter/Space mở hồ sơ; menu ba chấm có báo cáo, sửa thông tin và cập nhật trạng thái. Thay trạng thái chỉ cho Quản lý, gửi patch status/version qua preview/commit hiện tại để kiểm tra ảnh hưởng; không đổi điểm, quyền hoặc thông tin không chọn. Ghi danh lịch sử và thao tác thêm/khôi phục vẫn giữ, quản lý xem chi tiết ghi danh trong hồ sơ học sinh.
+
+Giảng viên mở route tĩnh `/student/?classId=...&studentId=...` với dữ liệu từ API danh sách học sinh theo lớp, gồm cả lịch sử khi backend cho phép. Học sinh ngoài lớp không được hiện; quản lý mở hồ sơ quản lý đầy đủ hiện có. `/class/?classId=...&tab=profile|progress` hỗ trợ quay lại đúng tab; mặc định vẫn Thread. Panel giữ state/bản nháp khi đổi tab. Trên màn giảng viên, danh sách phiên/học sinh chỉ được request khi mở tab tương ứng.
+
+Không có API backend, migration, cấu hình GCP hoặc thư viện mới. Static export và workflow deploy dev được giữ nguyên.

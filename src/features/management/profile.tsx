@@ -3,6 +3,13 @@ import { ClassThreadFeed } from "@/features/materials/feed";
 import { useClassCapabilities } from "@/features/access/hooks";
 import { publicId } from "@/shared/public-id";
 import { useState } from "react";
+import {
+  ClassDetailTabs,
+  initialClassTab,
+  type ClassTab,
+} from "@/features/classes/detail-tabs";
+import { ClassProgress } from "@/features/classes/progress";
+import { ClassStudentTable } from "@/features/students/class-table";
 import { useRouter, useSearchParams } from "next/navigation";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
@@ -39,6 +46,7 @@ import type {
   TeacherClassAssignment,
   ProfileDetail,
   Enrollment,
+  ManagedStudent,
 } from "./models";
 import { recordName } from "./models";
 import { EntityEditor } from "./editor";
@@ -223,18 +231,55 @@ export function ProfilePage() {
     </ManagerOnly>
   );
 }
-function Profile() {
+export function ClassManagementProfile({ classId }: { classId: string }) {
+  const access = useClassCapabilities(classId);
+  return (
+    <ManagerOnly>
+      {access.loading || access.error ? (
+        <Feedback
+          loading={access.loading}
+          error={access.error}
+          retry={() => void access.retry()}
+        />
+      ) : access.access?.canView ? (
+        <Profile
+          entityOverride="classes"
+          idOverride={access.access.classId}
+          classAccessId={classId}
+        />
+      ) : (
+        <Feedback empty="Bạn không có quyền xem lớp này." />
+      )}
+    </ManagerOnly>
+  );
+}
+function Profile({
+  entityOverride,
+  idOverride,
+  classAccessId,
+}: {
+  entityOverride?: Entity;
+  idOverride?: string;
+  classAccessId?: string;
+} = {}) {
   const router = useRouter(),
     p = useSearchParams(),
     raw = p.get("entity"),
     entity: Entity =
-      raw && Object.hasOwn(entityLabels, raw) ? (raw as Entity) : "students",
-    id = p.get("id") ?? "";
-  const access = useClassCapabilities(entity === "classes" ? id : "");
+      entityOverride ??
+      (raw && Object.hasOwn(entityLabels, raw) ? (raw as Entity) : "students"),
+    id = idOverride ?? p.get("id") ?? "";
+  const access = useClassCapabilities(
+    entity === "classes" ? (classAccessId ?? id) : "",
+  );
   const q = useManagementDetailQuery({ entity, id }, { skip: !id }),
     [edit, setEdit] = useState(false),
     [createAccount, setCreateAccount] = useState(false),
-    [tab, setTab] = useState(0),
+    [tab, setTab] = useState<ClassTab>(initialClassTab(p.get("tab"))),
+    [classStudentEdit, setClassStudentEdit] = useState<{
+      student: ManagedStudent;
+      mode?: "status";
+    } | null>(null),
     [showHistory, setShowHistory] = useState(false),
     [relationship, setRelationship] = useState<{
       kind: "assignment" | "enrollment";
@@ -272,6 +317,235 @@ function Profile() {
     setRelationship(null);
     if (n) setMessage(`Đã lưu ${n} thay đổi.`);
   };
+  const profileContent = (
+    <Stack spacing={2.5}>
+      <Card>
+        <Box
+          sx={{
+            display: "grid",
+            gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" },
+            gap: 2,
+          }}
+        >
+          {Object.entries(r)
+            .filter(
+              ([key, value]) =>
+                !(entity === "accounts" && key === "id") &&
+                !(
+                  /id$/i.test(key) &&
+                  publicId(typeof value === "string" ? value : undefined) ===
+                    "—"
+                ) &&
+                ![
+                  "createdAt",
+                  "updatedAt",
+                  "version",
+                  "studentCount",
+                  "completedUnits",
+                ].includes(key),
+            )
+            .map(([key, value]) => (
+              <Box key={key}>
+                <Typography variant="caption" color="text.secondary">
+                  {fieldNames[key] ?? key}
+                </Typography>
+                <Typography
+                  sx={{ whiteSpace: "pre-wrap", wordBreak: "break-word" }}
+                >
+                  {showValue(value)}
+                </Typography>
+              </Box>
+            ))}
+        </Box>
+      </Card>
+      {(entity === "students" ||
+        entity === "teachers" ||
+        entity === "accounts") && (
+        <Card>
+          <Typography variant="h5" sx={{ mb: 2 }}>
+            Tài khoản liên kết
+          </Typography>
+          {account ? (
+            <Stack spacing={1}>
+              <Typography>
+                ID đăng nhập: {account.loginId} · {showValue(account.status)}
+              </Typography>
+              <Typography>
+                Loại: {account.kind} ·{" "}
+                {account.roles.join(" | ") ||
+                  "Học sinh (không vào Staff Portal)"}
+              </Typography>
+              <NavButton
+                href={`/manage/profile/?entity=accounts&id=${encodeURIComponent(account.id)}`}
+              >
+                Quản lý tài khoản
+              </NavButton>
+              <Button
+                loading={activateState.isLoading}
+                disabled={account.status === "LOCKED"}
+                onClick={async () => {
+                  try {
+                    setActivation(await activate(account.id).unwrap());
+                  } catch {}
+                }}
+              >
+                Tạo / cấp lại link kích hoạt
+              </Button>
+              {activateState.error && <Feedback error={activateState.error} />}
+            </Stack>
+          ) : (
+            <Typography>Chưa có tài khoản.</Typography>
+          )}
+        </Card>
+      )}
+      {account && (
+        <AccountSessions
+          accountId={account.id}
+          loginId={account.loginId}
+          onSaved={setMessage}
+        />
+      )}
+      {d.classes.length > 0 && entity !== "classes" && (
+        <Card>
+          <Typography variant="h5" sx={{ mb: 2 }}>
+            Lớp hiện tại & lịch sử
+          </Typography>
+          <Stack spacing={2}>
+            {d.classes.map((c) => (
+              <Box key={c.id}>
+                <NavButton
+                  href={`/manage/profile/?entity=classes&id=${encodeURIComponent(c.id)}`}
+                >
+                  {c.name}
+                </NavButton>
+                <Typography>{showValue(c.status)}</Typography>
+                {entity === "students" && (
+                  <NavButton
+                    href={`/reports/?classId=${encodeURIComponent(c.id)}&studentId=${encodeURIComponent(r.id)}`}
+                  >
+                    Báo cáo học tập
+                  </NavButton>
+                )}
+                <Progress completed={c.completedUnits} total={c.totalUnits} />
+                {entity === "students" &&
+                  d.enrollments
+                    .filter((e) => e.classId === c.id)
+                    .map((e) => (
+                      <Button
+                        key={e.id}
+                        onClick={() =>
+                          setRelationship({
+                            kind: "enrollment",
+                            classId: c.id,
+                            enrollment: e,
+                          })
+                        }
+                      >
+                        Ghi danh: {showValue(e.status)} · Kiểm tra / khôi phục
+                      </Button>
+                    ))}
+              </Box>
+            ))}
+          </Stack>
+        </Card>
+      )}
+      {(entity === "classes" || entity === "teachers") && (
+        <Card>
+          <Stack
+            direction="row"
+            sx={{ justifyContent: "space-between", gap: 1, mb: 2 }}
+          >
+            <Typography variant="h5">Phân công & lịch sử giảng dạy</Typography>
+            {entity === "classes" && (
+              <Button
+                onClick={() =>
+                  setRelationship({ kind: "assignment", classId: r.id })
+                }
+              >
+                Phân công giảng viên
+              </Button>
+            )}
+          </Stack>
+          <AssignmentList
+            detail={d}
+            onEdit={(a) =>
+              setRelationship({
+                kind: "assignment",
+                classId: a.classId,
+                assignment: a,
+              })
+            }
+          />
+        </Card>
+      )}
+      {entity === "classes" && (
+        <Card>
+          <Stack
+            direction="row"
+            sx={{ justifyContent: "space-between", gap: 1, mb: 2 }}
+          >
+            <Typography variant="h5">Học sinh của lớp</Typography>
+            <Button
+              onClick={() =>
+                setRelationship({ kind: "enrollment", classId: r.id })
+              }
+            >
+              Thêm / khôi phục ghi danh
+            </Button>
+          </Stack>
+          <Button onClick={() => setShowHistory((v) => !v)}>
+            {showHistory
+              ? "Ẩn lịch sử"
+              : "Hiện ghi danh đã kết thúc / hoàn thành"}
+          </Button>
+          <ClassStudentTable
+            classId={access.access?.classId ?? r.id}
+            students={d.students
+              .filter((s) =>
+                d.enrollments.some(
+                  (e) =>
+                    e.studentId === s.id &&
+                    (showHistory ||
+                      (e.status === "ACTIVE" && s.status === "ACTIVE")),
+                ),
+              )
+              .map((s) => ({ ...s, name: s.fullName }))}
+            profileHref={(s) =>
+              `/manage/profile/?entity=students&id=${encodeURIComponent(s.id)}`
+            }
+            onEdit={(s) => {
+              const managed = d.students.find((person) => person.id === s.id);
+              if (managed) setClassStudentEdit({ student: managed });
+            }}
+            onStatus={(s) => {
+              const managed = d.students.find((person) => person.id === s.id);
+              if (managed)
+                setClassStudentEdit({ student: managed, mode: "status" });
+            }}
+          />
+        </Card>
+      )}
+      {entity === "students" && !!d.enrollments.length && (
+        <Card>
+          <Typography variant="h5">Lịch sử ghi danh</Typography>
+          {d.enrollments.map((e) => (
+            <Box key={e.id} sx={{ mt: 2 }}>
+              <Typography sx={{ fontWeight: 600 }}>
+                {d.classes.find((c) => c.id === e.classId)?.name} ·{" "}
+                {showValue(e.status)}
+              </Typography>
+              {e.history.map((h, i) => (
+                <Typography key={i} variant="body2">
+                  {h.startAt} → {h.endAt ?? "hiện tại"} · {showValue(h.status)}{" "}
+                  · {h.reason}
+                </Typography>
+              ))}
+            </Box>
+          ))}
+        </Card>
+      )}
+    </Stack>
+  );
   return (
     <>
       <Title
@@ -282,7 +556,7 @@ function Profile() {
             <NavButton href={`/manage/list/?entity=${entity}`}>
               ← Danh sách
             </NavButton>
-            {(entity !== "classes" || tab === 1) && (
+            {(entity !== "classes" || tab === "profile") && (
               <Button variant="contained" onClick={() => setEdit(true)}>
                 Chỉnh sửa hồ sơ / trạng thái
               </Button>
@@ -296,305 +570,66 @@ function Profile() {
           </>
         }
       />
-      <Tabs
-        value={tab}
-        onChange={(_, v: number) => setTab(v)}
-        variant="scrollable"
-        scrollButtons="auto"
-        sx={{ mb: 2 }}
-      >
-        {entity === "classes" && <Tab label="Thread" />}
-        <Tab label="Hồ sơ & quan hệ" />
-      </Tabs>
-      {entity === "classes" && tab === 0 ? (
-        <>
-          <Feedback
-            loading={access.loading}
-            error={access.error}
-            retry={() => void access.retry()}
-          />
-          {access.access && (
-            <ClassThreadFeed
-              key={access.access.classId}
-              classId={access.access.classId}
-              editable={false}
-            />
-          )}
-        </>
-      ) : (
-        <Stack spacing={2.5}>
-          {entity === "classes" && (
-            <Card>
-              <NavButton
-                href={`/class/?classId=${encodeURIComponent(access.access?.classId ?? r.id)}`}
-              >
-                Xem phiên học, schema, điểm & báo cáo
-              </NavButton>
-            </Card>
-          )}
-
-          <Card>
-            <Box
-              sx={{
-                display: "grid",
-                gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" },
-                gap: 2,
-              }}
-            >
-              {Object.entries(r)
-                .filter(
-                  ([key, value]) =>
-                    !(entity === "accounts" && key === "id") &&
-                    !(
-                      /id$/i.test(key) &&
-                      publicId(
-                        typeof value === "string" ? value : undefined,
-                      ) === "—"
-                    ) &&
-                    ![
-                      "createdAt",
-                      "updatedAt",
-                      "version",
-                      "studentCount",
-                      "completedUnits",
-                    ].includes(key),
-                )
-                .map(([key, value]) => (
-                  <Box key={key}>
-                    <Typography variant="caption" color="text.secondary">
-                      {fieldNames[key] ?? key}
-                    </Typography>
-                    <Typography
-                      sx={{ whiteSpace: "pre-wrap", wordBreak: "break-word" }}
-                    >
-                      {showValue(value)}
-                    </Typography>
-                  </Box>
-                ))}
-            </Box>
-            {"totalUnits" in r && (
-              <Box sx={{ mt: 2 }}>
-                <Progress completed={r.completedUnits} total={r.totalUnits} />
-                <Typography variant="caption">
-                  Các Unit riêng biệt có phiên hoàn thành; không đếm trùng.
-                </Typography>
-              </Box>
-            )}
-          </Card>
-          {(entity === "students" ||
-            entity === "teachers" ||
-            entity === "accounts") && (
-            <Card>
-              <Typography variant="h5" sx={{ mb: 2 }}>
-                Tài khoản liên kết
-              </Typography>
-              {account ? (
-                <Stack spacing={1}>
-                  <Typography>
-                    ID đăng nhập: {account.loginId} ·{" "}
-                    {showValue(account.status)}
-                  </Typography>
-                  <Typography>
-                    Loại: {account.kind} ·{" "}
-                    {account.roles.join(" | ") ||
-                      "Học sinh (không vào Staff Portal)"}
-                  </Typography>
-                  <NavButton
-                    href={`/manage/profile/?entity=accounts&id=${encodeURIComponent(account.id)}`}
-                  >
-                    Quản lý tài khoản
-                  </NavButton>
-                  <Button
-                    loading={activateState.isLoading}
-                    disabled={account.status === "LOCKED"}
-                    onClick={async () => {
-                      try {
-                        setActivation(await activate(account.id).unwrap());
-                      } catch {}
-                    }}
-                  >
-                    Tạo / cấp lại link kích hoạt
-                  </Button>
-                  {activateState.error && (
-                    <Feedback error={activateState.error} />
-                  )}
-                </Stack>
-              ) : (
-                <Typography>Chưa có tài khoản.</Typography>
+      {entity === "classes" && "totalUnits" in r ? (
+        <ClassDetailTabs
+          value={tab}
+          onChange={setTab}
+          thread={
+            <>
+              <Feedback
+                loading={access.loading}
+                error={access.error}
+                retry={() => void access.retry()}
+              />
+              {access.access && (
+                <ClassThreadFeed
+                  key={access.access.classId}
+                  classId={access.access.classId}
+                  editable={false}
+                />
               )}
-            </Card>
-          )}
-          {account && (
-            <AccountSessions
-              accountId={account.id}
-              loginId={account.loginId}
-              onSaved={setMessage}
-            />
-          )}
-          {d.classes.length > 0 && entity !== "classes" && (
-            <Card>
-              <Typography variant="h5" sx={{ mb: 2 }}>
-                Lớp hiện tại & lịch sử
-              </Typography>
-              <Stack spacing={2}>
-                {d.classes.map((c) => (
-                  <Box key={c.id}>
-                    <NavButton
-                      href={`/manage/profile/?entity=classes&id=${encodeURIComponent(c.id)}`}
-                    >
-                      {c.name}
-                    </NavButton>
-                    <Typography>{showValue(c.status)}</Typography>
-                    {entity === "students" && (
-                      <NavButton
-                        href={`/reports/?classId=${encodeURIComponent(c.id)}&studentId=${encodeURIComponent(r.id)}`}
-                      >
-                        Báo cáo học tập
-                      </NavButton>
-                    )}
-                    <Progress
-                      completed={c.completedUnits}
-                      total={c.totalUnits}
-                    />
-                    {entity === "students" &&
-                      d.enrollments
-                        .filter((e) => e.classId === c.id)
-                        .map((e) => (
-                          <Button
-                            key={e.id}
-                            onClick={() =>
-                              setRelationship({
-                                kind: "enrollment",
-                                classId: c.id,
-                                enrollment: e,
-                              })
-                            }
-                          >
-                            Ghi danh: {showValue(e.status)} · Kiểm tra / khôi
-                            phục
-                          </Button>
-                        ))}
-                  </Box>
-                ))}
-              </Stack>
-            </Card>
-          )}
-          {(entity === "classes" || entity === "teachers") && (
-            <Card>
-              <Stack
-                direction="row"
-                sx={{ justifyContent: "space-between", gap: 1, mb: 2 }}
-              >
-                <Typography variant="h5">
-                  Phân công & lịch sử giảng dạy
-                </Typography>
-                {entity === "classes" && (
-                  <Button
-                    onClick={() =>
-                      setRelationship({ kind: "assignment", classId: r.id })
-                    }
-                  >
-                    Phân công giảng viên
-                  </Button>
-                )}
-              </Stack>
-              <AssignmentList
-                detail={d}
-                onEdit={(a) =>
-                  setRelationship({
-                    kind: "assignment",
-                    classId: a.classId,
-                    assignment: a,
-                  })
+            </>
+          }
+          progress={
+            access.access?.canView ? (
+              <ClassProgress
+                classId={access.access.classId}
+                classInfo={r}
+                editable={false}
+              />
+            ) : (
+              <Feedback
+                loading={access.loading}
+                error={access.error}
+                retry={() => void access.retry()}
+                empty={
+                  !access.loading && !access.error
+                    ? "Không có quyền xem nội dung học tập của lớp."
+                    : undefined
                 }
               />
-            </Card>
-          )}
-          {entity === "classes" && (
-            <Card>
-              <Stack
-                direction="row"
-                sx={{ justifyContent: "space-between", gap: 1, mb: 2 }}
-              >
-                <Typography variant="h5">Học sinh của lớp</Typography>
-                <Button
-                  onClick={() =>
-                    setRelationship({ kind: "enrollment", classId: r.id })
-                  }
-                >
-                  Thêm / khôi phục ghi danh
-                </Button>
-              </Stack>
-              <Button onClick={() => setShowHistory((v) => !v)}>
-                {showHistory
-                  ? "Ẩn lịch sử"
-                  : "Hiện ghi danh đã kết thúc / hoàn thành"}
-              </Button>
-              <Stack spacing={2}>
-                {d.enrollments
-                  .filter(
-                    (e) =>
-                      showHistory ||
-                      (e.status === "ACTIVE" &&
-                        d.students.some(
-                          (s) => s.id === e.studentId && s.status === "ACTIVE",
-                        )),
-                  )
-                  .map((e) => (
-                    <Box key={e.id}>
-                      <NavButton
-                        href={`/manage/profile/?entity=students&id=${encodeURIComponent(e.studentId)}`}
-                      >
-                        {d.students.find((s) => s.id === e.studentId)
-                          ?.fullName ?? publicId(e.studentId)}
-                      </NavButton>
-                      <Typography>
-                        {publicId(e.studentId)} · {showValue(e.status)}
-                      </Typography>
-                      <NavButton
-                        href={`/reports/?classId=${encodeURIComponent(r.id)}&studentId=${encodeURIComponent(e.studentId)}`}
-                      >
-                        Báo cáo học tập
-                      </NavButton>
-                      <Button
-                        onClick={() =>
-                          setRelationship({
-                            kind: "enrollment",
-                            classId: r.id,
-                            enrollment: e,
-                          })
-                        }
-                      >
-                        Cập nhật / khôi phục ghi danh
-                      </Button>
-                    </Box>
-                  ))}
-                {!d.enrollments.length && (
-                  <Feedback empty="Lớp chưa có học sinh." />
-                )}
-              </Stack>
-            </Card>
-          )}
-          {entity === "students" && !!d.enrollments.length && (
-            <Card>
-              <Typography variant="h5">Lịch sử ghi danh</Typography>
-              {d.enrollments.map((e) => (
-                <Box key={e.id} sx={{ mt: 2 }}>
-                  <Typography sx={{ fontWeight: 600 }}>
-                    {d.classes.find((c) => c.id === e.classId)?.name} ·{" "}
-                    {showValue(e.status)}
-                  </Typography>
-                  {e.history.map((h, i) => (
-                    <Typography key={i} variant="body2">
-                      {h.startAt} → {h.endAt ?? "hiện tại"} ·{" "}
-                      {showValue(h.status)} · {h.reason}
-                    </Typography>
-                  ))}
-                </Box>
-              ))}
-            </Card>
-          )}
-        </Stack>
+            )
+          }
+          profile={profileContent}
+        />
+      ) : (
+        <>
+          <Tabs value={0} sx={{ mb: 2 }}>
+            <Tab label="Hồ sơ & quan hệ" />
+          </Tabs>
+          {profileContent}
+        </>
+      )}
+      {classStudentEdit && (
+        <EntityEditor
+          entity="students"
+          record={classStudentEdit.student}
+          mode={classStudentEdit.mode}
+          close={(n) => {
+            setClassStudentEdit(null);
+            if (n) setMessage(`Đã lưu ${n} thay đổi.`);
+          }}
+        />
       )}
       {edit && (
         <EntityEditor
