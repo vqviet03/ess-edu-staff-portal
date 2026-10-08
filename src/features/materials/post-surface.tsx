@@ -17,8 +17,12 @@ import MoreHoriz from "@mui/icons-material/MoreHoriz";
 import ChatBubble from "@mui/icons-material/ChatBubble";
 import Download from "@mui/icons-material/Download";
 import FavoriteBorder from "@mui/icons-material/FavoriteBorder";
+import Favorite from "@mui/icons-material/Favorite";
+import ThumbUp from "@mui/icons-material/ThumbUp";
+import ThumbUpOutlined from "@mui/icons-material/ThumbUpOutlined";
+import Celebration from "@mui/icons-material/Celebration";
+import CelebrationOutlined from "@mui/icons-material/CelebrationOutlined";
 import ExpandMore from "@mui/icons-material/ExpandMore";
-import ArrowUpward from "@mui/icons-material/ArrowUpward";
 import Description from "@mui/icons-material/Description";
 import { useTheme } from "@mui/material/styles";
 import { useLazyContentQuery } from "@/api/library-api";
@@ -33,10 +37,30 @@ export const postTypeLabels: Record<PostType, string> = {
   DISCUSSION: "Trao đổi",
 };
 export const reactionLabels: Record<Reaction, string> = {
-  LIKE: "👍 Thích",
-  LOVE: "♥ Yêu thích",
-  CELEBRATE: "🎉 Tuyệt vời",
+  LIKE: "Thích",
+  LOVE: "Yêu thích",
+  CELEBRATE: "Tuyệt vời",
 };
+const reactionColors: Record<Reaction, string> = {
+  LIKE: "#5397e5",
+  LOVE: "#e76a91",
+  CELEBRATE: "#d69b24",
+};
+function ReactionIcon({ value, active }: { value: Reaction; active: boolean }) {
+  const Icon =
+    value === "LIKE"
+      ? active
+        ? ThumbUp
+        : ThumbUpOutlined
+      : value === "CELEBRATE"
+        ? active
+          ? Celebration
+          : CelebrationOutlined
+        : active
+          ? Favorite
+          : FavoriteBorder;
+  return <Icon fontSize="small" />;
+}
 export function initials(name: string) {
   const parts = name.trim().split(/\s+/);
   return [parts[0]?.[0], parts.length > 1 ? parts.at(-1)?.[0] : ""]
@@ -48,7 +72,6 @@ export function PostSurface({
   children,
   commentOpen,
   openComments,
-  viewerName,
   preview,
   onReaction,
   reacting,
@@ -59,7 +82,6 @@ export function PostSurface({
   children: ReactNode;
   commentOpen: boolean;
   openComments: () => void;
-  viewerName: string;
   preview: (file: MaterialFile) => void;
   onReaction: (value: Reaction) => void;
   reacting: boolean;
@@ -320,81 +342,100 @@ export function PostSurface({
           </Button>
         </Stack>
         <Divider sx={{ borderColor: "var(--post-border)" }} />
-        <Stack
-          direction="row"
-          sx={{
-            gap: 0.5,
-            "& .MuiButton-root": {
-              fontSize: 12,
-              minHeight: 44,
-              minWidth: 0,
-              color: "var(--post-muted)",
-              textTransform: "none",
-            },
-          }}
-        >
+        <Stack direction="row" sx={{ gap: 0.5, alignItems: "center" }}>
           <Box
             sx={{ flex: 1, display: "flex", alignItems: "center", minWidth: 0 }}
           >
-            <Button
-              startIcon={<FavoriteBorder fontSize="small" />}
+            <Tooltip title={reactionLabels[selected]}>
+              <IconButton
+                sx={{
+                  flex: 1,
+                  borderRadius: "12px",
+                  minHeight: 44,
+                  bgcolor: post.myReaction ? "var(--post-tint)" : undefined,
+                  color: post.myReaction
+                    ? reactionColors[selected]
+                    : "var(--post-muted)",
+                }}
+                aria-label={reactionLabels[selected]}
+                aria-pressed={!!post.myReaction}
+                disabled={reacting}
+                onClick={() => onReaction(selected)}
+              >
+                <ReactionIcon value={selected} active={!!post.myReaction} />
+              </IconButton>
+            </Tooltip>
+            <Tooltip title="Chọn tương tác">
+              <IconButton
+                aria-label="Chọn tương tác"
+                disabled={reacting}
+                onClick={(e) => setReactions(e.currentTarget)}
+                sx={{ color: "var(--post-muted)", width: 44, height: 44 }}
+              >
+                <ExpandMore fontSize="small" />
+              </IconButton>
+            </Tooltip>
+          </Box>
+          <Tooltip title="Bình luận">
+            <IconButton
               sx={{
                 flex: 1,
-                bgcolor: post.myReaction ? "var(--post-tint)" : undefined,
+                borderRadius: "12px",
+                minHeight: 44,
+                color: "var(--post-muted)",
+                bgcolor: commentOpen ? "var(--post-soft)" : undefined,
               }}
-              aria-label={reactionLabels[selected]}
-              aria-pressed={!!post.myReaction}
-              disabled={reacting}
-              onClick={() => onReaction(selected)}
+              onClick={openComments}
+              aria-label={`Bình luận (${post.commentCount})`}
+              aria-expanded={commentOpen}
             >
-              {selected === "LOVE"
-                ? "Yêu thích"
-                : selected === "LIKE"
-                  ? "Thích"
-                  : "Tuyệt vời"}
-            </Button>
-            <IconButton
-              aria-label="Chọn tương tác"
-              disabled={reacting}
-              onClick={(e) => setReactions(e.currentTarget)}
-              sx={{ p: 0.25, color: "var(--post-muted)", minHeight: 44 }}
-            >
-              <ExpandMore fontSize="small" />
+              <ChatBubble fontSize="small" />
             </IconButton>
-          </Box>
-          <Button
-            sx={{ flex: 1 }}
-            startIcon={<ChatBubble fontSize="small" />}
-            onClick={openComments}
-            aria-label={`Bình luận (${post.commentCount})`}
-          >
-            Bình luận
-          </Button>
-          <Button
-            sx={{ flex: 1 }}
-            startIcon={<Download fontSize="small" />}
-            disabled={!files.length || downloadState.isFetching}
-            onClick={(e) => setDownloads(e.currentTarget)}
-          >
-            Tải tài liệu
-          </Button>
+          </Tooltip>
+          <Tooltip title="Tải tài liệu">
+            <span style={{ flex: 1, display: "flex" }}>
+              <IconButton
+                sx={{
+                  flex: 1,
+                  borderRadius: "12px",
+                  minHeight: 44,
+                  color: "var(--post-muted)",
+                }}
+                aria-label="Tải tài liệu"
+                disabled={!files.length || downloadState.isFetching}
+                onClick={(e) => setDownloads(e.currentTarget)}
+              >
+                <Download fontSize="small" />
+              </IconButton>
+            </span>
+          </Tooltip>
         </Stack>
         <Menu
           anchorEl={reactions}
           open={!!reactions}
           onClose={() => setReactions(null)}
+          slotProps={{ list: { sx: { display: "flex", gap: 0.5, p: 0.5 } } }}
         >
-          {Object.entries(reactionLabels).map(([value, label]) => (
-            <MenuItem
-              key={value}
-              selected={post.myReaction === value}
-              onClick={() => {
-                setReactions(null);
-                onReaction(value as Reaction);
-              }}
-            >
-              {label}
-            </MenuItem>
+          {(Object.keys(reactionLabels) as Reaction[]).map((value) => (
+            <Tooltip key={value} title={reactionLabels[value]}>
+              <MenuItem
+                aria-label={`Chọn ${reactionLabels[value]}`}
+                selected={post.myReaction === value}
+                sx={{
+                  color: reactionColors[value],
+                  borderRadius: "12px",
+                  minWidth: 44,
+                  minHeight: 44,
+                  justifyContent: "center",
+                }}
+                onClick={() => {
+                  setReactions(null);
+                  onReaction(value);
+                }}
+              >
+                <ReactionIcon value={value} active />
+              </MenuItem>
+            </Tooltip>
           ))}
         </Menu>
         <Menu
@@ -440,51 +481,7 @@ export function PostSurface({
         </Menu>
         <Feedback error={error} />
         <Divider sx={{ borderColor: "var(--post-border)" }} />
-        {commentOpen ? (
-          children
-        ) : (
-          <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
-            <Avatar
-              sx={{
-                width: 29,
-                height: 29,
-                fontSize: 10,
-                bgcolor: "var(--post-tint)",
-                color: "var(--post-green)",
-              }}
-            >
-              {initials(viewerName)}
-            </Avatar>
-            <ButtonBase
-              aria-label="Mở phần bình luận"
-              onClick={openComments}
-              sx={{
-                flex: 1,
-                minWidth: 0,
-                bgcolor: "var(--post-soft)",
-                borderRadius: "22px",
-                minHeight: 44,
-                pl: 1.5,
-                pr: 0.5,
-                justifyContent: "space-between",
-                color: "var(--post-muted)",
-                fontSize: 12,
-              }}
-            >
-              Viết bình luận…
-              <Avatar
-                sx={{
-                  width: 32,
-                  height: 32,
-                  bgcolor: "var(--post-green)",
-                  color: "var(--post-surface)",
-                }}
-              >
-                <ArrowUpward fontSize="small" />
-              </Avatar>
-            </ButtonBase>
-          </Stack>
-        )}
+        {children}
       </Stack>
     </Paper>
   );

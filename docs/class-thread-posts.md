@@ -59,3 +59,11 @@ Không cần biến Cloud Run, queue Cloud Tasks, Pub/Sub, JWT hoặc storage m�
 ## Kiểm tra
 
 Backend integration: loại/phiên, feed chung, public ID, quyền tác giả/manager/student, school isolation, version conflict, audit và file bình luận cho post không gắn phiên. Frontend: mặc định tab, chọn phiên, sửa/xóa, nhãn chỉnh sửa, rollback, giữ draft, báo cáo, static deep links, mobile và sáng/tối.
+
+## Điều chỉnh tương tác frontend
+
+Thanh Viết bình luận là input trực tiếp, luôn giữ cùng bản nháp khi mở/ẩn danh sách. Nút icon đính kèm nằm cạnh nút gửi; upload, trả lời, sửa/xóa, phân trang và xử lý lỗi dùng API hiện có. Bình luận hiển thị avatar và khối nội dung theo thiết kế, hỗ trợ sáng/tối và mobile.
+
+Tương tác dùng Material Icons (Thích/Yêu thích/Tuyệt vời); nút chính đổi icon và màu theo lựa chọn, có bỏ tương tác và rollback khi lỗi. Các nút tương tác/tải là icon, giữ tooltip và aria-label. Không tải bình luận trước khi người dùng mở danh sách hoặc nhập nội dung; không thêm polling hay API backend mới.
+
+Điều chỉnh tương tác này chỉ thay frontend, không cần migration hay cấu hình GCP mới.

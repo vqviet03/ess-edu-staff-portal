@@ -554,11 +554,20 @@ test("picker attaches files across folders; draft survives tabs; reaction rolls 
   await expect(
     page.getByRole("heading", { name: "Hướng dẫn Unit 1" }),
   ).toBeVisible();
-  await page.getByRole("button", { name: "♥ Yêu thích", exact: true }).click();
+  await page.getByRole("button", { name: "Yêu thích", exact: true }).click();
   await expect(page.getByText("Dữ liệu đã đổi, thử lại.")).toBeVisible();
   await expect(
     page.getByText("0 lượt tương tác", { exact: true }),
   ).toBeVisible();
+  const input = page.getByRole("textbox", {
+    name: "Viết bình luận",
+    exact: true,
+  });
+  await expect(input).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Mở phần bình luận" }),
+  ).toHaveCount(0);
+  const originalInput = await input.elementHandle();
   const commentsLoaded = page.waitForResponse(
     (r) =>
       r.url().includes("/posts/new-post/comments") &&
@@ -568,7 +577,26 @@ test("picker attaches files across folders; draft survives tabs; reaction rolls 
     .getByRole("button", { name: "Bình luận (0)", exact: true })
     .click();
   await commentsLoaded;
-  await page.getByLabel("Viết bình luận").fill("Bản nháp bình luận cần giữ");
+  await input.fill("Bản nháp bình luận cần giữ");
+  await page
+    .getByRole("button", { name: "Bình luận (0)", exact: true })
+    .click();
+  await expect(page.getByTestId("comment-list")).toHaveCount(0);
+  await expect(input).toHaveValue("Bản nháp bình luận cần giữ");
+  await page
+    .getByRole("button", { name: "Bình luận (0)", exact: true })
+    .click();
+  expect(await input.evaluate((el, old) => el === old, originalInput)).toBe(
+    true,
+  );
+  await expect(
+    page
+      .getByRole("form", { name: "Soạn bình luận" })
+      .getByRole("button", {
+        name: "Đính kèm ảnh / file / audio / video",
+        exact: true,
+      }),
+  ).toBeVisible();
   await page
     .getByRole("button", { name: "Gửi bình luận", exact: true })
     .click();
@@ -845,6 +873,98 @@ test("inline audio loads on demand with auth, controls speed and downloads throu
     .click();
   expect((await download).suggestedFilename()).toBe("Listening Unit 3.wav");
   expect(loads).toBe(2);
+});
+
+test("inline comment bubbles and attachment icon retain drafts across class tabs and themes", async ({
+  page,
+}) => {
+  await fixture(page, true);
+  const comments = [
+    {
+      id: "comment-one",
+      postId: "new-post",
+      parentId: null,
+      authorId: "student-one",
+      authorName: "Học sinh kiểm thử",
+      body: "Cô ơi, con luyện nói theo audio phải không ạ?",
+      createdAt: "2026-10-08T08:00:00Z",
+      version: 1,
+      attachments: [],
+    },
+    {
+      id: "comment-two",
+      postId: "new-post",
+      parentId: null,
+      authorId: "GV0001",
+      authorName: "Nguyễn Minh Anh",
+      body: "Con nghe rồi thử nói về gia đình nhé.",
+      createdAt: "2026-10-08T08:05:00Z",
+      version: 1,
+      attachments: [],
+    },
+  ];
+  let reads = 0;
+  await page.route(`${api}/posts/new-post/comments**`, async (route) => {
+    const headers = {
+      "access-control-allow-origin": "*",
+      "access-control-allow-headers": "authorization,content-type,x-workspace",
+      "access-control-allow-methods": "GET,POST,OPTIONS",
+    };
+    if (route.request().method() === "OPTIONS")
+      return route.fulfill({ status: 204, headers });
+    reads++;
+    await route.fulfill({
+      headers,
+      json: { data: { items: comments, nextCursor: null } },
+    });
+  });
+  await login(page);
+  await page.goto(`${base}/class/?classId=class-green`);
+  const post = page.getByTestId("lesson-post");
+  const input = post.getByRole("textbox", {
+    name: "Viết bình luận",
+    exact: true,
+  });
+  await expect(input).toBeVisible();
+  expect(reads).toBe(0);
+  const originalInput = await input.elementHandle();
+  await input.fill("Bản nháp giữ nguyên");
+  await expect(post.getByTestId("post-comment")).toHaveCount(2);
+  await expect(post.getByTestId("post-comment").nth(1)).toContainText(
+    "Giảng viên",
+  );
+  await expect(
+    post
+      .getByRole("form", { name: "Soạn bình luận" })
+      .getByRole("button", {
+        name: "Đính kèm ảnh / file / audio / video",
+        exact: true,
+      }),
+  ).toBeVisible();
+  await post.getByRole("button", { name: /^Bình luận/ }).click();
+  await expect(post.getByTestId("comment-list")).toHaveCount(0);
+  await expect(input).toHaveValue("Bản nháp giữ nguyên");
+  await post.getByRole("button", { name: /^Bình luận/ }).click();
+  expect(await input.evaluate((el, old) => el === old, originalInput)).toBe(
+    true,
+  );
+  await page.getByRole("tab", { name: "Hồ sơ & quan hệ", exact: true }).click();
+  await page.getByRole("tab", { name: "Thread", exact: true }).click();
+  await expect(input).toHaveValue("Bản nháp giữ nguyên");
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.getByRole("button", { name: "Giao diện", exact: true }).click();
+  await page.getByRole("menuitem", { name: "Tối", exact: true }).click();
+  await input.scrollIntoViewIfNeeded();
+  await page.screenshot({
+    path: "test-results/staff-inline-comments-mobile-dark.png",
+    fullPage: true,
+  });
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+  ).toBe(true);
+  expect(reads).toBe(1);
 });
 
 test("dual-role workspace changes do not reuse manager-only post permission cache", async ({
