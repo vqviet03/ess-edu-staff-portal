@@ -5,7 +5,7 @@ test("background closes the socket; foreground replays saved notices without HTT
   test.skip(process.env.NEXT_PUBLIC_USE_MOCK === "true", "Checks the real transport lifecycle.");
   const fixture = await installHttpFixture(page);
   const requests: string[] = [];
-  page.on("request", request => { if(new URL(request.url()).hostname === "api.example.com" && request.method() !== "OPTIONS") requests.push(request.url()); });
+  page.on("request", request => { if(new URL(request.url()).hostname === new URL(process.env.NEXT_PUBLIC_API_BASE_URL!).hostname && request.method() !== "OPTIONS") requests.push(request.url()); });
   await page.goto(`${base}/login/`); await page.getByLabel("ID giảng viên").fill("GV0001");
   await page.getByLabel("Mật khẩu", {exact:true}).fill("Demo123!"); await page.getByRole("button", {name:"Đăng nhập",exact:true}).click();
   await expect(page).toHaveURL(/\/home\//);
@@ -37,7 +37,7 @@ test("idle/focus/reconnect send no HTTP; login/reload and notifications do not d
   const requests: string[] = [];
   page.on("request", (request) => {
     const url = new URL(request.url());
-    if (url.hostname === "api.example.com" && request.method() !== "OPTIONS") requests.push(`${request.method()} ${url.pathname}`);
+    if (url.hostname === new URL(process.env.NEXT_PUBLIC_API_BASE_URL!).hostname && request.method() !== "OPTIONS") requests.push(`${request.method()} ${url.pathname}`);
   });
   await page.goto(`${base}/login/`);
   await page.getByLabel("ID giảng viên").fill("MG0001");

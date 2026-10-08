@@ -9,7 +9,7 @@ export interface Folder {
   id: string;
   parentId: string | null;
   name: string;
-  kind: "PROGRAM" | "LEVEL" | "CUSTOM";
+  kind: "PROGRAM" | "LEVEL" | "CUSTOM" | "EXTERNAL";
   version: number;
 }
 export type Area =
@@ -33,7 +33,7 @@ export interface MaterialFile {
   authorId: string;
   authorName: string;
   uploadedBy: string;
-  uploadSource: "session" | "library";
+  uploadSource: "session" | "library" | "comment";
   sourceSessionId: string | null;
   sourcePostId: string | null;
   storageId?: string;
@@ -77,6 +77,7 @@ export interface PostInput {
   version: number;
 }
 export interface Comment {
+  attachments?: MaterialFile[];
   id: string;
   postId: string;
   parentId: string | null;
@@ -125,7 +126,7 @@ export interface UploadInput {
   sizeBytes: number;
   storageId: string;
   folderId: string | null;
-  uploadSource: "session" | "library";
+  uploadSource: "session" | "library" | "comment";
   sourceSessionId?: string;
   sourcePostId?: string;
   thumbnailMime?: string;
@@ -153,4 +154,5 @@ export interface BrowserQuery {
 }
 
 export interface StoragePageData extends CursorPage<Storage> { configurationEnabled?: boolean }
-export interface UploadSettings { maxUploadBytes: number; largeFileWarningBytes: number; areas: string[]; storages?: { id: string; name: string; category: Area }[] }
+export interface UploadRoute { source: "comment" | "session" | "library"; fileType: string; storageId: string; version: number }
+export interface UploadSettings { routes?: UploadRoute[]; maxUploadBytes: number; largeFileWarningBytes: number; areas: string[]; storages?: { id: string; name: string; category: Area }[] }

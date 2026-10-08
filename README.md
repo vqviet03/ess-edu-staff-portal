@@ -1,5 +1,6 @@
 # ESS Staff Portal
 
+[Thread, đính kèm bình luận, file private và rollout](docs/thread-materials.md): mặc định tab Thread cho học sinh; liên hệ giảng viên; routing upload theo storage; migration Materials `005_materials.sql` trước triển khai frontend.
 Next.js App Router, TypeScript strict, MUI, Redux Toolkit/RTK Query, React Hook Form/Zod. Giao diện tiếng Việt, sáng/tối/theo hệ thống; bảng desktop và form mobile. Theo [Figma](https://www.figma.com/design/lijTH4LOpagJqMJHv6gv7w): Roboto tự host, nền #f4f8f5, xanh #317b58, card bo góc. Không có API Routes, Server Actions, middleware hoặc backend trong repository.
 
 ## Chạy và thử

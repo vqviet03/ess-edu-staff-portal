@@ -1,4 +1,5 @@
 "use client";
+import { MaterialThumbnail } from "./thumbnail";
 import { type ReactNode, memo, useCallback, useEffect, useRef, useState } from "react";
 import IconButton from "@mui/material/IconButton";
 import Pagination from "@mui/material/Pagination";
@@ -26,7 +27,7 @@ import DialogContent from "@mui/material/DialogContent";
 import DialogActions from "@mui/material/DialogActions";
 import Alert from "@mui/material/Alert";
 import {
-  useLazyAccessQuery,
+  useLazyContentQuery,
   useLazyFolderPathQuery,
   useFoldersQuery,
   useFilesQuery,
@@ -75,6 +76,7 @@ const FileTile = memo(function FileTile({
         borderColor: selected ? "primary.main" : "divider",
         bgcolor: selected ? "action.selected" : "background.paper",
         minWidth: 0,
+        flexWrap: "wrap",
         display: tree ? "flex" : "block",
         alignItems: "center",
         gap: 1,
@@ -126,13 +128,7 @@ const FileTile = memo(function FileTile({
             }}
           >
             {file.thumbnailUrl ? (
-              <Box
-                component="img"
-                src={file.thumbnailUrl}
-                alt=""
-                loading="lazy"
-                sx={{ maxWidth: "100%", maxHeight: 108, objectFit: "contain" }}
-              />
+              <MaterialThumbnail id={file.id}/>
             ) : (
               <Typography
                 aria-hidden
@@ -271,8 +267,8 @@ function TreeBranch({
               {expanded[f.id] ? "▾" : "▸"}
             </Button>
             <Button
-              onClick={() => openFolder(f)}
-              sx={{ textTransform: "none" }}
+              onClick={() => setExpanded(e => ({ ...e, [f.id]: !e[f.id] }))}
+              sx={{ textTransform: "none", minWidth: 0, overflowWrap: "anywhere" }}
             >
               <FolderIcon fontSize="small" sx={{ mr: 1 }} /> {f.name}
             </Button>
@@ -458,7 +454,7 @@ export function MaterialBrowser({
     ),
     [saveFolder, folderState] = useSaveFolderMutation(),
     [removeFolder] = useRemoveFolderMutation(),
-    [download, downloadState] = useLazyAccessQuery(),
+    [download, downloadState] = useLazyContentQuery(),
     [loadPath] = useLazyFolderPathQuery(),
     navigationId = useRef(0),
     [renameFile, renameState] = useRenameFileMutation(),
@@ -655,7 +651,7 @@ export function MaterialBrowser({
                     false,
                   ).unwrap();
                   const link = document.createElement("a");
-                  link.href = access.url;
+                  link.href = access;
                   link.download = f.displayName;
                   link.target = "_blank";
                   link.rel = "noopener noreferrer";
@@ -988,6 +984,7 @@ export function MaterialBrowser({
               <MenuItem value="PROGRAM">Chương trình</MenuItem>
               <MenuItem value="LEVEL">Level</MenuItem>
               <MenuItem value="CUSTOM">Thư mục tùy chỉnh</MenuItem>
+              {kind === "EXTERNAL" && <MenuItem value="EXTERNAL">Nguồn bên ngoài</MenuItem>}
             </TextField>
             <Feedback error={error} />
           </Stack>

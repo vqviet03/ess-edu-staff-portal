@@ -20,6 +20,9 @@ test("audit deep link paginates, sidebar collapses with active icon, edit IDs an
   await expect(page.getByText(/Nguyễn Mai.*MG0001/).first()).toBeVisible();
   await page.getByRole("button", { name: "Tới trang 2" }).click();
   await expect(page.getByText("25 bản ghi · Trang 2")).toBeVisible();
+  await page.getByLabel("Tìm nhật ký", {exact:true}).fill("DELETE_STORAGE_OBJECTS");
+  await page.getByRole("button",{name:"Tìm kiếm",exact:true}).click(); await expect(page.getByText("25 bản ghi · Trang 1")).toBeVisible();
+  await page.getByRole("button",{name:"Xóa bộ lọc",exact:true}).click(); await expect(page.getByLabel("Tìm nhật ký",{exact:true})).toHaveValue("");
   await page.getByRole("button", { name: "Thu menu" }).click();
   await expect(page.getByTestId("sidebar")).toHaveAttribute("data-collapsed", "true");
   await expect(page.getByRole("link", { name: "Nhật ký", exact: true })).toHaveAttribute("aria-current", "page");

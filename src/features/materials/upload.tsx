@@ -1,4 +1,5 @@
 "use client";
+import { compressImage } from "./image-compression";
 import { useEffect, useRef, useState } from "react";
 import Dialog from "@mui/material/Dialog";
 import DialogTitle from "@mui/material/DialogTitle";
@@ -58,11 +59,13 @@ async function thumbnail(file: File) {
 export function UploadDialog({
   folderId,
   sessionId,
+  postId,
   close,
   added,
 }: {
   folderId: string | null;
   sessionId?: string;
+  postId?: string;
   close: () => void;
   added?: (f: MaterialFile) => void;
 }) {
@@ -94,6 +97,9 @@ export function UploadDialog({
       setRows((old) => old.map((r) => (r.key === key ? { ...r, ...data } : r)));
   };
   const run = async (row: Row) => {
+    const normalized = await compressImage(row.file).catch(() => null);
+    if (!normalized) { patch(row.key, { status: "ERROR", error: "Không xử lý được ảnh. Vui lòng chọn ảnh nhỏ hơn." }); return; }
+    row = { ...row, file: normalized };
     const error = validateUpload(
       row.file,
       settings.currentData?.maxUploadBytes ?? 0,
@@ -117,9 +123,10 @@ export function UploadDialog({
           originalName: row.file.name,
           mimeType: row.file.type || "application/octet-stream",
           sizeBytes: row.file.size,
-          storageId: row.area,
+          storageId: postId ? "" : row.area,
           folderId,
-          uploadSource: sessionId ? "session" : "library",
+          uploadSource: postId ? "comment" : sessionId ? "session" : "library",
+          sourcePostId: postId,
           sourceSessionId: sessionId,
           thumbnailMime: thumb?.type,
           thumbnailBytes: thumb?.size ?? 0,
@@ -160,7 +167,7 @@ export function UploadDialog({
       maxWidth="md"
     >
       <DialogTitle>
-        Upload {sessionId ? "vào phiên học" : "vào kho"}
+        Upload {postId ? "đính kèm bình luận" : sessionId ? "vào phiên học" : "vào kho"}
       </DialogTitle>
       <DialogContent>
         <Feedback
@@ -172,8 +179,7 @@ export function UploadDialog({
           {settings.currentData && (
             <>
               <Typography variant="body2">
-                Tối đa {bytes(settings.currentData.maxUploadBytes)}/file. Ảnh và
-                audio tự chọn storage tương ứng.
+                Tối đa {bytes(settings.currentData.maxUploadBytes)}/file. Ảnh trên 20 MB được nén trước khi tải. File bình luận vào ổ do quản lý cấu hình.
               </Typography>
               <Button component="label" variant="outlined" disabled={busy}>
                 Chọn nhiều file
@@ -213,17 +219,17 @@ export function UploadDialog({
                   File lớn, thời gian tải có thể lâu.
                 </Alert>
               )}
-              <TextField
+              {!postId && <TextField
                 select
                 label="Nhóm storage"
                 value={row.area}
-                disabled={row.status !== "WAITING"}
+                disabled={!!postId || row.status !== "WAITING"}
                 onChange={(e) =>
                   patch(row.key, { area: e.target.value })
                 }
               >
                 {drives.filter(s => (!row.file.type.startsWith("image/") && !row.file.type.startsWith("audio/")) || s.category === defaultArea(row.file.type)).map(s => <MenuItem key={s.id} value={s.id}>{s.name} ({s.id})</MenuItem>)}
-              </TextField>
+              </TextField>}
               <LinearProgress variant="determinate" value={row.progress} />
               <Typography variant="caption">
                 {row.status === "DONE"

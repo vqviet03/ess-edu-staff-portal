@@ -38,3 +38,21 @@ test("settings missing migration shows guidance without requesting proposals", a
   await page.goto(`${base}/login/`); await page.getByLabel("ID giảng viên").fill("MG0001"); await page.getByLabel("Mật khẩu", { exact: true }).fill("Demo123!"); await page.getByRole("button", { name: "Đăng nhập", exact: true }).click(); await expect(page).toHaveURL(/\/home\//);
   await page.goto(`${base}/manage/settings/`); await expect(page.getByText("Cấu hình hệ thống chưa sẵn sàng.", { exact: false })).toBeVisible(); expect(requests).toBe(0); await expect(page.getByRole("button", { name: "Gửi đề xuất thay đổi" })).toHaveCount(0);
 });
+
+test("manager configures the comment destination and a saved rule leaves no dirty draft", async ({page}) => {
+  await installHttpFixture(page);
+  const drives = ["DOCUMENTS", "OTHER"].map(id => ({id,name:id === "DOCUMENTS" ? "Văn bản" : "Kho bình luận",category:id,lifecycle:"ACTIVE",version:1,totalBytes:4.5e9,usedBytes:0,reservedBytes:0,remainingBytes:4.5e9,percentage:0,status:"LOW",maxUploadBytes:1e8,largeFileWarningBytes:2e7}));
+  let rules: {source:string;fileType:string;storageId:string;version:number}[] = [], writes = 0;
+  await page.route(`${api}/storages`, route => route.fulfill({contentType:"application/json",body:JSON.stringify({data:{items:drives,configurationEnabled:true}})}));
+  await page.route(`${api}/material-upload-settings`, route => route.fulfill({contentType:"application/json",body:JSON.stringify({data:{storages:drives,routes:rules,maxUploadBytes:1e8,largeFileWarningBytes:2e7}})}));
+  await page.route(`${api}/material-upload-routes`, async route => {
+    const body=route.request().postDataJSON();expect(body).toEqual({source:"comment",fileType:"all",storageId:"OTHER",version:1});writes++;
+    rules=[{...body,version:2}];await route.fulfill({contentType:"application/json",body:JSON.stringify({data:rules[0]})});
+  });
+  await page.goto(`${base}/login/`); await page.getByLabel("ID giảng viên").fill("MG0001");await page.getByLabel("Mật khẩu",{exact:true}).fill("Demo123!");await page.getByRole("button",{name:"Đăng nhập",exact:true}).click();await expect(page).toHaveURL(/\/home\//);
+  await page.goto(`${base}/storages/`); await page.getByLabel("Ổ nhận",{exact:true}).click();await page.getByRole("option",{name:"Kho bình luận",exact:true}).click();
+  let confirmations=0;page.on("dialog",async dialog=>{confirmations++;await dialog.accept();});
+  await page.getByRole("button",{name:"Lưu",exact:true}).click();await expect(page.getByText("Đã lưu quy tắc.",{exact:true})).toBeVisible();
+  await expect(page.getByText("Nhận mặc định: Bình luận / Tất cả",{exact:true})).toBeVisible();expect(writes).toBe(1);
+  await page.getByRole("link",{name:"Tổng quan",exact:true}).click();await expect(page).toHaveURL(/\/home\//);expect(confirmations).toBe(1);
+});

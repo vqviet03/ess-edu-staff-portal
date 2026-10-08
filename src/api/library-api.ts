@@ -131,6 +131,12 @@ export const libraryApi = api.injectEndpoints({
       transformResponse: unwrap<{ url: string; expiresAt: string }>,
       keepUnusedDataFor: 0,
     }),
+    content: b.query<string, { id: string; purpose: "preview" | "download" | "thumbnail" }>({
+      query: ({ id, purpose }) => ({ url: `/materials/${id}/content`, params: { purpose }, responseHandler: async (res) => res.ok ? URL.createObjectURL(await res.blob()) : res.json() }),
+      keepUnusedDataFor: 0,
+      async onCacheEntryAdded(_, { cacheDataLoaded, cacheEntryRemoved }) { let url: string | undefined; try { url = (await cacheDataLoaded).data; await cacheEntryRemoved; } catch {} finally { if (url?.startsWith("blob:")) URL.revokeObjectURL(url); } },
+    }),
+    saveUploadRoute: b.mutation<unknown, {source: string; fileType: string; storageId: string; version: number}>({ query: body => mutation("/material-upload-routes", body, "PUT"), invalidatesTags: (_, error) => error ? [] : ["Storages"] }),
     auditFile: b.query<
       CursorPage<{
         id: string;
@@ -346,6 +352,7 @@ export const libraryApi = api.injectEndpoints({
         body: string;
         parentId?: string;
         version?: number;
+        materialIds?: string[];
       }
     >({
       query: ({ id, postId, ...body }) =>
@@ -471,6 +478,9 @@ export const libraryApi = api.injectEndpoints({
   }),
 });
 export const {
+  useContentQuery,
+  useLazyContentQuery,
+  useSaveUploadRouteMutation,
   useFoldersQuery,
   useLazyFolderPathQuery,
   useSaveFolderMutation,

@@ -12,7 +12,7 @@ import MenuItem from "@mui/material/MenuItem";
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
 import { Feedback } from "@/shared/ui";
-import { useAccessQuery, useLazyAccessQuery } from "@/api/library-api";
+import { useContentQuery, useLazyContentQuery } from "@/api/library-api";
 import type { MaterialFile } from "./models";
 const PdfViewer = dynamic(() => import("./pdf-viewer"), {
   ssr: false,
@@ -25,15 +25,29 @@ export function MaterialViewer({
   file: MaterialFile;
   close: () => void;
 }) {
-  const access = useAccessQuery({ id: file.id, purpose: "preview" }),
-    [download, state] = useLazyAccessQuery(),
+  const access = useContentQuery({ id: file.id, purpose: "preview" }),
+    [download, state] = useLazyContentQuery(),
     [zoom, setZoom] = useState(100),
+    [fullScreen, setFullScreen] = useState(false),
     [error, setError] = useState<unknown>(),
     audio = useRef<HTMLAudioElement>(null),
     [speed, setSpeed] = useState(1);
   return (
-    <Dialog open onClose={close} fullWidth maxWidth="lg">
-      <DialogTitle>{file.displayName}</DialogTitle>
+    <Dialog
+      open
+      onClose={close}
+      fullWidth
+      maxWidth="lg"
+      fullScreen={fullScreen}
+    >
+      <DialogTitle>
+        <Stack direction="row" sx={{ justifyContent: "space-between", gap: 1 }}>
+          <Typography component="span">{file.displayName}</Typography>
+          <Button onClick={() => setFullScreen((v) => !v)}>
+            {fullScreen ? "Thu về cửa sổ" : "Toàn màn hình"}
+          </Button>
+        </Stack>
+      </DialogTitle>
       <DialogContent>
         <Feedback
           loading={access.isLoading}
@@ -46,7 +60,7 @@ export function MaterialViewer({
         {access.currentData &&
           (file.mimeType === "application/pdf" ? (
             <PdfViewer
-              url={access.currentData.url}
+              url={access.currentData}
               retry={() => void access.refetch()}
             />
           ) : file.mimeType.startsWith("image/") ? (
@@ -66,13 +80,20 @@ export function MaterialViewer({
                   + Phóng to
                 </Button>
               </Stack>
-              <Box sx={{ overflow: "auto", maxHeight: "65vh" }}>
+              <Box sx={{ overflow: "auto", maxHeight: "75vh" }}>
                 <Box
                   component="img"
-                  src={access.currentData.url}
+                  src={access.currentData}
                   alt={file.displayName}
                   onError={() => setError(new Error("Không tải được ảnh."))}
-                  sx={{ width: `${zoom}%`, maxWidth: "none", display: "block" }}
+                  sx={{
+                    width: zoom === 100 ? "auto" : `${zoom}%`,
+                    maxWidth: zoom === 100 ? "100%" : "none",
+                    maxHeight: zoom === 100 ? "70vh" : "none",
+                    objectFit: "contain",
+                    display: "block",
+                    mx: "auto",
+                  }}
                 />
               </Box>
             </>
@@ -81,7 +102,7 @@ export function MaterialViewer({
               <audio
                 ref={audio}
                 controls
-                src={access.currentData.url}
+                src={access.currentData}
                 style={{ width: "100%" }}
                 onLoadedMetadata={() => {
                   if (audio.current) audio.current.playbackRate = speed;
@@ -108,8 +129,21 @@ export function MaterialViewer({
           ) : file.mimeType.startsWith("video/") ? (
             <video
               controls
-              src={access.currentData.url}
-              style={{ maxWidth: "100%" }}
+              src={access.currentData}
+              style={{
+                maxWidth: "100%",
+                maxHeight: "70vh",
+                display: "block",
+                margin: "0 auto",
+                objectFit: "contain",
+              }}
+              onError={() =>
+                setError(
+                  new Error(
+                    "Không phát được video. Có thể tải file để xem bằng ứng dụng phù hợp.",
+                  ),
+                )
+              }
             />
           ) : (
             <Feedback empty="Định dạng chưa hỗ trợ xem trực tiếp. Anh/chị có thể tải xuống." />
@@ -126,7 +160,7 @@ export function MaterialViewer({
                 false,
               ).unwrap();
               const a = document.createElement("a");
-              a.href = r.url;
+              a.href = r;
               a.download = file.displayName;
               a.target = "_blank";
               a.rel = "noopener noreferrer";
