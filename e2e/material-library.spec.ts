@@ -554,10 +554,10 @@ test("picker attaches files across folders; draft survives tabs; reaction rolls 
   await expect(
     page.getByRole("heading", { name: "Hướng dẫn Unit 1" }),
   ).toBeVisible();
-  await page.getByRole("button", { name: "Yêu thích", exact: true }).click();
+  await page.getByRole("button", { name: "Thích", exact: true }).click();
   await expect(page.getByText("Dữ liệu đã đổi, thử lại.")).toBeVisible();
   await expect(
-    page.getByText("0 lượt tương tác", { exact: true }),
+    page.getByLabel("Thích: 0", { exact: true }),
   ).toBeVisible();
   const input = page.getByRole("textbox", {
     name: "Viết bình luận",

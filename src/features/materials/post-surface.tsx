@@ -2,7 +2,6 @@
 import { useState, type ReactNode } from "react";
 import Avatar from "@mui/material/Avatar";
 import Box from "@mui/material/Box";
-import Button from "@mui/material/Button";
 import ButtonBase from "@mui/material/ButtonBase";
 import Chip from "@mui/material/Chip";
 import Divider from "@mui/material/Divider";
@@ -16,15 +15,10 @@ import Typography from "@mui/material/Typography";
 import MoreHoriz from "@mui/icons-material/MoreHoriz";
 import ChatBubble from "@mui/icons-material/ChatBubble";
 import Download from "@mui/icons-material/Download";
-import FavoriteBorder from "@mui/icons-material/FavoriteBorder";
-import Favorite from "@mui/icons-material/Favorite";
-import ThumbUp from "@mui/icons-material/ThumbUp";
-import ThumbUpOutlined from "@mui/icons-material/ThumbUpOutlined";
-import Celebration from "@mui/icons-material/Celebration";
-import CelebrationOutlined from "@mui/icons-material/CelebrationOutlined";
-import ExpandMore from "@mui/icons-material/ExpandMore";
 import Description from "@mui/icons-material/Description";
 import { useTheme } from "@mui/material/styles";
+import { ReactionButton, ReactionCounts } from "./reactions";
+export { reactionLabels } from "./reactions";
 import { useLazyContentQuery } from "@/api/library-api";
 import { Feedback } from "@/shared/ui";
 import type { MaterialFile, Post, PostType, Reaction } from "./models";
@@ -36,31 +30,6 @@ export const postTypeLabels: Record<PostType, string> = {
   ANNOUNCEMENT: "Thông báo",
   DISCUSSION: "Trao đổi",
 };
-export const reactionLabels: Record<Reaction, string> = {
-  LIKE: "Thích",
-  LOVE: "Yêu thích",
-  CELEBRATE: "Tuyệt vời",
-};
-const reactionColors: Record<Reaction, string> = {
-  LIKE: "#5397e5",
-  LOVE: "#e76a91",
-  CELEBRATE: "#d69b24",
-};
-function ReactionIcon({ value, active }: { value: Reaction; active: boolean }) {
-  const Icon =
-    value === "LIKE"
-      ? active
-        ? ThumbUp
-        : ThumbUpOutlined
-      : value === "CELEBRATE"
-        ? active
-          ? Celebration
-          : CelebrationOutlined
-        : active
-          ? Favorite
-          : FavoriteBorder;
-  return <Icon fontSize="small" />;
-}
 export function initials(name: string) {
   const parts = name.trim().split(/\s+/);
   return [parts[0]?.[0], parts.length > 1 ? parts.at(-1)?.[0] : ""]
@@ -91,14 +60,12 @@ export function PostSurface({
   const theme = useTheme(),
     dark = theme.palette.mode === "dark";
   const [menu, setMenu] = useState<HTMLElement | null>(null),
-    [reactions, setReactions] = useState<HTMLElement | null>(null),
     [downloads, setDownloads] = useState<HTMLElement | null>(null),
     [error, setError] = useState<unknown>();
   const [download, downloadState] = useLazyContentQuery();
-  const selected = post.myReaction ?? "LOVE",
-    files = post.attachments
-      .filter((a) => a.available && a.file)
-      .map((a) => a.file!);
+  const files = post.attachments
+    .filter((a) => a.available && a.file)
+    .map((a) => a.file!);
   return (
     <Paper
       component="article"
@@ -165,13 +132,15 @@ export function PostSurface({
           </Box>
           {(onEdit || onDelete) && (
             <>
-              <IconButton
-                aria-label="Thao tác bài đăng"
-                onClick={(e) => setMenu(e.currentTarget)}
-                sx={{ color: "var(--post-muted)", minWidth: 44, minHeight: 44 }}
-              >
-                <MoreHoriz />
-              </IconButton>
+              <Tooltip title="Thao tác bài đăng">
+                <IconButton
+                  aria-label="Thao tác bài đăng"
+                  onClick={(e) => setMenu(e.currentTarget)}
+                  sx={{ color: "var(--post-muted)" }}
+                >
+                  <MoreHoriz fontSize="small" />
+                </IconButton>
+              </Tooltip>
               <Menu anchorEl={menu} open={!!menu} onClose={() => setMenu(null)}>
                 {onEdit && (
                   <MenuItem
@@ -284,11 +253,11 @@ export function PostSurface({
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
-                        p: 1.5,
+                        overflow: "hidden",
                       }}
                     >
                       {a.file?.thumbnailUrl ? (
-                        <MaterialThumbnail id={a.file.id} />
+                        <MaterialThumbnail id={a.file.id} fit="cover" fill />
                       ) : (
                         <Description
                           sx={{ fontSize: 56, color: "var(--post-green)" }}
@@ -331,57 +300,27 @@ export function PostSurface({
           direction="row"
           sx={{ justifyContent: "space-between", color: "var(--post-muted)" }}
         >
-          <Typography sx={{ fontSize: 12 }}>
-            {post.reactions.reduce((n, r) => n + r.count, 0)} lượt tương tác
-          </Typography>
-          <Button
-            onClick={openComments}
-            sx={{ fontSize: 12, p: 0, color: "inherit", minHeight: 44 }}
-          >
-            {post.commentCount} bình luận
-          </Button>
+          <ReactionCounts counts={post.reactions} />
+          <Tooltip title={`${post.commentCount} bình luận`}>
+            <Stack direction="row" sx={{ gap: 0.5, alignItems: "center" }}>
+              <ChatBubble fontSize="small" />
+              <Typography sx={{ fontSize: 12 }}>{post.commentCount}</Typography>
+            </Stack>
+          </Tooltip>
         </Stack>
         <Divider sx={{ borderColor: "var(--post-border)" }} />
         <Stack direction="row" sx={{ gap: 0.5, alignItems: "center" }}>
-          <Box
-            sx={{ flex: 1, display: "flex", alignItems: "center", minWidth: 0 }}
-          >
-            <Tooltip title={reactionLabels[selected]}>
-              <IconButton
-                sx={{
-                  flex: 1,
-                  borderRadius: "12px",
-                  minHeight: 44,
-                  bgcolor: post.myReaction ? "var(--post-tint)" : undefined,
-                  color: post.myReaction
-                    ? reactionColors[selected]
-                    : "var(--post-muted)",
-                }}
-                aria-label={reactionLabels[selected]}
-                aria-pressed={!!post.myReaction}
-                disabled={reacting}
-                onClick={() => onReaction(selected)}
-              >
-                <ReactionIcon value={selected} active={!!post.myReaction} />
-              </IconButton>
-            </Tooltip>
-            <Tooltip title="Chọn tương tác">
-              <IconButton
-                aria-label="Chọn tương tác"
-                disabled={reacting}
-                onClick={(e) => setReactions(e.currentTarget)}
-                sx={{ color: "var(--post-muted)", width: 44, height: 44 }}
-              >
-                <ExpandMore fontSize="small" />
-              </IconButton>
-            </Tooltip>
-          </Box>
+          <ReactionButton
+            value={post.myReaction}
+            disabled={reacting}
+            onChange={onReaction}
+          />
           <Tooltip title="Bình luận">
             <IconButton
               sx={{
                 flex: 1,
                 borderRadius: "12px",
-                minHeight: 44,
+                minHeight: 32,
                 color: "var(--post-muted)",
                 bgcolor: commentOpen ? "var(--post-soft)" : undefined,
               }}
@@ -398,7 +337,7 @@ export function PostSurface({
                 sx={{
                   flex: 1,
                   borderRadius: "12px",
-                  minHeight: 44,
+                  minHeight: 32,
                   color: "var(--post-muted)",
                 }}
                 aria-label="Tải tài liệu"
@@ -410,34 +349,6 @@ export function PostSurface({
             </span>
           </Tooltip>
         </Stack>
-        <Menu
-          anchorEl={reactions}
-          open={!!reactions}
-          onClose={() => setReactions(null)}
-          slotProps={{ list: { sx: { display: "flex", gap: 0.5, p: 0.5 } } }}
-        >
-          {(Object.keys(reactionLabels) as Reaction[]).map((value) => (
-            <Tooltip key={value} title={reactionLabels[value]}>
-              <MenuItem
-                aria-label={`Chọn ${reactionLabels[value]}`}
-                selected={post.myReaction === value}
-                sx={{
-                  color: reactionColors[value],
-                  borderRadius: "12px",
-                  minWidth: 44,
-                  minHeight: 44,
-                  justifyContent: "center",
-                }}
-                onClick={() => {
-                  setReactions(null);
-                  onReaction(value);
-                }}
-              >
-                <ReactionIcon value={value} active />
-              </MenuItem>
-            </Tooltip>
-          ))}
-        </Menu>
         <Menu
           anchorEl={downloads}
           open={!!downloads}

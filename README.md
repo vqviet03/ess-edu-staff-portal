@@ -180,3 +180,5 @@ Backend cần migration Core 012 và Materials 004 trước deploy. Cần cấu 
 Thread lớp, quyền tác giả và triển khai: [docs/class-thread-posts.md](docs/class-thread-posts.md).
 
 Chi tiết lớp: **Thread / Tiến độ lớp / Hồ sơ & quan hệ**. Unit và danh sách phiên nằm trực tiếp trong Tiến độ lớp; học sinh chuyển vào bảng hồ sơ với menu ba chấm. Giảng viên xem hồ sơ qua `/student/?classId=...&studentId=...`; quản lý dùng hồ sơ đầy đủ hiện có. Xem [chi tiết tabs và quyền](docs/class-thread-posts.md#chi-tiết-lớp-trên-staff-portal).
+
+Thread: bài đăng căn giữa, controls MUI small/icon với tooltip, thống kê riêng từng reaction. Nhấp để bật/tắt reaction; nhấn giữ 450ms để mở bộ chọn với phản hồi thị giác/rung nếu thiết bị hỗ trợ, kéo để cuộn hủy thao tác giữ; bàn phím ArrowDown/Shift+F10. Ảnh bài đăng/bình luận dùng thumbnail xác thực trong khung cố định `object-fit: cover`; chỉ tải bản gốc khi mở viewer. Danh sách thông báo hỗ trợ thêm loại REPLY và SCORE từ backend.
