@@ -1,10 +1,10 @@
 "use client";
+import { Comments } from "./comments";
 import { PostSurface, postTypeLabels } from "./post-surface";
 import { useWorkspace } from "@/features/access/hooks";
 import Autocomplete from "@mui/material/Autocomplete";
 import { useState } from "react";
 import Box from "@mui/material/Box";
-import Paper from "@mui/material/Paper";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import Button from "@mui/material/Button";
@@ -15,7 +15,7 @@ import DialogContent from "@mui/material/DialogContent";
 import DialogActions from "@mui/material/DialogActions";
 import MenuItem from "@mui/material/MenuItem";
 import Alert from "@mui/material/Alert";
-import Chip from "@mui/material/Chip";
+import Paper from "@mui/material/Paper";
 import {
   usePostsQuery,
   useClassThreadsQuery,
@@ -23,9 +23,6 @@ import {
   useSavePostMutation,
   useRemovePostMutation,
   useReactionMutation,
-  useCommentsQuery,
-  useSaveCommentMutation,
-  useRemoveCommentMutation,
 } from "@/api/library-api";
 import { useAppSelector } from "@/store";
 import { Feedback, NavButton } from "@/shared/ui";
@@ -36,183 +33,6 @@ import type { Attachment, MaterialFile, Post, PostInput } from "./models";
 import { MaterialBrowser } from "./browser";
 import { MaterialViewer } from "./viewer";
 import { UploadDialog } from "./upload";
-function Comments({ post }: { post: Post }) {
-  const me = useAppSelector((s) => s.auth.session?.teacher),
-    [cursor, setCursor] = useState<string>(),
-    query = useCommentsQuery({ postId: post.id, cursor }),
-    [body, setBody] = useState(""),
-    [upload, setUpload] = useState(false),
-    [attachments, setAttachments] = useState<MaterialFile[]>([]),
-    [preview, setPreview] = useState<MaterialFile | null>(null),
-    [parent, setParent] = useState<string>(),
-    [editing, setEditing] = useState<{ id: string; version: number } | null>(
-      null,
-    ),
-    [save, state] = useSaveCommentMutation(),
-    [remove] = useRemoveCommentMutation(),
-    [error, setError] = useState<unknown>();
-  useUnsaved(!!body.trim() || attachments.length > 0);
-  return (
-    <Stack spacing={1.5}>
-      <Feedback
-        loading={query.isLoading}
-        error={query.error || error}
-        retry={() => {
-          setError(undefined);
-          void query.refetch();
-        }}
-      />
-      {query.currentData?.items.map((c) => (
-        <Paper
-          key={c.id}
-          variant="outlined"
-          sx={{ p: 1.5, ml: c.parentId ? { xs: 1, md: 3 } : 0 }}
-        >
-          <Typography variant="body2" sx={{ fontWeight: 600 }}>
-            {c.authorName} · {new Date(c.createdAt).toLocaleString("vi-VN")}
-          </Typography>
-          {c.parentId && (
-            <Typography variant="caption" color="text.secondary">
-              Trả lời bình luận
-            </Typography>
-          )}
-          <Typography sx={{ whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}>
-            {c.body}
-          </Typography>
-          {c.attachments?.map((file) => (
-            <Button key={file.id} onClick={() => setPreview(file)}>
-              {file.displayName}
-            </Button>
-          ))}
-          <Stack direction="row">
-            <Button
-              disabled={c.version === 0}
-              onClick={() => {
-                setParent(c.id);
-                setEditing(null);
-              }}
-            >
-              Trả lời
-            </Button>
-            {c.authorId === me?.id && (
-              <Button
-                onClick={() => {
-                  if (c.version === 0) return;
-                  setEditing({ id: c.id, version: c.version });
-                  setBody(c.body);
-                  setAttachments(c.attachments ?? []);
-                  setParent(undefined);
-                }}
-              >
-                Sửa
-              </Button>
-            )}
-            {(c.authorId === me?.id || me?.roles?.includes("MANAGER")) && (
-              <Button
-                disabled={c.version === 0}
-                onClick={async () => {
-                  if (!window.confirm("Xóa mềm bình luận này?")) return;
-                  try {
-                    await remove({
-                      id: c.id,
-                      postId: post.id,
-                      version: c.version,
-                    }).unwrap();
-                  } catch (e) {
-                    setError(e);
-                  }
-                }}
-              >
-                Xóa
-              </Button>
-            )}
-          </Stack>
-        </Paper>
-      ))}
-      <Stack direction="row">
-        {cursor && (
-          <Button onClick={() => setCursor(undefined)}>Bình luận đầu</Button>
-        )}
-        {query.currentData?.nextCursor && (
-          <Button
-            onClick={() =>
-              setCursor(query.currentData?.nextCursor ?? undefined)
-            }
-          >
-            Bình luận tiếp theo
-          </Button>
-        )}
-      </Stack>
-      {(parent || editing) && (
-        <Chip
-          label={editing ? "Đang sửa bình luận" : "Đang trả lời"}
-          onDelete={() => {
-            setParent(undefined);
-            setEditing(null);
-          }}
-        />
-      )}
-      <TextField
-        multiline
-        minRows={2}
-        label="Viết bình luận"
-        value={body}
-        onChange={(e) => setBody(e.target.value)}
-        slotProps={{ htmlInput: { maxLength: 5000 } }}
-      />
-      <Button onClick={() => setUpload(true)}>
-        Đính kèm ảnh / file / audio / video
-      </Button>
-      {attachments.map((file) => (
-        <Chip
-          key={file.id}
-          label={file.displayName}
-          onDelete={() =>
-            setAttachments((old) => old.filter((f) => f.id !== file.id))
-          }
-        />
-      ))}
-      {upload && (
-        <UploadDialog
-          folderId={null}
-          sessionId={post.sessionId ?? undefined}
-          postId={post.id}
-          close={() => setUpload(false)}
-          added={(file) => setAttachments((old) => [...old, file])}
-        />
-      )}
-      {preview && (
-        <MaterialViewer file={preview} close={() => setPreview(null)} />
-      )}
-      <Button
-        variant="contained"
-        disabled={(!body.trim() && !attachments.length) || state.isLoading}
-        onClick={async () => {
-          setError(undefined);
-          try {
-            await save({
-              postId: post.id,
-              id: editing?.id,
-              version: editing?.version,
-              body,
-              parentId: parent,
-              materialIds: attachments.map((file) => file.id),
-            }).unwrap();
-            setBody("");
-            setAttachments([]);
-            setParent(undefined);
-            setEditing(null);
-            setCursor(undefined);
-          } catch (e) {
-            setError(e);
-          }
-        }}
-      >
-        Gửi bình luận
-      </Button>
-    </Stack>
-  );
-}
 function PostCard({
   post,
   sessionId,
@@ -240,7 +60,6 @@ function PostCard({
     <>
       <PostSurface
         post={post}
-        viewerName={me?.name ?? "Bạn"}
         commentOpen={showComments}
         openComments={() => setShowComments((s) => !s)}
         preview={setPreview}
@@ -279,7 +98,11 @@ function PostCard({
             : undefined
         }
       >
-        <Comments post={post} />
+        <Comments
+          post={post}
+          expanded={showComments}
+          expand={() => setShowComments(true)}
+        />
       </PostSurface>
       <Feedback error={error} />
       {preview && (
