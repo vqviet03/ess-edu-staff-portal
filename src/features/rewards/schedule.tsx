@@ -66,9 +66,7 @@ function ScheduleEditor({
       structuredClone(data.configuration),
     ),
     [effectiveFrom, setEffectiveFrom] = useState(
-      data.effectiveFrom && data.effectiveFrom > vietnamToday()
-        ? data.effectiveFrom
-        : vietnamToday(),
+      data.effectiveFrom ?? vietnamToday(),
     ),
     [dirty, setDirty] = useState(false),
     [error, setError] = useState<unknown>(),
@@ -527,9 +525,8 @@ function ScheduleEditor({
                 }}
                 slotProps={{
                   inputLabel: { shrink: true },
-                  htmlInput: { min: vietnamToday() },
                 }}
-                helperText="Giữ lịch và dữ liệu đã chốt; thay đổi từ ngày này trở đi."
+                helperText="Có thể chọn ngày trong quá khứ, tối đa 10 năm. Giữ nguyên lịch của buổi đã chốt; không tự tạo điểm danh."
               />
               <TextField
                 size="small"
