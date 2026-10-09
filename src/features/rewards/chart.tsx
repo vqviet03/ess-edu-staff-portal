@@ -1,6 +1,7 @@
 "use client";
 import { useState, type ReactNode } from "react";
 import Box from "@mui/material/Box";
+import { ChartViewport } from "@/components/chart-viewport";
 import ButtonBase from "@mui/material/ButtonBase";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
@@ -56,7 +57,6 @@ export default function RewardChart({
       {hasPoints ? (
         <Box
           sx={{
-            height: { xs: 260, md: 320 },
             width: "100%",
             minWidth: 0,
             bgcolor: "background.default",
@@ -65,6 +65,8 @@ export default function RewardChart({
           }}
           aria-label="Biểu đồ điểm cộng dồn theo ngày"
         >
+          <ChartViewport height={{ xs: 260, md: 320 }} pointCount={data.length}
+            minPointGap={48} xValues={data.map((p) => p.time)} label="Điểm cộng dồn theo ngày">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart
               data={data}
@@ -149,6 +151,7 @@ export default function RewardChart({
                 ))}
             </LineChart>
           </ResponsiveContainer>
+          </ChartViewport>
         </Box>
       ) : (
         <Typography color="text.secondary">
