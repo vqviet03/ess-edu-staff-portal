@@ -91,11 +91,33 @@ export const rewardsApi = api.injectEndpoints({
         kind: RewardKind;
         amount: number;
         note?: string;
+        date?: string;
         key: string;
       }
     >({
       query: ({ classId, studentId, key, ...body }) => ({
         url: rewardPath({ classId, studentId }),
+        method: "POST",
+        headers: { "Idempotency-Key": key },
+        body,
+      }),
+      transformResponse: unwrap<RewardEntry>,
+      invalidatesTags: (_, e, q) => (e ? [] : tags(q.classId)),
+    }),
+    correctReward: b.mutation<
+      RewardEntry,
+      {
+        classId: string;
+        studentId: string;
+        entryId: string;
+        amount: number;
+        note: string;
+        reason: string;
+        key: string;
+      }
+    >({
+      query: ({ classId, studentId, entryId, key, ...body }) => ({
+        url: `${rewardPath({ classId, studentId })}/${encodeURIComponent(entryId)}/correction`,
         method: "POST",
         headers: { "Idempotency-Key": key },
         body,
@@ -183,6 +205,7 @@ export const {
   useRewardHistoryQuery,
   useRewardActivitiesQuery,
   useAddRewardMutation,
+  useCorrectRewardMutation,
   useReverseRewardMutation,
   useSaveRewardAttendanceMutation,
   useStudyScheduleQuery,

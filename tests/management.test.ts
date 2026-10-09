@@ -13,6 +13,7 @@ import {
 import type { Teacher, Envelope, AuthSession } from "../src/types";
 import type {
   BulkPreview,
+  Enrollment,
   Entity,
   ManagedList,
   Impact,
@@ -803,5 +804,49 @@ test("payload bulk sai bị từ chối; liên kết tài khoản phân biệt l
   assert.equal(
     (await h.data<ProfileDetail>("/manager/teachers/GV0001")).accounts[0].kind,
     "STAFF",
+  );
+});
+
+test("ngày tham gia: preview/commit cập nhật giai đoạn hiện tại, giữ ID và không thêm lịch sử giả", async () => {
+  const h = harness();
+  await h.login("MG0001");
+  const original = structuredClone(
+    h.db().management!.enrollments.find((e) => e.status === "ACTIVE")!,
+  );
+  const joinedOn = "2026-01-01";
+  const body = {
+    classId: original.classId,
+    studentId: original.studentId,
+    status: original.status,
+    version: original.version,
+    joinedOn,
+  };
+  const preview = await h.data<BulkPreview>(
+    "/manager/enrollments/preview",
+    "POST",
+    body,
+  );
+  await h.commit(preview);
+  const updated = h
+    .db()
+    .management!.enrollments.find((e) => e.id === original.id)!;
+  assert.equal(updated.joinedOn, joinedOn);
+  assert.equal(updated.history.length, original.history.length);
+  assert.equal(updated.history.at(-1)!.startAt, "2025-12-31T17:00:00.000Z");
+  const stale = await h.request("/manager/enrollments/preview", "POST", body);
+  assert(stale.error);
+  const invalid = await h.request("/manager/enrollments/preview", "POST", {
+    ...body,
+    version: updated.version,
+    joinedOn: "2099-01-01",
+  });
+  assert(invalid.error);
+  assert.equal(
+    (
+      h
+        .db()
+        .management!.enrollments.find((e) => e.id === original.id) as Enrollment
+    ).joinedOn,
+    joinedOn,
   );
 });

@@ -185,6 +185,8 @@ Thread: bài đăng căn giữa, controls MUI small/icon với tooltip, thống 
 
 ### Điểm động viên và lịch học
 
+[Thông báo, ngày tham gia và điểm quá khứ](docs/notification-enrollment-rewards.md): manager sửa ngày tham gia từ menu học sinh trong lớp; teacher chọn ngày đã điểm danh để bổ sung/sửa điểm, giữ lịch sử gốc. Phê duyệt/đồng ý chưa đọc được giữ khi dọn giới hạn 15 thông báo. Không cần migration mới cho phần mở rộng này.
+
 Thiết kế [Figma](https://www.figma.com/design/4HTHoXVUEgn4o3Iq0JzBRB). Icon cúp ở đầu lớp mở popup ghi 1–5 điểm/lượt, lưu nhanh hoặc ghi chú; icon chi tiết mở `/student/?classId=...&studentId=...&tab=rewards`. Quỹ bắt đầu 0, không tạo dữ liệu khi mở. Có điểm danh/chốt ngày; lịch cố định tuần/tháng, ngày linh động và giờ chung/riêng/thông báo sau. Quản lý chỉ xem; giảng viên đang phụ trách lớp ACTIVE được thưởng/trừ/sử dụng/đảo giao dịch và sửa lịch.
 
 Bốn đường E, V, E−V, E−V−S theo ngày thực; ngày vắng/chưa xác nhận không bị tạo mốc 0. Thống kê và lịch sử sử dụng màu vàng. Số dư âm vì vi phạm được giữ, không tiêu vượt số dư. Ẩn/hiện đường, ngày/tháng/năm trong tooltip, filter thời gian và lịch sử phân trang. Không có interval cho reward; socket REWARD/SCHEDULE refresh đúng tags, audit refresh sau sự kiện archive hoàn tất.

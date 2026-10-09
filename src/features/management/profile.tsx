@@ -10,6 +10,7 @@ const StudentRewards = dynamic(
 import { ClassThreadFeed } from "@/features/materials/feed";
 import { useClassCapabilities } from "@/features/access/hooks";
 import { publicId } from "@/shared/public-id";
+import { vietnamToday } from "@/features/rewards/models";
 import { useState } from "react";
 import {
   ClassDetailTabs,
@@ -88,6 +89,13 @@ function RelationshipEditor({
     [status, setStatus] = useState<string>(
       assignment?.status ?? enrollment?.status ?? "ACTIVE",
     ),
+    [joinedOn, setJoinedOn] = useState(() => {
+      const start = enrollment?.history.at(-1)?.startAt;
+      return (
+        enrollment?.joinedOn ??
+        (start ? vietnamToday(new Date(start)) : vietnamToday())
+      );
+    }),
     [search, setSearch] = useState(""),
     [data, setData] = useState<BulkPreview | null>(null),
     [error, setError] = useState("");
@@ -183,12 +191,22 @@ function RelationshipEditor({
               select
               label="Trạng thái quan hệ"
               value={status}
-              onChange={(e) => setStatus(e.target.value)}
+              onChange={(e) => {
+                setStatus(e.target.value);
+                if (
+                  kind === "enrollment" &&
+                  e.target.value === "ACTIVE" &&
+                  enrollment?.status !== "ACTIVE"
+                )
+                  setJoinedOn(vietnamToday());
+              }}
             >
               {(assignment
                 ? ["ACTIVE", "ENDED", "COMPLETED"]
                 : enrollment
-                  ? ["ACTIVE", "ENDED"]
+                  ? enrollment.status === "COMPLETED"
+                    ? ["COMPLETED"]
+                    : ["ACTIVE", "ENDED"]
                   : ["ACTIVE"]
               ).map((s) => (
                 <MenuItem key={s} value={s}>
@@ -196,10 +214,25 @@ function RelationshipEditor({
                 </MenuItem>
               ))}
             </TextField>
+            {kind === "enrollment" && (
+              <TextField
+                size="small"
+                type="date"
+                label="Ngày tham gia lớp"
+                value={joinedOn}
+                onChange={(e) => setJoinedOn(e.target.value)}
+                slotProps={{ inputLabel: { shrink: true }, htmlInput: { max: vietnamToday() } }}
+                helperText="Được nhập ngày quá khứ. Giữ lịch sử các giai đoạn trước; kiểm tra ảnh hưởng trước khi lưu."
+              />
+            )}
             <Button
               variant="contained"
               loading={assignState.isLoading || enrollState.isLoading}
-              disabled={!personId || (kind === "assignment" && !labelId)}
+              disabled={
+                !personId ||
+                (kind === "assignment" && !labelId) ||
+                (kind === "enrollment" && !joinedOn)
+              }
               onClick={async () => {
                 try {
                   setError("");
@@ -215,7 +248,8 @@ function RelationshipEditor({
                       : await previewEnrollment({
                           classId,
                           studentId: personId,
-                          status: status as "ACTIVE" | "ENDED",
+                          status: status as Enrollment["status"],
+                          joinedOn,
                           version: enrollment?.version,
                         }).unwrap(),
                   );
@@ -536,6 +570,17 @@ function Profile({
             onEdit={(s) => {
               const managed = d.students.find((person) => person.id === s.id);
               if (managed) setClassStudentEdit({ student: managed });
+            }}
+            onJoined={(s) => {
+              const enrollment = d.enrollments.find(
+                (e) => e.studentId === s.id && e.classId === r.id,
+              );
+              if (enrollment)
+                setRelationship({
+                  kind: "enrollment",
+                  classId: r.id,
+                  enrollment,
+                });
             }}
             onStatus={(s) => {
               const managed = d.students.find((person) => person.id === s.id);

@@ -13,6 +13,7 @@ import EmojiEvents from "@mui/icons-material/EmojiEvents";
 import RemoveCircleOutlined from "@mui/icons-material/RemoveCircleOutlined";
 import Redeem from "@mui/icons-material/Redeem";
 import Undo from "@mui/icons-material/Undo";
+import EditOutlined from "@mui/icons-material/EditOutlined";
 import ArrowBack from "@mui/icons-material/ArrowBack";
 import ArrowForward from "@mui/icons-material/ArrowForward";
 import Refresh from "@mui/icons-material/Refresh";
@@ -51,6 +52,7 @@ function ClassRewardDetail({
     [dialog, setDialog] = useState<{
       kind: RewardKind;
       reverse?: RewardEntry;
+      edit?: RewardEntry;
     } | null>(null),
     [message, setMessage] = useState("");
   const activities = useRewardActivitiesQuery(
@@ -237,14 +239,23 @@ function ClassRewardDetail({
                       actions={
                         permissions.editLearning
                           ? (e) =>
-                              !e.reversesId ? (
-                                <IconAction
-                                  label="Điều chỉnh bằng giao dịch đảo"
-                                  icon={<Undo />}
-                                  onClick={() =>
-                                    setDialog({ kind: e.kind, reverse: e })
-                                  }
-                                />
+                              !e.reversesId && !e.isReversed ? (
+                                <Stack direction="row">
+                                  <IconAction
+                                    label="Chỉnh sửa điểm đã ghi"
+                                    icon={<EditOutlined />}
+                                    onClick={() =>
+                                      setDialog({ kind: e.kind, edit: e })
+                                    }
+                                  />
+                                  <IconAction
+                                    label="Điều chỉnh bằng giao dịch đảo"
+                                    icon={<Undo />}
+                                    onClick={() =>
+                                      setDialog({ kind: e.kind, reverse: e })
+                                    }
+                                  />
+                                </Stack>
                               ) : null
                           : undefined
                       }
@@ -289,6 +300,7 @@ function ClassRewardDetail({
           name={name}
           kind={dialog.kind}
           reverse={dialog.reverse}
+          edit={dialog.edit}
           onClose={() => setDialog(null)}
           onSaved={() => {
             setDialog(null);

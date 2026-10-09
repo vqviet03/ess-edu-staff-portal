@@ -59,16 +59,31 @@ async function rewardsFixture(page: Page) {
             ? { data }
             : { error: { code: "TEST_ERROR", message: String(data) } },
       });
-    const summary = (id: string) =>
+    const summary = (id: string, date?: string) =>
       totals(
         entries
-          .filter((e) => e.studentId === id && e.kind === "EARN")
+          .filter(
+            (e) =>
+              e.studentId === id &&
+              e.kind === "EARN" &&
+              (!date || e.date === date),
+          )
           .reduce((n, e) => n + e.amount, 0),
         entries
-          .filter((e) => e.studentId === id && e.kind === "PENALTY")
+          .filter(
+            (e) =>
+              e.studentId === id &&
+              e.kind === "PENALTY" &&
+              (!date || e.date === date),
+          )
           .reduce((n, e) => n + e.amount, 0),
         entries
-          .filter((e) => e.studentId === id && e.kind === "SPEND")
+          .filter(
+            (e) =>
+              e.studentId === id &&
+              e.kind === "SPEND" &&
+              (!date || e.date === date),
+          )
           .reduce((n, e) => n + e.amount, 0),
       );
     if (path.endsWith("/schedule")) {
@@ -97,6 +112,29 @@ async function rewardsFixture(page: Page) {
       id = studentMatch?.[1] ?? students[0].id;
     if (method === "POST") {
       writes.push(request.headers()["idempotency-key"]);
+      if (path.endsWith("/correction")) {
+        const original = entries.find((e) =>
+          path.includes(`/${e.id}/correction`),
+        )!;
+        original.isReversed = true;
+        entries.push({
+          ...original,
+          id: crypto.randomUUID(),
+          amount: -original.amount,
+          note: String(body!.reason),
+          reversesId: original.id,
+          isReversed: false,
+        });
+        const replacement = {
+          ...original,
+          id: crypto.randomUUID(),
+          amount: Number(body!.amount),
+          note: String(body!.note),
+          isReversed: false,
+        };
+        if (replacement.amount > 0) entries.push(replacement);
+        return reply(replacement.amount > 0 ? replacement : entries.at(-1));
+      }
       const student = students.find((s) => s.id === id)!;
       const e: RewardEntry = {
         id: crypto.randomUUID(),
@@ -105,7 +143,7 @@ async function rewardsFixture(page: Page) {
         note: String(
           body!.note ?? `${student.nickname} vừa đạt được thành tích mới`,
         ),
-        date: today,
+        date: String(body!.date ?? today),
         createdAt: new Date().toISOString(),
         authorName: "Vũ Quốc Việt",
         authorPublicId: "vq.viet",
@@ -159,12 +197,15 @@ async function rewardsFixture(page: Page) {
         activityCount: entries.length,
       });
     }
+    const selectedDate = url.searchParams.get("date") ?? today;
     return reply({
       classId: "class-green",
-      date: today,
+      date: selectedDate,
       dayVersion: 0,
       closed: false,
-      highestToday: Math.max(...students.map((s) => summary(s.id).earned)),
+      highestToday: Math.max(
+        ...students.map((s) => summary(s.id, selectedDate).earned),
+      ),
       items: students.map((s) => ({
         studentId: s.id,
         publicId: s.id,
@@ -172,8 +213,8 @@ async function rewardsFixture(page: Page) {
         nickname: s.nickname,
         attendance: "PRESENT",
         totals: summary(s.id),
-        today: summary(s.id),
-        todayProgress: summary(s.id).earned ? 100 : 0,
+        today: summary(s.id, selectedDate),
+        todayProgress: summary(s.id, selectedDate).earned ? 100 : 0,
       })),
     });
   });
@@ -193,6 +234,65 @@ async function login(page: Page, id = "GV0001") {
   await page.getByRole("button", { name: "Đăng nhập", exact: true }).click();
   await expect(page).toHaveURL(/home/);
 }
+test("teacher records past points and corrects them without losing original history", async ({
+  page,
+}) => {
+  const f = await rewardsFixture(page),
+    past = dateWindow(vietnamToday(), 8).from;
+  await login(page);
+  await page.goto(`${base}/class/?classId=class-green`);
+  await page
+    .getByRole("button", { name: "Cộng điểm động viên", exact: true })
+    .click();
+  const award = page.getByRole("dialog"),
+    row = award.getByRole("row").filter({ hasText: "Hữu Văn" });
+  await award.getByLabel("Ngày học", { exact: true }).fill(past);
+  await row
+    .locator("label")
+    .filter({ hasText: /3 cúp$/ })
+    .click();
+  await row.getByRole("button", { name: "Lưu nhanh", exact: true }).click();
+  await expect.poll(() => f.entries.length).toBe(1);
+  expect(f.entries[0].date).toBe(past);
+  await row
+    .getByRole("button", { name: "Xem chi tiết tích thưởng", exact: true })
+    .click();
+  await page
+    .getByRole("button", { name: "Chỉnh sửa điểm đã ghi", exact: true })
+    .click();
+  const correction = page.getByRole("dialog");
+  await expect(correction.getByLabel("Ngày ghi nhận điểm")).toHaveValue(past);
+  await expect(correction.getByLabel("Ngày ghi nhận điểm")).toBeDisabled();
+  await correction
+    .locator("label")
+    .filter({ hasText: /2 cúp$/ })
+    .click();
+  await correction
+    .getByLabel("Ghi chú thành tích")
+    .fill("Đã đối chiếu buổi học");
+  await correction.getByLabel("Lý do điều chỉnh").fill("Nhập nhầm số cúp");
+  await correction
+    .getByRole("button", { name: "Lưu điều chỉnh", exact: true })
+    .click();
+  await expect(correction).toHaveCount(0);
+  await expect.poll(() => f.entries.length).toBe(3);
+  expect(f.entries.map((e) => e.amount)).toEqual([3, -3, 2]);
+  expect(f.entries.reduce((sum, e) => sum + e.amount, 0)).toBe(2);
+  await expect(
+    page.getByText("Đã đối chiếu buổi học", { exact: true }).first(),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Chỉnh sửa điểm đã ghi", exact: true }),
+  ).toHaveCount(1);
+  await page.getByRole("button", { name: "Chỉnh sửa điểm đã ghi", exact: true }).click();
+  await correction.locator("label").filter({ hasText: /2 cúp$/ }).click();
+  await correction.getByLabel("Lý do điều chỉnh").fill("Hủy lượt nhập nhầm");
+  await correction.getByRole("button", { name: "Lưu điều chỉnh", exact: true }).click();
+  await expect(correction).toHaveCount(0);
+  await expect.poll(() => f.entries.length).toBe(4);
+  expect(f.entries.reduce((sum, e) => sum + e.amount, 0)).toBe(0);
+  await expect(page.getByRole("button", { name: "Chỉnh sửa điểm đã ghi", exact: true })).toHaveCount(0);
+});
 test("teacher awards trophies, saves note, opens reward detail and does not poll", async ({
   page,
 }, testInfo) => {

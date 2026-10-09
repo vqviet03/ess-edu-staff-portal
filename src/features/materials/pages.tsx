@@ -157,6 +157,7 @@ export const notificationTypes: Record<string, string> = {
   REWARD: "Điểm động viên",
   SCHEDULE: "Lịch học",
   APPROVAL: "Yêu cầu xóa / phê duyệt",
+  CONSENT: "Yêu cầu đồng ý",
   STORAGE: "Storage",
   SYSTEM: "Hệ thống",
 };
@@ -274,6 +275,7 @@ export function NotificationsPage() {
                 {n.isRead ? "Đánh dấu chưa đọc" : "Đánh dấu đã đọc"}
               </Button>
               <Button
+                disabled={!n.isRead && (["APPROVAL", "CONSENT"].includes(n.type) || n.type === "SYSTEM" && n.title === "Đề xuất đổi tên ứng dụng / tiền tố lớp cần bạn đồng ý")}
                 onClick={async () => {
                   try {
                     await change({

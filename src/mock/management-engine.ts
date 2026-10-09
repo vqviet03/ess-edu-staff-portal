@@ -992,12 +992,30 @@ function applyEnrollment(
   const m = management(db),
     studentId = String(data.studentId),
     classId = String(data.classId),
-    status = String(data.status) as "ACTIVE" | "ENDED",
+    status = String(data.status) as "ACTIVE" | "ENDED" | "COMPLETED",
     at = now(),
     e = m.enrollments.find(
       (e) => e.studentId === studentId && e.classId === classId,
     );
-  if (e) {
+  const joining =
+    typeof data.joinedOn === "string"
+      ? new Date(`${data.joinedOn}T00:00:00+07:00`).toISOString()
+      : at;
+  if (e && e.status === status) {
+    if (typeof data.joinedOn === "string") {
+      e.joinedOn = data.joinedOn;
+      const phase = e.history.at(-1);
+      if (phase) phase.startAt = joining;
+    }
+    e.version++;
+    e.updatedAt = at;
+  } else if (e) {
+    e.joinedOn =
+      typeof data.joinedOn === "string"
+        ? data.joinedOn
+        : new Intl.DateTimeFormat("en-CA", {
+            timeZone: "Asia/Ho_Chi_Minh",
+          }).format(new Date(at));
     const last = e.history.at(-1);
     if (last?.status === "ACTIVE") {
       last.status = "ENDED";
@@ -1008,7 +1026,7 @@ function applyEnrollment(
     e.version++;
     e.updatedAt = at;
     e.history.push({
-      startAt: at,
+      startAt: joining,
       endAt: status === "ACTIVE" ? null : at,
       status,
       reason,
@@ -1017,13 +1035,24 @@ function applyEnrollment(
     m.enrollments.push({
       id: uid(),
       studentId,
+      joinedOn:
+        typeof data.joinedOn === "string"
+          ? data.joinedOn
+          : new Intl.DateTimeFormat("en-CA", {
+              timeZone: "Asia/Ho_Chi_Minh",
+            }).format(new Date(at)),
       classId,
       status,
       version: 1,
       createdAt: at,
       updatedAt: at,
       history: [
-        { startAt: at, endAt: status === "ACTIVE" ? null : at, status, reason },
+        {
+          startAt: joining,
+          endAt: status === "ACTIVE" ? null : at,
+          status,
+          reason,
+        },
       ],
     });
   if (status === "ACTIVE")
@@ -1089,12 +1118,50 @@ function relationshipPreview(
       existing = m.enrollments.find(
         (e) => e.classId === classId && e.studentId === data.studentId,
       );
-    if (!student || !["ACTIVE", "ENDED"].includes(String(data.status)))
+    if (
+      !student ||
+      !["ACTIVE", "ENDED", "COMPLETED"].includes(String(data.status)) ||
+      (data.status === "COMPLETED" && existing?.status !== "COMPLETED")
+    )
       reject(422, "INVALID_ENROLLMENT", "Ghi danh không hợp lệ.");
     if (existing && data.version !== existing.version)
       reject(409, "VERSION_CONFLICT", "Ghi danh đã thay đổi.");
+    if (data.joinedOn !== undefined) {
+      const day = String(data.joinedOn),
+        today = new Intl.DateTimeFormat("en-CA", {
+          timeZone: "Asia/Ho_Chi_Minh",
+        }).format(new Date());
+      if (
+        !/^\d{4}-\d{2}-\d{2}$/.test(day) ||
+        Number.isNaN(Date.parse(day)) ||
+        new Date(day).toISOString().slice(0, 10) !== day ||
+        day > today ||
+        day < `${Number(today.slice(0, 4)) - 10}${today.slice(4)}`
+      )
+        reject(
+          422,
+          "INVALID_JOINED_DATE",
+          "Ngày tham gia phải là hôm nay hoặc quá khứ, tối đa 10 năm.",
+        );
+      const previous = existing?.history.at(
+        data.status === "ACTIVE" && existing.status !== "ACTIVE" ? -1 : -2,
+      );
+      if (
+        previous?.endAt &&
+        day <
+          new Intl.DateTimeFormat("en-CA", {
+            timeZone: "Asia/Ho_Chi_Minh",
+          }).format(new Date(previous.endAt))
+      )
+        reject(
+          409,
+          "ENROLLMENT_OVERLAP",
+          "Ngày tham gia chồng lên giai đoạn học trước đó.",
+        );
+    }
     if (
       data.status === "ACTIVE" &&
+      existing?.status !== "ACTIVE" &&
       (student.status !== "ACTIVE" || !["ACTIVE", "DRAFT"].includes(c.status))
     )
       reject(

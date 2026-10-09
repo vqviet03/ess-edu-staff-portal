@@ -29,13 +29,14 @@ export function businessMutation(url: string, method = "GET") {
   return /^\/manager\/settings\/proposals(?:\/[^/]+\/decision)?$/.test(url) || url === "/manager/changes/commit" || /^\/manager\/accounts\/[^/]+\/(session-policy|sessions\/revoke)$/.test(url) || (/^\/(classes|sessions|assessments)\//.test(url) && !url.endsWith("/preview"));
 }
 export function relatedTags(entities: string[]) {
-  const tags = new Set<"Auth" | "Management" | "Dashboard" | "Assignments" | "Warnings" | "Audit" | "Classes" | "Class" | "Students" | "Sessions" | "Assessments" | "Results" | "Reports" | "ClassAccess" | "Operations" | "ApplicationSettings" | "SettingsProposals">(["Operations", "Audit"]);
+  const tags = new Set<"Auth" | "Management" | "Dashboard" | "Assignments" | "Warnings" | "Audit" | "Classes" | "Class" | "Students" | "Sessions" | "Assessments" | "Results" | "Reports" | "ClassAccess" | "Operations" | "ApplicationSettings" | "SettingsProposals" | "Attendance" | "Rewards">(["Operations", "Audit"]);
   for (const entity of entities) {
     if (entity === "settings") { tags.add("ApplicationSettings"); tags.add("SettingsProposals"); }
     if (["students", "teachers", "classes", "accounts", "labels", "assignments", "enrollments"].includes(entity)) tags.add("Management");
     if (["students", "teachers", "classes", "accounts", "assignments", "enrollments", "sessions"].includes(entity)) { tags.add("Dashboard"); tags.add("Warnings"); tags.add("Classes"); tags.add("Class"); }
     if (["teachers", "accounts", "classes", "assignments", "labels"].includes(entity)) tags.add("Assignments");
     if (["students", "enrollments", "accounts"].includes(entity)) tags.add("Students");
+    if (entity === "enrollments") { tags.add("Attendance"); tags.add("Rewards"); }
     if (["sessions", "classes"].includes(entity)) tags.add("Sessions");
     if (["assessments", "results", "reports"].includes(entity)) { tags.add("Assessments"); tags.add("Results"); tags.add("Reports"); }
   }

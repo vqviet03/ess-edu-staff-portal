@@ -90,6 +90,7 @@ export interface TeacherClassAssignment extends Versioned {
   requiresReconfirmation?: boolean;
 }
 export interface Enrollment extends Versioned {
+  joinedOn?: string;
   classId: string;
   studentId: string;
   status: "ACTIVE" | "ENDED" | "COMPLETED";

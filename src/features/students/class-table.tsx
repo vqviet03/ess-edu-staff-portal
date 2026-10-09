@@ -23,12 +23,14 @@ export function ClassStudentTable({
   profileHref,
   onEdit,
   onStatus,
+  onJoined,
 }: {
   students: Student[];
   classId: string;
   profileHref: (student: Student) => string;
   onEdit?: (student: Student) => void;
   onStatus?: (student: Student) => void;
+  onJoined?: (student: Student) => void;
 }) {
   const router = useRouter(),
     [menu, setMenu] = useState<{
@@ -156,6 +158,16 @@ export function ClassStudentTable({
         >
           Cập nhật trạng thái
         </MenuItem>
+        {onJoined && (
+          <MenuItem
+            onClick={() => {
+              if (menu) onJoined(menu.student);
+              setMenu(null);
+            }}
+          >
+            Chỉnh sửa ngày tham gia lớp
+          </MenuItem>
+        )}
       </Menu>
     </>
   );

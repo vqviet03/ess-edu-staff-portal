@@ -164,7 +164,8 @@ export const managementApi = api.injectEndpoints({
       {
         classId: string;
         studentId: string;
-        status: "ACTIVE" | "ENDED";
+        status: "ACTIVE" | "ENDED" | "COMPLETED";
+        joinedOn?: string;
         version?: number;
       }
     >({

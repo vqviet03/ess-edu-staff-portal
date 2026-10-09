@@ -14,11 +14,17 @@ import { RewardIconAction, TrophyRating } from "./controls";
 import { rewardButton, rewardDialog } from "./design";
 import {
   useAddRewardMutation,
+  useCorrectRewardMutation,
   useReverseRewardMutation,
 } from "@/api/rewards-api";
 import { Feedback } from "@/shared/ui";
 import { useUnsaved } from "@/shared/unsaved";
-import { kindLabels, type RewardKind, type RewardEntry } from "./models";
+import {
+  kindLabels,
+  vietnamToday,
+  type RewardKind,
+  type RewardEntry,
+} from "./models";
 export function RewardMutationDialog({
   classId,
   studentId,
@@ -26,6 +32,8 @@ export function RewardMutationDialog({
   className,
   kind,
   reverse,
+  edit,
+  initialDate,
   initialAmount = 1,
   onClose,
   onSaved,
@@ -36,22 +44,35 @@ export function RewardMutationDialog({
   className?: string;
   kind: RewardKind;
   reverse?: RewardEntry;
+  edit?: RewardEntry;
+  initialDate?: string;
   initialAmount?: number;
   onClose: () => void;
   onSaved: () => void;
 }) {
-  const [amount, setAmount] = useState(initialAmount),
-    [note, setNote] = useState(""),
+  const [amount, setAmount] = useState(edit?.amount ?? initialAmount),
+    [note, setNote] = useState(edit?.note ?? ""),
+    [reason, setReason] = useState(""),
+    [date, setDate] = useState(
+      edit?.date ?? reverse?.date ?? initialDate ?? vietnamToday(),
+    ),
     [changed, setChanged] = useState(false),
     [error, setError] = useState<unknown>(),
     request = useRef<{ payload: string; key: string } | null>(null);
   const [add, adding] = useAddRewardMutation(),
+    [correct, correcting] = useCorrectRewardMutation(),
     [undo, undoing] = useReverseRewardMutation(),
-    busy = adding.isLoading || undoing.isLoading;
+    busy = adding.isLoading || undoing.isLoading || correcting.isLoading;
   useUnsaved(changed);
   const max = kind === "EARN" ? 5 : 100000,
     valid =
-      (reverse || (Number.isInteger(amount) && amount >= 1 && amount <= max)) &&
+      (reverse ||
+        (Number.isInteger(amount) &&
+          amount >= (edit ? 0 : 1) &&
+          amount <= max)) &&
+      !!date &&
+      date <= vietnamToday() &&
+      (!edit || (!!reason.trim() && reason.trim().length <= 2000)) &&
       !!note.trim() &&
       note.trim().length <= 2000;
   const close = () => {
@@ -65,6 +86,9 @@ export function RewardMutationDialog({
       amount,
       note: note.trim(),
       entry: reverse?.id,
+      edit: edit?.id,
+      date,
+      reason,
       kind,
       classId,
       studentId,
@@ -72,7 +96,17 @@ export function RewardMutationDialog({
     if (request.current?.payload !== payload)
       request.current = { payload, key: crypto.randomUUID() };
     try {
-      if (reverse)
+      if (edit)
+        await correct({
+          classId,
+          studentId,
+          entryId: edit.id,
+          amount,
+          note: note.trim(),
+          reason: reason.trim(),
+          key: request.current.key,
+        }).unwrap();
+      else if (reverse)
         await undo({
           classId,
           studentId,
@@ -86,6 +120,7 @@ export function RewardMutationDialog({
           studentId,
           kind,
           amount,
+          date,
           note: note.trim(),
           key: request.current.key,
         }).unwrap();
@@ -109,13 +144,15 @@ export function RewardMutationDialog({
           sx={{ alignItems: "center", justifyContent: "space-between", gap: 1 }}
         >
           <Typography component="span" sx={{ fontSize: 24, fontWeight: 700 }}>
-            {reverse
-              ? "Điều chỉnh giao dịch"
-              : kind === "EARN"
-                ? "Ghi nhận thành tích"
-                : kind === "PENALTY"
-                  ? "Ghi nhận vi phạm"
-                  : "Ghi nhận sử dụng điểm"}
+            {edit
+              ? "Chỉnh sửa điểm đã ghi"
+              : reverse
+                ? "Điều chỉnh giao dịch"
+                : kind === "EARN"
+                  ? "Ghi nhận thành tích"
+                  : kind === "PENALTY"
+                    ? "Ghi nhận vi phạm"
+                    : "Ghi nhận sử dụng điểm"}
           </Typography>
           <RewardIconAction
             label="Đóng ghi nhận điểm"
@@ -132,6 +169,28 @@ export function RewardMutationDialog({
             {className ? ` · ${className}` : ""}
             {!reverse ? ` · ${kind === "EARN" ? "+" : "−"}${amount} điểm` : ""}
           </Typography>
+          <TextField
+            size="small"
+            type="date"
+            label="Ngày ghi nhận điểm"
+            value={date}
+            disabled={!!edit || !!reverse}
+            onChange={(e) => {
+              setDate(e.target.value);
+              setChanged(true);
+            }}
+            slotProps={{
+              inputLabel: { shrink: true },
+              htmlInput: { max: vietnamToday() },
+            }}
+            helperText="Ngày quá khứ phải có điểm danh của học sinh. Điểm thưởng yêu cầu có tham gia."
+          />
+          {edit && (
+            <Alert severity="info">
+              Điểm mới thay thế lượt này trong tổng và biểu đồ; lịch sử gốc được
+              giữ. Nhập 0 để hủy điểm của lượt này.
+            </Alert>
+          )}
           {reverse ? (
             <Alert severity="warning">
               Đảo {reverse.amount} điểm · {kindLabels[reverse.kind]}. Giữ giao
@@ -158,9 +217,17 @@ export function RewardMutationDialog({
                 setAmount(Number(e.target.value));
                 setChanged(true);
               }}
-              error={!Number.isInteger(amount) || amount < 1 || amount > max}
-              helperText="Số nguyên dương, tối đa 100000"
-              slotProps={{ htmlInput: { min: 1, max, step: 1 } }}
+              error={
+                !Number.isInteger(amount) ||
+                amount < (edit ? 0 : 1) ||
+                amount > max
+              }
+              helperText={
+                edit
+                  ? "Số nguyên từ 0 đến 100000; 0 để hủy lượt này"
+                  : "Số nguyên dương, tối đa 100000"
+              }
+              slotProps={{ htmlInput: { min: edit ? 0 : 1, max, step: 1 } }}
             />
           )}
           <TextField
@@ -180,6 +247,20 @@ export function RewardMutationDialog({
             slotProps={{ htmlInput: { maxLength: 2000 } }}
           />
           <Feedback error={error} />
+          {edit && (
+            <TextField
+              size="small"
+              label="Lý do điều chỉnh"
+              value={reason}
+              onChange={(e) => {
+                setReason(e.target.value);
+                setChanged(true);
+              }}
+              multiline
+              required
+              slotProps={{ htmlInput: { maxLength: 2000 } }}
+            />
+          )}
         </Stack>
       </DialogContent>
       <DialogActions>
@@ -195,7 +276,7 @@ export function RewardMutationDialog({
         >
           {busy
             ? "Đang lưu…"
-            : reverse
+            : edit || reverse
               ? "Lưu điều chỉnh"
               : `Lưu ${kind === "EARN" ? "+" : "−"}${amount} điểm`}
         </Button>
