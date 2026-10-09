@@ -69,7 +69,9 @@ function AwardDialog({
     [error, setError] = useState<unknown>();
   const [award, awarding] = useAddRewardMutation(),
     [attendance, attending] = useSaveRewardAttendanceMutation(),
-    requests = useRef<Record<string, { amount: number; key: string }>>({});
+    requests = useRef<
+      Record<string, { amount: number; date: string; key: string }>
+    >({});
   const dirty = Object.values(values).some((v) => v > 0),
     busy = awarding.isLoading || attending.isLoading;
   useUnsaved(dirty);
@@ -81,9 +83,10 @@ function AwardDialog({
     const amount = values[row.studentId] ?? 0;
     if (!amount || busy) return;
     let req = requests.current[row.studentId];
-    if (!req || req.amount !== amount)
+    if (!req || req.amount !== amount || req.date !== date)
       req = requests.current[row.studentId] = {
         amount,
+        date,
         key: crypto.randomUUID(),
       };
     setError(undefined);
@@ -93,6 +96,7 @@ function AwardDialog({
         studentId: row.studentId,
         kind: "EARN",
         amount,
+        date,
         key: req.key,
       }).unwrap();
       delete requests.current[row.studentId];
@@ -402,7 +406,8 @@ function AwardDialog({
                                 disabled={
                                   busy ||
                                   row.attendance === "ABSENT" ||
-                                  date !== vietnamToday()
+                                  (date < vietnamToday() &&
+                                    row.attendance !== "PRESENT")
                                 }
                                 getLabelText={(v) => `${v} cúp`}
                                 onChange={(_, v) =>
@@ -422,7 +427,8 @@ function AwardDialog({
                                     busy ||
                                     !values[row.studentId] ||
                                     row.attendance === "ABSENT" ||
-                                    date !== vietnamToday()
+                                    (date < vietnamToday() &&
+                                      row.attendance !== "PRESENT")
                                   }
                                   onClick={() => void quickSave(row)}
                                 />
@@ -433,7 +439,8 @@ function AwardDialog({
                                     busy ||
                                     !values[row.studentId] ||
                                     row.attendance === "ABSENT" ||
-                                    date !== vietnamToday()
+                                    (date < vietnamToday() &&
+                                      row.attendance !== "PRESENT")
                                   }
                                   onClick={() => setNoteRow(row)}
                                 />
@@ -516,6 +523,7 @@ function AwardDialog({
           className={name}
           kind="EARN"
           initialAmount={values[noteRow.studentId] ?? 1}
+          initialDate={date}
           onClose={() => setNoteRow(null)}
           onSaved={() => {
             setValues((v) => ({ ...v, [noteRow.studentId]: 0 }));

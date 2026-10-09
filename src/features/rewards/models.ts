@@ -17,6 +17,7 @@ export interface RewardEntry {
   authorName: string;
   authorPublicId: string;
   reversesId: string | null;
+  isReversed?: boolean;
   studentId: string;
   studentName: string;
   nickname: string;

@@ -36,6 +36,20 @@ test.beforeEach(async ({ page }) => {
   if (process.env.NEXT_PUBLIC_USE_MOCK !== "true")
     await installHttpFixture(page);
 });
+test("manager adjusts joining date from a class student menu and persists after reload", async ({ page }) => {
+  await login(page);
+  await go(page, "/manage/profile/?entity=classes&id=class-green&tab=profile");
+  await page.getByRole("button", { name: "Thao tác học sinh Hữu Văn", exact: true }).click();
+  await page.getByRole("menuitem", { name: "Chỉnh sửa ngày tham gia lớp", exact: true }).click();
+  const dialog = page.getByRole("dialog");
+  await dialog.getByLabel("Ngày tham gia lớp").fill("2026-01-01");
+  await dialog.getByRole("button", { name: "Kiểm tra ảnh hưởng", exact: true }).click();
+  await confirmPreview(page, "Bổ sung ngày nhập học thực tế");
+  await page.reload();
+  await page.getByRole("button", { name: "Thao tác học sinh Hữu Văn", exact: true }).click();
+  await page.getByRole("menuitem", { name: "Chỉnh sửa ngày tham gia lớp", exact: true }).click();
+  await expect(page.getByRole("dialog").getByLabel("Ngày tham gia lớp")).toHaveValue("2026-01-01");
+});
 test("manager dashboard, navigation, readonly grades/schema, dark/mobile và deep links", async ({
   page,
 }) => {
