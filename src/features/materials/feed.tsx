@@ -5,9 +5,10 @@ import FirstPage from "@mui/icons-material/FirstPage";
 import ArrowForward from "@mui/icons-material/ArrowForward";
 import Add from "@mui/icons-material/Add";
 import FolderOutlined from "@mui/icons-material/FolderOutlined";
-import IconButton from "@mui/material/IconButton";
-import Tooltip from "@mui/material/Tooltip";
-import Link from "next/link";
+import CloudUploadOutlined from "@mui/icons-material/CloudUploadOutlined";
+import Close from "@mui/icons-material/Close";
+import ButtonBase from "@mui/material/ButtonBase";
+import InputBase from "@mui/material/InputBase";
 import { PostSurface, postTypeLabels } from "./post-surface";
 import { useWorkspace } from "@/features/access/hooks";
 import Autocomplete from "@mui/material/Autocomplete";
@@ -23,7 +24,6 @@ import DialogContent from "@mui/material/DialogContent";
 import DialogActions from "@mui/material/DialogActions";
 import MenuItem from "@mui/material/MenuItem";
 import Alert from "@mui/material/Alert";
-import Paper from "@mui/material/Paper";
 import {
   usePostsQuery,
   useClassThreadsQuery,
@@ -110,6 +110,7 @@ function PostCard({
           post={post}
           expanded={showComments}
           expand={() => setShowComments(true)}
+          collapse={() => setShowComments(false)}
         />
       </PostSurface>
       <Feedback error={error} />
@@ -149,6 +150,7 @@ export function SessionFeed({
   editable: boolean;
 }) {
   const { selected } = useWorkspace();
+  const me = useAppSelector((s) => s.auth.session?.teacher);
   const workspace = selected ?? undefined;
   const [cursor, setCursor] = useState<string>(),
     sessionList = usePostsQuery(
@@ -204,27 +206,17 @@ export function SessionFeed({
         </Alert>
       )}
       {editable && (
-        <Paper
-          sx={{
-            p: 1.5,
-            width: "100%",
-            maxWidth: 600,
-            mx: "auto",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            gap: 2,
-          }}
+        <Box
+          sx={{ width: "100%", maxWidth: 600, mx: "auto", alignSelf: "center" }}
         >
-          <Typography color="text.secondary">
-            Chia sẻ tài liệu, thông báo hoặc trao đổi với lớp…
-          </Typography>
-          <IconAction
-            label="+ Đăng bài"
-            icon={<Add fontSize="small" />}
+          <Button
+            size="small"
+            startIcon={<Add />}
             onClick={() => setOpen(true)}
-          />
-        </Paper>
+          >
+            Tạo bài đăng
+          </Button>
+        </Box>
       )}
       <Box
         sx={{
@@ -232,6 +224,7 @@ export function SessionFeed({
           gridTemplateColumns: "minmax(0,1fr)",
           width: "100%",
           maxWidth: 680,
+          alignSelf: "center",
           mx: "auto",
           gap: 3,
           alignItems: "start",
@@ -302,206 +295,267 @@ export function SessionFeed({
             )}
           </Stack>
         </Stack>
-        <Paper
-          sx={{ p: 1.5, order: -1, width: "100%", maxWidth: 600, mx: "auto" }}
-        >
-          <Stack spacing={2}>
-            <Typography variant="h6">
-              {sessionId ? "Trong phiên này" : "Thread lớp học"}
-            </Typography>
-            <Typography>
-              {list.currentData?.items.length ?? 0} bài trên trang ·{" "}
-              {list.currentData?.items.reduce(
-                (n, p) => n + p.attachments.length,
-                0,
-              ) ?? 0}{" "}
-              tài liệu
-            </Typography>
-            <Tooltip title="Xem kho tài liệu">
-              <IconButton
-                component={Link}
-                href="/materials/"
-                aria-label="Xem kho tài liệu"
-              >
-                <FolderOutlined fontSize="small" />
-              </IconButton>
-            </Tooltip>
-            {editable && (
-              <IconAction
-                label="Thêm từ kho"
-                icon={<Add fontSize="small" />}
-                onClick={() => {
-                  setOpen(true);
-                  setPicker(true);
-                }}
-              />
-            )}
-          </Stack>
-        </Paper>
       </Box>
       <Dialog
         open={open && editable}
         onClose={() => setOpen(false)}
         fullWidth
-        maxWidth="md"
+        maxWidth="sm"
+        slotProps={{ paper: { sx: { borderRadius: "24px", maxWidth: 680 } } }}
       >
-        <DialogTitle>{editingId ? "Sửa bài đăng" : "Đăng bài"}</DialogTitle>
-        <DialogContent>
+        <DialogTitle>{editingId ? "Sửa bài đăng" : "Tạo bài đăng"}</DialogTitle>
+        <DialogContent sx={{ px: { xs: 1, sm: 3 } }}>
           <Stack spacing={2} sx={{ pt: 1 }}>
-            {!sessionId && (
+            <Stack direction={{ xs: "column", sm: "row" }} spacing={1}>
+              <TextField
+                size="small"
+                fullWidth
+                select
+                label="Loại bài đăng"
+                value={draft.postType ?? "DISCUSSION"}
+                disabled={!!sessionId}
+                onChange={(e) => {
+                  setDraft((d) => ({
+                    ...d,
+                    postType: e.target.value as PostInput["postType"],
+                    sessionId: null,
+                  }));
+                  setDirty(true);
+                }}
+              >
+                {Object.entries(postTypeLabels).map(([v, l]) => (
+                  <MenuItem key={v} value={v}>
+                    {l}
+                  </MenuItem>
+                ))}
+              </TextField>
+              <TextField
+                size="small"
+                fullWidth
+                select
+                label="Công bố"
+                value={draft.status}
+                onChange={(e) => {
+                  setDraft((d) => ({
+                    ...d,
+                    status: e.target.value as Post["status"],
+                  }));
+                  setDirty(true);
+                }}
+              >
+                <MenuItem value="PUBLISHED">Công bố cho học sinh</MenuItem>
+                <MenuItem value="DRAFT">Nháp</MenuItem>
+              </TextField>
+            </Stack>
+            {!sessionId && draft.postType === "SESSION_MATERIAL" && (
               <>
-                <TextField
-                  select
-                  label="Loại bài đăng"
-                  value={draft.postType ?? "DISCUSSION"}
-                  onChange={(e) => {
-                    setDraft((d) => ({
-                      ...d,
-                      postType: e.target.value as PostInput["postType"],
-                      sessionId: null,
-                    }));
+                <Autocomplete
+                  size="small"
+                  options={sessions.currentData?.items ?? []}
+                  value={
+                    sessions.currentData?.items.find(
+                      (s) => s.id === draft.sessionId,
+                    ) ?? null
+                  }
+                  getOptionLabel={(s) => `${s.name} · ${s.date}`}
+                  isOptionEqualToValue={(a, b) => a.id === b.id}
+                  loading={sessions.isLoading}
+                  onChange={(_, v) => {
+                    setDraft((d) => ({ ...d, sessionId: v?.id ?? null }));
                     setDirty(true);
                   }}
-                >
-                  {Object.entries(postTypeLabels).map(([value, label]) => (
-                    <MenuItem key={value} value={value}>
-                      {label}
-                    </MenuItem>
-                  ))}
-                </TextField>
-                {draft.postType === "SESSION_MATERIAL" && (
-                  <>
-                    <Autocomplete
-                      options={sessions.currentData?.items ?? []}
-                      value={
-                        sessions.currentData?.items.find(
-                          (s) => s.id === draft.sessionId,
-                        ) ?? null
-                      }
-                      getOptionLabel={(s) => `${s.name} · ${s.date}`}
-                      isOptionEqualToValue={(a, b) => a.id === b.id}
-                      loading={sessions.isLoading}
-                      onChange={(_, v) => {
-                        setDraft((d) => ({ ...d, sessionId: v?.id ?? null }));
-                        setDirty(true);
-                      }}
-                      renderInput={(params) => (
-                        <TextField
-                          {...params}
-                          label="Chọn phiên học"
-                          required
-                          placeholder="Tìm tên phiên hoặc ngày học"
-                        />
-                      )}
+                  renderInput={(params) => (
+                    <TextField
+                      {...params}
+                      label="Chọn phiên học"
+                      required
+                      placeholder="Tìm tên phiên hoặc ngày học"
                     />
-                    <Feedback
-                      loading={sessions.isLoading}
-                      error={sessions.error}
-                      retry={() => void sessions.refetch()}
-                    />
-                  </>
-                )}
+                  )}
+                />
+                <Feedback
+                  loading={sessions.isLoading}
+                  error={sessions.error}
+                  retry={() => void sessions.refetch()}
+                />
               </>
             )}
-            <TextField
-              label="Tiêu đề"
-              value={draft.title}
-              onChange={(e) => {
-                setDraft((d) => ({ ...d, title: e.target.value }));
-                setDirty(true);
+            <PostSurface
+              draft
+              post={{
+                id: editingId ?? "draft",
+                classId: classId ?? "",
+                className: undefined,
+                sessionId: draft.sessionId ?? null,
+                postType: draft.postType,
+                title: draft.title,
+                body: draft.body,
+                status: draft.status,
+                authorId: me?.id ?? "",
+                authorName: me?.name ?? "",
+                publishedBy: me?.id ?? "",
+                publisherName: me?.name ?? "",
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString(),
+                version: draft.version,
+                reactions: [],
+                myReaction: null,
+                commentCount: 0,
+                attachments: draft.attachments.map((a) => ({
+                  ...a,
+                  available: !!chosen[a.materialId],
+                  file: chosen[a.materialId] ?? null,
+                })),
               }}
-              slotProps={{ htmlInput: { maxLength: 200 } }}
-            />
-            <TextField
-              label="Nội dung / hướng dẫn"
-              multiline
-              minRows={4}
-              value={draft.body}
-              onChange={(e) => {
-                setDraft((d) => ({ ...d, body: e.target.value }));
-                setDirty(true);
-              }}
-              slotProps={{ htmlInput: { maxLength: 20000 } }}
-            />
-            <TextField
-              select
-              label="Công bố"
-              value={draft.status}
-              onChange={(e) => {
-                setDraft((d) => ({
-                  ...d,
-                  status: e.target.value as Post["status"],
-                }));
-                setDirty(true);
-              }}
+              content={
+                <Stack spacing={1}>
+                  <InputBase
+                    fullWidth
+                    size="small"
+                    placeholder="Tiêu đề bài đăng"
+                    inputProps={{ "aria-label": "Tiêu đề", maxLength: 200 }}
+                    value={draft.title}
+                    onChange={(e) => {
+                      setDraft((d) => ({ ...d, title: e.target.value }));
+                      setDirty(true);
+                    }}
+                    sx={{ fontSize: 23, fontWeight: 600 }}
+                  />
+                  <InputBase
+                    fullWidth
+                    size="small"
+                    multiline
+                    minRows={3}
+                    maxRows={12}
+                    placeholder="Chia sẻ tài liệu, thông báo hoặc hướng dẫn với lớp…"
+                    inputProps={{
+                      "aria-label": "Nội dung / hướng dẫn",
+                      maxLength: 20000,
+                    }}
+                    value={draft.body}
+                    onChange={(e) => {
+                      setDraft((d) => ({ ...d, body: e.target.value }));
+                      setDirty(true);
+                    }}
+                    sx={{ fontSize: 14, color: "var(--post-muted)" }}
+                  />
+                </Stack>
+              }
+              afterMedia={
+                <Stack spacing={1.5}>
+                  <Box
+                    sx={{
+                      display: "grid",
+                      gridTemplateColumns: "repeat(2,minmax(0,1fr))",
+                      gap: 1.5,
+                    }}
+                  >
+                    {[
+                      {
+                        label: "Chọn từ kho",
+                        icon: <FolderOutlined sx={{ fontSize: 40 }} />,
+                        action: () => setPicker(true),
+                      },
+                      {
+                        label: "Upload trực tiếp",
+                        icon: <CloudUploadOutlined sx={{ fontSize: 40 }} />,
+                        action: () => setUpload(true),
+                      },
+                    ].map((item) => (
+                      <ButtonBase
+                        key={item.label}
+                        onClick={item.action}
+                        sx={{
+                          display: "flex",
+                          flexDirection: "column",
+                          border: "1px dashed var(--post-border)",
+                          borderRadius: "14px",
+                          p: 2,
+                          minHeight: 130,
+                          bgcolor: "var(--post-soft)",
+                          color: "var(--post-green)",
+                          gap: 1,
+                        }}
+                      >
+                        {item.icon}
+                        <Typography sx={{ fontSize: 13, fontWeight: 600 }}>
+                          {item.label}
+                        </Typography>
+                      </ButtonBase>
+                    ))}
+                  </Box>
+                  {draft.attachments.map((a) => (
+                    <Stack
+                      key={a.materialId}
+                      direction="row"
+                      spacing={1}
+                      sx={{ alignItems: "center", minWidth: 0 }}
+                    >
+                      <Typography
+                        variant="caption"
+                        sx={{ flex: 1, minWidth: 0, overflowWrap: "anywhere" }}
+                      >
+                        {chosen[a.materialId]?.displayName ?? "Tài liệu"}
+                      </Typography>
+                      <TextField
+                        size="small"
+                        select
+                        label="Nhóm"
+                        value={a.group}
+                        sx={{ minWidth: 110 }}
+                        onChange={(e) => {
+                          setDraft((d) => ({
+                            ...d,
+                            attachments: d.attachments.map((x) =>
+                              x.materialId === a.materialId
+                                ? {
+                                    ...x,
+                                    group: e.target
+                                      .value as Attachment["group"],
+                                  }
+                                : x,
+                            ),
+                          }));
+                          setDirty(true);
+                        }}
+                      >
+                        <MenuItem value="LESSON">Bài học</MenuItem>
+                        <MenuItem value="GUIDE">Hướng dẫn</MenuItem>
+                        <MenuItem value="AUDIO">Audio</MenuItem>
+                      </TextField>
+                      <IconAction
+                        label="Bỏ file khỏi bài đăng"
+                        icon={<Close fontSize="small" />}
+                        onClick={() => {
+                          setDraft((d) => ({
+                            ...d,
+                            attachments: d.attachments.filter(
+                              (x) => x.materialId !== a.materialId,
+                            ),
+                          }));
+                          setDirty(true);
+                        }}
+                      />
+                    </Stack>
+                  ))}
+                </Stack>
+              }
+              commentOpen={false}
+              openComments={() => {}}
+              preview={() => {}}
+              onReaction={() => {}}
+              reacting={false}
             >
-              <MenuItem value="PUBLISHED">Công bố cho học sinh</MenuItem>
-              <MenuItem value="DRAFT">Nháp</MenuItem>
-            </TextField>
-            <Stack
-              direction="row"
-              useFlexGap
-              spacing={1}
-              sx={{ flexWrap: "wrap" }}
-            >
-              <Button onClick={() => setPicker(true)}>Thêm từ kho</Button>
-              <Button onClick={() => setUpload(true)}>Upload trực tiếp</Button>
-            </Stack>
-            {draft.attachments.map((a) => (
-              <Stack
-                key={a.materialId}
-                direction={{ xs: "column", sm: "row" }}
-                spacing={1}
-                sx={{ alignItems: "center" }}
-              >
-                <Typography sx={{ flex: 1, overflowWrap: "anywhere" }}>
-                  {chosen[a.materialId]?.displayName ?? "Tài liệu"}
-                </Typography>
-                <TextField
-                  select
-                  label="Nhóm"
-                  value={a.group}
-                  sx={{ minWidth: 130 }}
-                  onChange={(e) => {
-                    setDraft((d) => ({
-                      ...d,
-                      attachments: d.attachments.map((x) =>
-                        x.materialId === a.materialId
-                          ? {
-                              ...x,
-                              group: e.target.value as Attachment["group"],
-                            }
-                          : x,
-                      ),
-                    }));
-                    setDirty(true);
-                  }}
-                >
-                  <MenuItem value="LESSON">Bài học</MenuItem>
-                  <MenuItem value="GUIDE">Hướng dẫn</MenuItem>
-                  <MenuItem value="AUDIO">Audio</MenuItem>
-                </TextField>
-                <Button
-                  onClick={() => {
-                    setDraft((d) => ({
-                      ...d,
-                      attachments: d.attachments.filter(
-                        (x) => x.materialId !== a.materialId,
-                      ),
-                    }));
-                    setDirty(true);
-                  }}
-                >
-                  Bỏ file
-                </Button>
-              </Stack>
-            ))}
-            <Feedback error={error} />
+              <Feedback error={error} />
+            </PostSurface>
           </Stack>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setOpen(false)}>Đóng / giữ nháp</Button>
+          <Button size="small" onClick={() => setOpen(false)}>
+            Đóng / giữ nháp
+          </Button>
           <Button
+            size="small"
             variant="contained"
             disabled={
               !draft.title.trim() ||
@@ -528,7 +582,7 @@ export function SessionFeed({
               }
             }}
           >
-            Lưu bài
+            {state.isLoading ? "Đang lưu…" : "Lưu bài"}
           </Button>
         </DialogActions>
       </Dialog>

@@ -18,9 +18,9 @@ import { Card, Feedback, NavButton, Title } from "@/shared/ui";
 import { selectUnit } from "./utils";
 import { CommentEditor } from "./comments";
 const ReportView = dynamic(() => import("./view"), {ssr: false, loading: () => <Feedback loading/>});
-export function StudentReports() {
+export function StudentReports({initialClassId,initialStudentId}:{initialClassId?:string;initialStudentId?:string}={}) {
   const params = useSearchParams(), {selected: workspace} = useWorkspace();
-  const [selection, setSelection] = useState({classId: params.get("classId") ?? "", studentId: params.get("studentId") ?? "", unitId: params.get("unitId") ?? ""}), [editing, setEditing] = useState(false), [message, setMessage] = useState("");
+  const [selection, setSelection] = useState({classId: initialClassId ?? params.get("classId") ?? "", studentId: initialStudentId ?? params.get("studentId") ?? "", unitId: params.get("unitId") ?? ""}), [editing, setEditing] = useState(false), [message, setMessage] = useState("");
   const classes = useClassesQuery({search:"",status:"",page:1,pageSize:100,workspace:workspace ?? undefined}), classId = selection.classId || classes.currentData?.data.find(c => c.status === "ACTIVE")?.id || classes.currentData?.data[0]?.id || "";
   const details = useClassQuery(classId,{skip:!classId}), permissions = useClassCapabilities(classId), roster = useHistoricalStudentsQuery(classId,{skip:!classId});
   const students = roster.currentData ?? [], student = selection.studentId ? students.find(s => [s.id,s.publicId,s.studentCode].includes(selection.studentId)) : students.find(s => s.status === "ACTIVE") ?? students[0], studentId = student?.id ?? "", context = {classId,studentId};

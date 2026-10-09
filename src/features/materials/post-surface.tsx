@@ -46,7 +46,13 @@ export function PostSurface({
   reacting,
   onEdit,
   onDelete,
+  draft = false,
+  content,
+  afterMedia,
 }: {
+  draft?: boolean;
+  content?: ReactNode;
+  afterMedia?: ReactNode;
   post: Post;
   children: ReactNode;
   commentOpen: boolean;
@@ -73,6 +79,7 @@ export function PostSurface({
       sx={{
         width: "100%",
         maxWidth: 600,
+        alignSelf: "center",
         mx: "auto",
         p: { xs: "20px 18px", sm: "26px" },
         borderRadius: "24px",
@@ -166,56 +173,82 @@ export function PostSurface({
             </>
           )}
         </Stack>
-        <Box>
-          <Stack
-            direction="row"
-            spacing={1}
-            useFlexGap
-            sx={{ mb: 1, flexWrap: "wrap" }}
-          >
-            <Chip
-              size="small"
-              label={[
-                post.sessionName ||
-                  postTypeLabels[post.postType ?? "SESSION_MATERIAL"],
-                post.className,
-              ]
-                .filter(Boolean)
-                .join(" · ")}
+        {content ?? (
+          <Box>
+            <Stack
+              direction="row"
+              spacing={1}
+              useFlexGap
+              sx={{ mb: 1, flexWrap: "wrap" }}
+            >
+              <Chip
+                size="small"
+                label={[
+                  post.sessionName ||
+                    postTypeLabels[post.postType ?? "SESSION_MATERIAL"],
+                  post.className,
+                ]
+                  .filter(Boolean)
+                  .join(" · ")}
+                sx={{
+                  bgcolor: "var(--post-tint)",
+                  color: "var(--post-green)",
+                  fontSize: 11,
+                  fontWeight: 600,
+                  borderRadius: "7px",
+                }}
+              />
+              {post.status === "DRAFT" && <Chip size="small" label="Nháp" />}
+            </Stack>
+            <Typography
+              component="h2"
               sx={{
-                bgcolor: "var(--post-tint)",
-                color: "var(--post-green)",
-                fontSize: 11,
+                fontSize: 23,
                 fontWeight: 600,
-                borderRadius: "7px",
+                mb: 1,
+                overflowWrap: "anywhere",
               }}
-            />
-            {post.status === "DRAFT" && <Chip size="small" label="Nháp" />}
-          </Stack>
-          <Typography
-            component="h2"
-            sx={{
-              fontSize: 23,
-              fontWeight: 600,
-              mb: 1,
-              overflowWrap: "anywhere",
-            }}
-          >
-            {post.title}
-          </Typography>
-          <Typography
-            sx={{
-              fontSize: 14,
-              color: "var(--post-muted)",
-              whiteSpace: "pre-wrap",
-              overflowWrap: "anywhere",
-            }}
-          >
-            {post.body}
-          </Typography>
-        </Box>
+            >
+              {post.title}
+            </Typography>
+            <Typography
+              sx={{
+                fontSize: 14,
+                color: "var(--post-muted)",
+                whiteSpace: "pre-wrap",
+                overflowWrap: "anywhere",
+              }}
+            >
+              {post.body}
+            </Typography>
+          </Box>
+        )}
+        {files.filter((f) => f.mimeType.startsWith("image/")).length === 1 &&
+          (() => {
+            const file = files.find((f) => f.mimeType.startsWith("image/"))!;
+            return (
+              <ButtonBase
+                onClick={() => preview(file)}
+                aria-label={`Xem ${file.displayName}`}
+                sx={{
+                  display: "block",
+                  width: "100%",
+                  borderRadius: "14px",
+                  overflow: "hidden",
+                  bgcolor: "var(--post-soft)",
+                }}
+              >
+                <MaterialThumbnail id={file.id} natural />
+              </ButtonBase>
+            );
+          })()}
         {!!post.attachments.filter(
-          (a) => !a.file?.mimeType.startsWith("audio/"),
+          (a) =>
+            !a.file?.mimeType.startsWith("audio/") &&
+            !(
+              a.file?.mimeType.startsWith("image/") &&
+              files.filter((f) => f.mimeType.startsWith("image/")).length === 1
+            ),
         ).length && (
           <Box
             sx={{
@@ -225,7 +258,15 @@ export function PostSurface({
             }}
           >
             {post.attachments
-              .filter((a) => !a.file?.mimeType.startsWith("audio/"))
+              .filter(
+                (a) =>
+                  !a.file?.mimeType.startsWith("audio/") &&
+                  !(
+                    a.file?.mimeType.startsWith("image/") &&
+                    files.filter((f) => f.mimeType.startsWith("image/"))
+                      .length === 1
+                  ),
+              )
               .map((a) => (
                 <Tooltip
                   key={a.materialId}
@@ -264,28 +305,30 @@ export function PostSurface({
                         />
                       )}
                     </Box>
-                    <Box sx={{ p: "13px", flex: 1 }}>
-                      <Typography
-                        sx={{
-                          fontSize: 13,
-                          fontWeight: 600,
-                          overflowWrap: "anywhere",
-                        }}
-                      >
-                        {a.file?.displayName ?? "Tài liệu không còn khả dụng"}
-                      </Typography>
-                      <Typography
-                        sx={{
-                          fontSize: 12,
-                          color: "var(--post-muted)",
-                          mt: 0.4,
-                        }}
-                      >
-                        {a.file
-                          ? `${fileKind(a.file.mimeType)} · ${bytes(a.file.sizeBytes)}`
-                          : "Đã ngừng sử dụng"}
-                      </Typography>
-                    </Box>
+                    {!a.file?.mimeType.startsWith("image/") && (
+                      <Box sx={{ p: "13px", flex: 1 }}>
+                        <Typography
+                          sx={{
+                            fontSize: 13,
+                            fontWeight: 600,
+                            overflowWrap: "anywhere",
+                          }}
+                        >
+                          {a.file?.displayName ?? "Tài liệu không còn khả dụng"}
+                        </Typography>
+                        <Typography
+                          sx={{
+                            fontSize: 12,
+                            color: "var(--post-muted)",
+                            mt: 0.4,
+                          }}
+                        >
+                          {a.file
+                            ? `${fileKind(a.file.mimeType)} · ${bytes(a.file.sizeBytes)}`
+                            : "Đã ngừng sử dụng"}
+                        </Typography>
+                      </Box>
+                    )}
                   </ButtonBase>
                 </Tooltip>
               ))}
@@ -296,6 +339,7 @@ export function PostSurface({
           .map((f) => (
             <InlineAudio key={f.id} file={f} />
           ))}
+        {afterMedia}
         <Stack
           direction="row"
           sx={{ justifyContent: "space-between", color: "var(--post-muted)" }}
@@ -312,7 +356,7 @@ export function PostSurface({
         <Stack direction="row" sx={{ gap: 0.5, alignItems: "center" }}>
           <ReactionButton
             value={post.myReaction}
-            disabled={reacting}
+            disabled={reacting || draft}
             onChange={onReaction}
           />
           <Tooltip title="Bình luận">
@@ -324,6 +368,7 @@ export function PostSurface({
                 color: "var(--post-muted)",
                 bgcolor: commentOpen ? "var(--post-soft)" : undefined,
               }}
+              disabled={draft}
               onClick={openComments}
               aria-label={`Bình luận (${post.commentCount})`}
               aria-expanded={commentOpen}
@@ -341,7 +386,7 @@ export function PostSurface({
                   color: "var(--post-muted)",
                 }}
                 aria-label="Tải tài liệu"
-                disabled={!files.length || downloadState.isFetching}
+                disabled={draft || !files.length || downloadState.isFetching}
                 onClick={(e) => setDownloads(e.currentTarget)}
               >
                 <Download fontSize="small" />

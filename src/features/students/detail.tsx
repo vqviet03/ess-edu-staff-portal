@@ -1,4 +1,8 @@
 "use client";
+import dynamic from "next/dynamic";
+import Tabs from "@mui/material/Tabs";
+import Tab from "@mui/material/Tab";
+import { confirmLeave } from "@/shared/unsaved";
 import { useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Box from "@mui/material/Box";
@@ -11,6 +15,14 @@ import { Card, Feedback, NavButton, StatusChip, Title } from "@/shared/ui";
 import { publicId } from "@/shared/public-id";
 import { StudentEditor } from "./editor";
 
+const StudentRewards = dynamic(
+  () => import("@/features/rewards/detail").then((m) => m.StudentRewards),
+  { loading: () => <Feedback loading /> },
+);
+const Reports = dynamic(
+  () => import("@/features/reports/page").then((m) => m.StudentReports),
+  { loading: () => <Feedback loading /> },
+);
 export function StudentDetail() {
   const params = useSearchParams(),
     classId = params.get("classId") ?? "",
@@ -20,6 +32,9 @@ export function StudentDetail() {
     students = useHistoricalStudentsQuery(classId, {
       skip: !classId || !studentId || !permissions.viewLearning,
     }),
+    [tab, setTab] = useState(
+      params.get("tab") === "rewards" ? "rewards" : "info",
+    ),
     [edit, setEdit] = useState(false),
     [message, setMessage] = useState("");
   if (!classId || !studentId)
@@ -83,44 +98,69 @@ export function StudentDetail() {
           </>
         }
       />
-      <Card>
-        <Box
-          sx={{
-            display: "grid",
-            gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" },
-            gap: 2,
-          }}
-        >
-          {[
-            ["ID", profileId],
-            ["Họ tên", student.name],
-            ["Biệt danh", student.nickname || "—"],
-            [
-              "Ngày sinh",
-              student.dateOfBirth
-                ? new Date(
-                    student.dateOfBirth + "T00:00:00",
-                  ).toLocaleDateString("vi-VN")
-                : "—",
-            ],
-          ].map(([label, value]) => (
-            <Box key={label}>
-              <Typography variant="caption" color="text.secondary">
-                {label}
-              </Typography>
-              <Typography>{value}</Typography>
-            </Box>
-          ))}
-          <Box>
-            <Typography variant="caption" color="text.secondary">
-              Trạng thái
-            </Typography>
+      <Tabs
+        value={tab}
+        variant="scrollable"
+        aria-label="Hồ sơ học sinh"
+        onChange={(_, v: string) => {
+          if (confirmLeave()) setTab(v);
+        }}
+        sx={{ mb: 2 }}
+      >
+        <Tab value="info" label="Thông tin" />
+        <Tab value="report" label="Báo cáo học tập" />
+        <Tab value="rewards" label="Điểm tích luỹ" />
+      </Tabs>
+      {tab === "rewards" && (
+        <StudentRewards
+          classId={c.currentData?.id ?? classId}
+          studentId={student.id}
+          name={student.nickname || student.name}
+        />
+      )}
+      {tab === "report" && (
+        <Reports initialClassId={classId} initialStudentId={student.id} />
+      )}
+      {tab === "info" && (
+        <Card>
+          <Box
+            sx={{
+              display: "grid",
+              gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" },
+              gap: 2,
+            }}
+          >
+            {[
+              ["ID", profileId],
+              ["Họ tên", student.name],
+              ["Biệt danh", student.nickname || "—"],
+              [
+                "Ngày sinh",
+                student.dateOfBirth
+                  ? new Date(
+                      student.dateOfBirth + "T00:00:00",
+                    ).toLocaleDateString("vi-VN")
+                  : "—",
+              ],
+            ].map(([label, value]) => (
+              <Box key={label}>
+                <Typography variant="caption" color="text.secondary">
+                  {label}
+                </Typography>
+                <Typography>{value}</Typography>
+              </Box>
+            ))}
             <Box>
-              <StatusChip status={student.status} />
+              <Typography variant="caption" color="text.secondary">
+                Trạng thái
+              </Typography>
+              <Box>
+                <StatusChip status={student.status} />
+              </Box>
             </Box>
           </Box>
-        </Box>
-      </Card>
+        </Card>
+      )}
       {edit && permissions.editLearning && (
         <StudentEditor
           key={student.id}

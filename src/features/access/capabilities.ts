@@ -44,6 +44,7 @@ export function capabilities(
     manage: manager && workspace === "manager",
     viewLearning: active && !!access?.canView,
     editLearning,
+    editSchedule: manager && workspace === "manager" && !!access?.canView && access.profileStatus === "ACTIVE" && access.accountStatus === "ACTIVE",
     editProfile: manager && workspace === "manager",
     switchWorkspace: workspaces(staff).length > 1,
   };

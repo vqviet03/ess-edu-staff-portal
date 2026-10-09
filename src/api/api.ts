@@ -28,8 +28,12 @@ export const createStaffApi = (query = baseQuery) =>
     refetchOnReconnect: false,
     refetchOnMountOrArgChange: false,
     tagTypes: [
+      "Attendance",
+      "Rewards",
+      "Schedule",
       "Auth",
-      "ApplicationSettings", "SettingsProposals",
+      "ApplicationSettings",
+      "SettingsProposals",
       "Management",
       "Dashboard",
       "Assignments",
@@ -43,7 +47,14 @@ export const createStaffApi = (query = baseQuery) =>
       "Assessments",
       "Results",
       "Reports",
-      "Operations", "Materials", "Folders", "Posts", "Comments", "Storages", "DeletionRequests", "Notifications",
+      "Operations",
+      "Materials",
+      "Folders",
+      "Posts",
+      "Comments",
+      "Storages",
+      "DeletionRequests",
+      "Notifications",
     ],
     endpoints: (b) => ({
       login: b.mutation<AuthSession, { teacherId: string; password: string }>({
@@ -183,10 +194,20 @@ export const createStaffApi = (query = baseQuery) =>
         transformResponse: unwrap<Publication>,
         providesTags: ["Assessments"],
       }),
-      publishAssessment: b.mutation<{ published: boolean }, { id: string; version: number; publish: boolean }>({
-        query: ({ id, version, publish }) => ({ url: `/assessments/${encodeURIComponent(id)}/${publish ? "publish" : "unpublish"}`, method: "POST", body: { version } }),
+      publishAssessment: b.mutation<
+        { published: boolean },
+        { id: string; version: number; publish: boolean }
+      >({
+        query: ({ id, version, publish }) => ({
+          url: `/assessments/${encodeURIComponent(id)}/${publish ? "publish" : "unpublish"}`,
+          method: "POST",
+          body: { version },
+        }),
         transformResponse: unwrap<{ published: boolean }>,
-        invalidatesTags: (_, error) => error ? [] : ["Assessments", "Results", "Reports", "Classes", "Class"],
+        invalidatesTags: (_, error) =>
+          error
+            ? []
+            : ["Assessments", "Results", "Reports", "Classes", "Class"],
       }),
       updateAssessment: b.mutation<
         Assessment,

@@ -4,9 +4,11 @@ import Box from "@mui/material/Box";
 import Tab from "@mui/material/Tab";
 import Tabs from "@mui/material/Tabs";
 
-export type ClassTab = "thread" | "progress" | "profile";
+export type ClassTab = "thread" | "progress" | "profile" | "attendance";
 export function initialClassTab(value: string | null): ClassTab {
-  return value === "progress" || value === "profile" ? value : "thread";
+  return value === "progress" || value === "profile" || value === "attendance"
+    ? value
+    : "thread";
 }
 export function ClassDetailTabs({
   value,
@@ -14,12 +16,14 @@ export function ClassDetailTabs({
   thread,
   progress,
   profile,
+  attendance,
 }: {
   value: ClassTab;
   onChange: (value: ClassTab) => void;
   thread: ReactNode;
   progress: ReactNode;
   profile: ReactNode;
+  attendance?: ReactNode;
 }) {
   const prefix = useId(),
     [visited, setVisited] = useState<ClassTab[]>([value]);
@@ -27,6 +31,7 @@ export function ClassDetailTabs({
     { key: "thread", label: "Thread", content: thread },
     { key: "progress", label: "Tiến độ lớp", content: progress },
     { key: "profile", label: "Hồ sơ & quan hệ", content: profile },
+    { key: "attendance", label: "Điểm danh", content: attendance },
   ] as const;
   return (
     <>

@@ -21,6 +21,7 @@ export const operationsApi = api.injectEndpoints({ endpoints: (b) => ({
       let cursor = "0", hasCursor = false;
       try { const saved = sessionStorage.getItem(key); hasCursor = saved !== null; cursor = saved ?? "0"; } catch {}
       const persist = () => { try { sessionStorage.setItem(key, cursor); } catch {} };
+      const auditSignals = new Set<string>();
       const allowed = () => foregroundSocketAllowed(document.hidden, navigator.onLine, stopped);
       const pause = () => {
         clearTimeout(reconnect); disconnect?.(); disconnect = undefined;
@@ -36,7 +37,7 @@ export const operationsApi = api.injectEndpoints({ endpoints: (b) => ({
         socket.onopen = () => socket?.send(JSON.stringify({ type: "AUTH", accessToken: session.accessToken, ...(hasCursor ? { cursor } : {}) }));
         socket.onmessage = (message) => {
           try {
-            const frame = JSON.parse(String(message.data)) as { type: string; data?: ChangeNotification | Operation | Notification | CursorPage<Notification>; cursor?: string };
+            const frame = JSON.parse(String(message.data)) as { type: string; data?: ChangeNotification | Operation | Notification | CursorPage<Notification>; cursor?: string; id?: string };
             if (frame.type === "READY") {
               updateCachedData((state) => { state.online = true; });
               if (frame.cursor) cursor = frame.cursor;
@@ -47,6 +48,11 @@ export const operationsApi = api.injectEndpoints({ endpoints: (b) => ({
             }
             if (frame.type === "OPERATION" && frame.data && "operationId" in frame.data && "createdAt" in frame.data) {
               dispatch(operationReceived(frame.data)); receiveOperation(session.accessToken, frame.data);
+            }
+            if (frame.type === "AUDIT_CHANGED" && frame.id && !auditSignals.has(frame.id)) {
+              if (auditSignals.size >= 1000) auditSignals.delete(auditSignals.values().next().value!);
+              auditSignals.add(frame.id);
+              dispatch(api.util.invalidateTags(["Audit"]));
             }
             if (frame.type === "NOTIFICATION" && frame.data && "isRead" in frame.data) {
               dispatch(libraryNoticeReceived({ notice: frame.data }));

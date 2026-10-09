@@ -83,6 +83,8 @@ export interface Post {
   reactions: { reaction: Reaction; count: number }[];
   myReaction: Reaction | null;
   commentCount: number;
+  pinnedComments?: Comment[];
+  canPinComment?: boolean;
 }
 export interface PostInput {
   postType?: PostType;
@@ -94,6 +96,10 @@ export interface PostInput {
   version: number;
 }
 export interface Comment {
+  isPinned?: boolean;
+  parentAuthorName?: string | null;
+  likeCount?: number;
+  myLike?: boolean;
   attachments?: MaterialFile[];
   id: string;
   postId: string;
@@ -138,6 +144,7 @@ export interface DeletionItem {
   usages: { id: string; title: string; sessionId: string; classId: string }[];
 }
 export interface Notification {
+  classId?: string | null;
   id: string;
   type: string;
   title: string;
