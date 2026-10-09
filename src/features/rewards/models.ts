@@ -87,6 +87,8 @@ export interface ScheduleConfig {
   slots: ScheduleSlot[];
 }
 export interface StudySchedule {
+  plannedSessions?: number;
+  planStartDate?: string | null;
   classId: string;
   version: number;
   effectiveFrom: string | null;

@@ -17,7 +17,9 @@ import type { Class, Student } from "@/types";
 import { ClassDetailTabs, initialClassTab, type ClassTab } from "./detail-tabs";
 import { ClassProgress } from "./progress";
 
-const ClassRewardActions=dynamic(()=>import("@/features/rewards/class-actions").then(m=>m.ClassRewardActions));
+const ClassRewardActions = dynamic(() =>
+  import("@/features/rewards/class-actions").then((m) => m.ClassRewardActions),
+);
 function TeacherClassProfile({
   classId,
   classInfo,
@@ -160,8 +162,13 @@ function TeacherClassDashboard({
         subtitle={`${c.code} · ${c.studentCount} học sinh`}
         actions={<NavButton href="/home/">← Danh sách lớp</NavButton>}
       />
-      <ClassRewardActions classId={c.id} name={c.name} editable={permissions.editLearning}/>
+      <ClassRewardActions
+        classId={c.id}
+        name={c.name}
+        editable={permissions.editLearning}
+      />
       <ClassDetailTabs
+        attendance={<AttendancePanel classId={c.id} />}
         value={tab}
         onChange={setTab}
         thread={
@@ -185,6 +192,13 @@ function TeacherClassDashboard({
     </>
   );
 }
+const AttendancePanel = dynamic(
+  () =>
+    import("@/features/attendance/class-panel").then(
+      (m) => m.ClassAttendancePanel,
+    ),
+  { loading: () => <Feedback loading /> },
+);
 export function ClassDashboard() {
   const params = useSearchParams(),
     id = params.get("classId") ?? "",

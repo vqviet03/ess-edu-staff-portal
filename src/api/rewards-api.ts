@@ -153,6 +153,8 @@ export const rewardsApi = api.injectEndpoints({
       {
         classId: string;
         version: number;
+        plannedSessions?: number;
+        planStartDate?: string;
         effectiveFrom: string;
         configuration: ScheduleConfig;
       }
@@ -164,7 +166,13 @@ export const rewardsApi = api.injectEndpoints({
       }),
       transformResponse: unwrap<StudySchedule>,
       invalidatesTags: (_, e, q) =>
-        e ? [] : [{ type: "Schedule", id: q.classId }, ...tags(q.classId)],
+        e
+          ? []
+          : [
+              { type: "Attendance", id: q.classId },
+              { type: "Schedule", id: q.classId },
+              ...tags(q.classId),
+            ],
     }),
   }),
 });

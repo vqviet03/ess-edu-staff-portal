@@ -22,6 +22,7 @@ async function tabs(page: Page) {
     "Thread",
     "Tiến độ lớp",
     "Hồ sơ & quan hệ",
+    "Điểm danh",
   ]);
 }
 test.beforeEach(async ({ page }) => {
@@ -41,7 +42,7 @@ test("ba tab, tải phiên/học sinh khi mở và menu không điều hướng 
     page.getByRole("tab", { name: "Thread", exact: true }),
   ).toHaveAttribute("aria-selected", "true");
   await expect(
-    page.getByRole("heading", { name: "Thread lớp học" }),
+    page.getByRole("button", { name: "Tạo bài đăng",exact:true }),
   ).toBeVisible();
   expect(
     requests.filter((p) =>

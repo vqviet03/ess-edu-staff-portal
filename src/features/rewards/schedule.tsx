@@ -46,6 +46,12 @@ function ScheduleEditor({
   onClose: () => void;
   onSaved: () => void;
 }) {
+  const [plannedSessions, setPlannedSessions] = useState(
+      String(data.plannedSessions || ""),
+    ),
+    [planStartDate, setPlanStartDate] = useState(
+      data.planStartDate ?? vietnamToday(),
+    );
   const [version] = useState(data.version),
     [config, setConfig] = useState<ScheduleConfig>(
       structuredClone(data.configuration),
@@ -80,7 +86,14 @@ function ScheduleEditor({
     )
       onClose();
   };
-  const validation = validateSchedule(config);
+  const validation =
+    validateSchedule(config) ||
+    (plannedSessions &&
+    (!Number.isInteger(Number(plannedSessions)) ||
+      Number(plannedSessions) < 1 ||
+      Number(plannedSessions) > 10000)
+      ? "Số buổi kế hoạch phải từ 1 đến 10000."
+      : null);
   const submit = async () => {
     if (validation) return;
     setError(undefined);
@@ -90,6 +103,8 @@ function ScheduleEditor({
         version,
         effectiveFrom,
         configuration: config,
+        plannedSessions: plannedSessions ? Number(plannedSessions) : undefined,
+        planStartDate: plannedSessions ? planStartDate : undefined,
       }).unwrap();
       setDirty(false);
       onSaved();
@@ -126,6 +141,34 @@ function ScheduleEditor({
       <DialogTitle>Thiết lập lịch học</DialogTitle>
       <DialogContent>
         <Stack spacing={2.5} sx={{ pt: 1 }}>
+          <TextField
+            size="small"
+            type="number"
+            label="Tổng buổi kế hoạch ban đầu"
+            value={plannedSessions}
+            disabled={!!data.plannedSessions}
+            onChange={(e) => {
+              setPlannedSessions(e.target.value);
+              setDirty(true);
+            }}
+            slotProps={{ htmlInput: { min: 1, max: 10000, step: 1 } }}
+            helperText="Dùng tính cảnh báo vắng học, không phải số Unit. Giữ nguyên sau lần lưu đầu; học bổ sung không tăng mẫu số."
+          />
+          {plannedSessions && (
+            <TextField
+              size="small"
+              type="date"
+              label="Ngày bắt đầu kế hoạch"
+              value={planStartDate}
+              disabled={!!data.plannedSessions}
+              onChange={(e) => {
+                setPlanStartDate(e.target.value);
+                setDirty(true);
+              }}
+              slotProps={{ inputLabel: { shrink: true } }}
+            />
+          )}
+
           <TextField
             size="small"
             type="date"
@@ -337,7 +380,9 @@ export function StudySchedulePanel({
 }) {
   const permissions = useClassCapabilities(classId),
     editable = permissions.editSchedule,
-    query = useStudyScheduleQuery(classId, { skip: !classId || !permissions.viewLearning }),
+    query = useStudyScheduleQuery(classId, {
+      skip: !classId || !permissions.viewLearning,
+    }),
     [open, setOpen] = useState(false),
     [viewing, setViewing] = useState(false);
   const data = query.currentData;
@@ -364,7 +409,9 @@ export function StudySchedulePanel({
           <Feedback
             loading={permissions.loading || query.isLoading}
             error={permissions.error || query.error}
-            retry={() => void (permissions.error ? permissions.retry() : query.refetch())}
+            retry={() =>
+              void (permissions.error ? permissions.retry() : query.refetch())
+            }
           />
           {data && (
             <>

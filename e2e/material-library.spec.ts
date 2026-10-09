@@ -527,11 +527,22 @@ test("picker attaches files across folders; draft survives tabs; reaction rolls 
   await login(page);
   await page.goto(`${base}/session/?classId=class-green&sessionId=session-3`);
   await expect(page.getByRole("tab")).toHaveCount(2);
-  await page.getByRole("button", { name: "+ Đăng bài", exact: true }).click();
+  await page.getByRole("button", { name: "Tạo bài đăng", exact: true }).click();
   await page.getByLabel("Tiêu đề", { exact: true }).fill("Hướng dẫn Unit 1");
   await page.getByLabel("Nội dung / hướng dẫn").fill("Xem trang 1–2.");
+  const draftPost = page.getByRole("dialog").getByTestId("lesson-post");
+  await expect(
+    draftPost.getByRole("button", { name: "Thích", exact: true }),
+  ).toBeDisabled();
+  await expect(
+    draftPost.getByRole("button", { name: /^Bình luận/ }),
+  ).toBeDisabled();
+  await page.screenshot({
+    path: "test-results/post-composer-desktop.png",
+    fullPage: true,
+  });
   await page
-    .getByRole("button", { name: "Thêm từ kho", exact: true })
+    .getByRole("button", { name: "Chọn từ kho", exact: true })
     .last()
     .click();
   const picker = page.getByRole("dialog").last();
@@ -546,7 +557,7 @@ test("picker attaches files across folders; draft survives tabs; reaction rolls 
     page.getByRole("heading", { name: "Bài đánh giá", exact: true }),
   ).toBeVisible();
   await page.getByRole("tab", { name: "Tài liệu", exact: true }).click();
-  await page.getByRole("button", { name: "+ Đăng bài", exact: true }).click();
+  await page.getByRole("button", { name: "Tạo bài đăng", exact: true }).click();
   await expect(page.getByLabel("Tiêu đề", { exact: true })).toHaveValue(
     "Hướng dẫn Unit 1",
   );
@@ -554,11 +565,18 @@ test("picker attaches files across folders; draft survives tabs; reaction rolls 
   await expect(
     page.getByRole("heading", { name: "Hướng dẫn Unit 1" }),
   ).toBeVisible();
+  expect(
+    await page.getByTestId("lesson-post").evaluate((el) => {
+      const area = el.closest("[role=tabpanel]") ?? el.closest("main");
+      if (!area) throw new Error("Missing content area");
+      const p = el.getBoundingClientRect(),
+        a = area.getBoundingClientRect();
+      return Math.abs(p.left + p.right - (a.left + a.right));
+    }),
+  ).toBeLessThan(2);
   await page.getByRole("button", { name: "Thích", exact: true }).click();
   await expect(page.getByText("Dữ liệu đã đổi, thử lại.")).toBeVisible();
-  await expect(
-    page.getByLabel("Thích: 0", { exact: true }),
-  ).toBeVisible();
+  await expect(page.getByLabel("Thích: 0", { exact: true })).toBeVisible();
   const input = page.getByRole("textbox", {
     name: "Viết bình luận",
     exact: true,
@@ -590,12 +608,10 @@ test("picker attaches files across folders; draft survives tabs; reaction rolls 
     true,
   );
   await expect(
-    page
-      .getByRole("form", { name: "Soạn bình luận" })
-      .getByRole("button", {
-        name: "Đính kèm ảnh / file / audio / video",
-        exact: true,
-      }),
+    page.getByRole("form", { name: "Soạn bình luận" }).getByRole("button", {
+      name: "Đính kèm ảnh / file / audio / video",
+      exact: true,
+    }),
   ).toBeVisible();
   await page
     .getByRole("button", { name: "Gửi bình luận", exact: true })
@@ -698,7 +714,7 @@ test("class thread defaults first, session materials synchronize, and authors ca
   await expect(
     page.getByRole("tab", { name: "Thread", exact: true }),
   ).toHaveAttribute("aria-selected", "true");
-  await page.getByRole("button", { name: "+ Đăng bài", exact: true }).click();
+  await page.getByRole("button", { name: "Tạo bài đăng", exact: true }).click();
   await page
     .getByLabel("Tiêu đề", { exact: true })
     .fill("Bài học phiên Unit 3");
@@ -712,7 +728,7 @@ test("class thread defaults first, session materials synchronize, and authors ca
   await page.getByRole("combobox", { name: "Chọn phiên học" }).fill("Unit 3");
   await page.getByRole("option", { name: /Unit 3/ }).click();
   await page
-    .getByRole("button", { name: "Thêm từ kho", exact: true })
+    .getByRole("button", { name: "Chọn từ kho", exact: true })
     .last()
     .click();
   const picker = page.getByRole("dialog").last();
@@ -782,7 +798,7 @@ test("manager class thread only reads and deletes, with profile edit in the thir
     page.getByRole("tab", { name: "Thread", exact: true }),
   ).toHaveAttribute("aria-selected", "true");
   await expect(
-    page.getByRole("button", { name: "+ Đăng bài", exact: true }),
+    page.getByRole("button", { name: "Tạo bài đăng", exact: true }),
   ).toHaveCount(0);
   await expect(
     page.getByRole("button", { name: "Chỉnh sửa hồ sơ / trạng thái" }),
@@ -813,10 +829,10 @@ test("inline audio loads on demand with auth, controls speed and downloads throu
   await fixture(page);
   await login(page);
   await page.goto(`${base}/class/?classId=class-green`);
-  await page.getByRole("button", { name: "+ Đăng bài", exact: true }).click();
+  await page.getByRole("button", { name: "Tạo bài đăng", exact: true }).click();
   await page.getByLabel("Tiêu đề", { exact: true }).fill("Bài luyện nghe");
   await page
-    .getByRole("button", { name: "Thêm từ kho", exact: true })
+    .getByRole("button", { name: "Chọn từ kho", exact: true })
     .last()
     .click();
   const picker = page.getByRole("dialog").last();
@@ -934,12 +950,10 @@ test("inline comment bubbles and attachment icon retain drafts across class tabs
     "Giảng viên",
   );
   await expect(
-    post
-      .getByRole("form", { name: "Soạn bình luận" })
-      .getByRole("button", {
-        name: "Đính kèm ảnh / file / audio / video",
-        exact: true,
-      }),
+    post.getByRole("form", { name: "Soạn bình luận" }).getByRole("button", {
+      name: "Đính kèm ảnh / file / audio / video",
+      exact: true,
+    }),
   ).toBeVisible();
   await post.getByRole("button", { name: /^Bình luận/ }).click();
   await expect(post.getByTestId("comment-list")).toHaveCount(0);
@@ -999,7 +1013,7 @@ test("dual-role workspace changes do not reuse manager-only post permission cach
   await page.getByRole("combobox", { name: "Không gian", exact: true }).click();
   await page.getByRole("option", { name: "Giảng viên", exact: true }).click();
   await page.goto(`${base}/class/?classId=class-green`);
-  await page.getByRole("button", { name: "+ Đăng bài", exact: true }).click();
+  await page.getByRole("button", { name: "Tạo bài đăng", exact: true }).click();
   await page
     .getByLabel("Tiêu đề", { exact: true })
     .fill("Thông báo của tác giả");
@@ -1012,7 +1026,7 @@ test("dual-role workspace changes do not reuse manager-only post permission cach
   await page.getByRole("combobox", { name: "Không gian", exact: true }).click();
   await page.getByRole("option", { name: "Quản lý", exact: true }).click();
   await expect(
-    page.getByRole("button", { name: "+ Đăng bài", exact: true }),
+    page.getByRole("button", { name: "Tạo bài đăng", exact: true }),
   ).toHaveCount(0);
   await page
     .getByRole("button", { name: "Thao tác bài đăng", exact: true })
@@ -1029,4 +1043,141 @@ test("dual-role workspace changes do not reuse manager-only post permission cach
   await expect(
     page.getByRole("menuitem", { name: "Sửa bài", exact: true }),
   ).toBeVisible();
+});
+
+test("pinned comments survive collapse; paging, likes, reply target and pin mutation work", async ({
+  page,
+}) => {
+  await fixture(page, true);
+  const comments = ["Ghim luôn hiển thị", "Trang đầu", "Trang sau"].map(
+    (body, i) => ({
+      id: `interaction-${i}`,
+      postId: "new-post",
+      parentId: i === 2 ? "interaction-1" : null,
+      parentAuthorName: i === 2 ? "Học sinh thử" : null,
+      authorId: i === 0 ? "GV0001" : "student-test",
+      authorName: i === 0 ? "Nguyễn Minh Anh" : "Học sinh thử",
+      body,
+      version: 1,
+      createdAt: "2026-10-09T08:00:00Z",
+      attachments: [],
+      isPinned: i === 0,
+      likeCount: 0,
+      myLike: false,
+    }),
+  );
+  const post: Post = {
+    id: "new-post",
+    classId: "class-green",
+    sessionId: null,
+    postType: "ANNOUNCEMENT",
+    title: "Bài trao đổi",
+    body: "Hướng dẫn theo thiết kế",
+    status: "PUBLISHED",
+    authorId: "GV0001",
+    authorName: "Nguyễn Minh Anh",
+    publishedBy: "GV0001",
+    publisherName: "Nguyễn Minh Anh",
+    createdAt: "2026-10-09T08:00:00Z",
+    updatedAt: "2026-10-09T08:00:00Z",
+    version: 1,
+    attachments: [],
+    reactions: [],
+    myReaction: null,
+    commentCount: 3,
+    canEdit: true,
+    canDelete: true,
+    canPinComment: true,
+  };
+  let pages = 0,
+    likes = 0,
+    pins = 0,
+    failLike = true;
+  await page.route(`${api}/classes/class-green/threads**`, (r) =>
+    r.fulfill({
+      json: {
+        data: {
+          items: [
+            { ...post, pinnedComments: comments.filter((c) => c.isPinned) },
+          ],
+          nextCursor: null,
+        },
+      },
+    }),
+  );
+  await page.route(`${api}/posts/new-post/comments**`, async (r) => {
+    pages++;
+    const cursor = new URL(r.request().url()).searchParams.get("cursor");
+    await r.fulfill({
+      json: {
+        data: {
+          items: cursor ? [comments[2]] : [comments[1]],
+          nextCursor: cursor ? null : "second",
+        },
+      },
+    });
+  });
+  await page.route(`${api}/comments/interaction-0/**`, async (r) => {
+    const action = new URL(r.request().url()).pathname.split("/").at(-1);
+    if (action === "like") {
+      likes++;
+      if (failLike) {
+        failLike = false;
+        await r.fulfill({
+          status: 409,
+          json: {
+            error: { code: "CONFLICT", message: "Chưa thể thích bình luận." },
+          },
+        });
+        return;
+      }
+      comments[0].myLike = r.request().method() === "PUT";
+      comments[0].likeCount = comments[0].myLike ? 1 : 0;
+    } else {
+      pins++;
+      comments[0].isPinned = r.request().postDataJSON().isPinned;
+      comments[0].version++;
+    }
+    await r.fulfill({ json: { data: comments[0] } });
+  });
+  await login(page);
+  await page.goto(`${base}/class/?classId=class-green`);
+  const article = page.getByTestId("lesson-post"),
+    pinned = article.getByTestId("pinned-comments");
+  await expect(pinned).toContainText("Ghim luôn hiển thị");
+  expect(pages).toBe(0);
+  await pinned
+    .getByRole("button", { name: "Thích bình luận", exact: true })
+    .click();
+  await expect(
+    article.getByText("Chưa thể thích bình luận.", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    pinned.getByRole("button", { name: "Thích bình luận", exact: true }),
+  ).toBeVisible();
+  await pinned
+    .getByRole("button", { name: "Thích bình luận", exact: true })
+    .click();
+  await expect(
+    pinned.getByRole("button", { name: "Bỏ thích bình luận", exact: true }),
+  ).toBeVisible();
+  expect(likes).toBe(2);
+  await article.getByRole("button", { name: /^Bình luận/ }).click();
+  await expect(article.getByText("Trang đầu", { exact: true })).toBeVisible();
+  await article
+    .getByRole("button", { name: "Xem thêm bình luận", exact: true })
+    .click();
+  await expect(article.getByText("Trang sau", { exact: true })).toBeVisible();
+  await expect(
+    article.getByText("Trả lời Học sinh thử", { exact: true }),
+  ).toBeVisible();
+  await article.getByRole("button", { name: "Đóng", exact: true }).click();
+  await expect(article.getByText("Trang đầu", { exact: true })).toHaveCount(0);
+  await expect(pinned).toBeVisible();
+  await pinned
+    .getByRole("button", { name: "Thao tác bình luận", exact: true })
+    .click();
+  await page.getByRole("menuitem", { name: "Bỏ ghim", exact: true }).click();
+  await expect(pinned).toHaveCount(0);
+  expect(pins).toBe(1);
 });

@@ -190,3 +190,11 @@ Thiết kế [Figma](https://www.figma.com/design/4HTHoXVUEgn4o3Iq0JzBRB). Icon 
 Bốn đường E, V, E−V, E−V−S theo ngày thực; ngày vắng/chưa xác nhận không bị tạo mốc 0. Thống kê và lịch sử sử dụng màu vàng. Số dư âm vì vi phạm được giữ, không tiêu vượt số dư. Ẩn/hiện đường, ngày/tháng/năm trong tooltip, filter thời gian và lịch sử phân trang. Không có interval cho reward; socket REWARD/SCHEDULE refresh đúng tags, audit refresh sau sự kiện archive hoàn tất.
 
 [Contract và rollout reward/schedule](docs/rewards-schedules.md). Backend cần migration **Core 015** trước merge/deploy frontend. Không đổi cấu hình Pages/Cloud Tasks; deployment chỉ chạy khi merge vào dev. Dữ liệu seed trong tests chỉ là fixtures HTTP; giao diện bản thật gọi API qua RTK Query như cấu hình hiện tại.
+
+## Điểm danh và thread theo thiết kế
+
+Tab Điểm danh trong chi tiết lớp: roster hôm nay, xác nhận buổi ngoài lịch với lý do, lịch tháng và chỉnh sửa/bổ sung ngày quá khứ. Chỉ giảng viên đang phụ trách lớp ACTIVE trong không gian Giảng viên được lưu; Quản lý chỉ xem. Xác nhận toàn bộ vắng có bước kiểm tra riêng. Ô chưa tích không tự trở thành vắng khi chưa lưu. Số buổi kế hoạch ban đầu khai báo trong trình sửa lịch của Quản lý, độc lập tổng Unit và giữ nguyên mẫu số.
+
+Thread bỏ panel đếm bài/kho; nút Tạo bài đăng mở trình soạn giống post với loại bài/công bố và hai mục chọn kho/upload. Post căn giữa; ảnh đơn theo tỷ lệ tự nhiên, nhiều ảnh dùng tile cover. Bình luận ghim luôn hiển thị, xem thêm nối trang/Đóng thu gọn; thích và reply có tên người được trả lời. Các API mới: [docs/attendance-api.md](docs/attendance-api.md).
+
+Production vẫn dùng RTK Query/API thật và static export như cấu hình hiện có. HTTP fixtures chỉ nằm trong tests/e2e; không có dữ liệu điểm danh giả trong ứng dụng. Backend cần Core migration 016 + Materials 007 trước rollout chức năng mới; không thêm timer/polling hoặc biến GCP.

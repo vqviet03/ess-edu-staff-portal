@@ -446,16 +446,42 @@ export const libraryApi = api.injectEndpoints({
       invalidatesTags: (_, error, q) =>
         error ? [] : [{ type: "Posts", id: q.id }],
     }),
-    comments: b.query<CursorPage<Comment>, { postId: string; cursor?: string }>(
-      {
-        query: (q) => ({
-          url: `/posts/${q.postId}/comments`,
-          params: { cursor: q.cursor, limit: 20 },
-        }),
-        transformResponse: unwrap<CursorPage<Comment>>,
-        providesTags: (_, __, q) => [{ type: "Comments", id: q.postId }],
-      },
-    ),
+    comments: b.query<
+      CursorPage<Comment>,
+      { postId: string; cursor?: string; around?: string }
+    >({
+      query: (q) => ({
+        url: `/posts/${q.postId}/comments`,
+        params: { cursor: q.cursor, around: q.around, limit: 20 },
+      }),
+      transformResponse: unwrap<CursorPage<Comment>>,
+      providesTags: (_, __, q) => [{ type: "Comments", id: q.postId }],
+    }),
+    pinComment: b.mutation<
+      Comment,
+      { id: string; postId: string; isPinned: boolean; version: number }
+    >({
+      query: (q) => ({
+        url: `/comments/${q.id}/pin`,
+        method: "PUT",
+        body: { isPinned: q.isPinned, version: q.version },
+      }),
+      transformResponse: unwrap<Comment>,
+      invalidatesTags: (_, e, q) =>
+        e ? [] : [{ type: "Comments", id: q.postId }, "Posts"],
+    }),
+    likeComment: b.mutation<
+      Comment,
+      { id: string; postId: string; liked: boolean }
+    >({
+      query: (q) => ({
+        url: `/comments/${q.id}/like`,
+        method: q.liked ? "PUT" : "DELETE",
+      }),
+      transformResponse: unwrap<Comment>,
+      invalidatesTags: (_, e, q) =>
+        e ? [] : [{ type: "Comments", id: q.postId }, "Posts"],
+    }),
     saveComment: b.mutation<
       Comment,
       {
@@ -654,6 +680,8 @@ export const {
   useRemovePostMutation,
   useReactionMutation,
   useCommentsQuery,
+  usePinCommentMutation,
+  useLikeCommentMutation,
   useSaveCommentMutation,
   useRemoveCommentMutation,
   useNotificationsQuery,

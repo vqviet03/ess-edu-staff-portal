@@ -5,10 +5,12 @@ export function MaterialThumbnail({
   id,
   fit = "contain",
   fill = false,
+  natural = false,
 }: {
   id: string;
   fit?: "contain" | "cover";
   fill?: boolean;
+  natural?: boolean;
 }) {
   const query = useContentQuery({ id, purpose: "thumbnail" });
   return query.currentData ? (
@@ -19,10 +21,10 @@ export function MaterialThumbnail({
       loading="lazy"
       sx={{
         display: "block",
-        width: fill ? "100%" : "auto",
-        height: fill ? "100%" : "auto",
+        width: fill || natural ? "100%" : "auto",
+        height: fill && !natural ? "100%" : "auto",
         maxWidth: "100%",
-        maxHeight: fill ? "100%" : 108,
+        maxHeight: natural ? "none" : fill ? "100%" : 108,
         objectFit: fit,
       }}
     />
