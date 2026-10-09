@@ -12,7 +12,7 @@ Read: manager toàn trường, teacher lớp từng được phân công, studen
 
 ## Ngày học và điểm danh
 
-Ngày theo Asia/Ho_Chi_Minh, timestamps UTC. Lịch FIXED WEEKLY (1=thứ Hai..7=CN) hoặc MONTHLY (1..31, bỏ ngày không tồn tại), FLEXIBLE lưu ngày cụ thể không lặp. TimeMode SHARED/PER_DAY/FLEXIBLE; giờ HH:mm, kết thúc sau bắt đầu. Giờ linh động hiển thị hướng dẫn theo dõi thông báo. EffectiveFrom ≥ hôm nay, ≤10 năm; version append-only, giữ lịch cũ, không đổi ngày đã chốt và không ghi đè phiên bản tương lai bằng ngày hiệu lực sớm hơn.
+Ngày theo Asia/Ho_Chi_Minh, timestamps UTC. Lịch FIXED WEEKLY (1=thứ Hai..7=CN) hoặc MONTHLY (1..31, bỏ ngày không tồn tại), FLEXIBLE lưu ngày cụ thể không lặp. TimeMode SHARED/PER_DAY/FLEXIBLE; giờ HH:mm, kết thúc sau bắt đầu. Giờ linh động hiển thị hướng dẫn theo dõi thông báo. EffectiveFrom cho phép quá khứ hoặc tương lai trong 10 năm tính từ hôm nay, để khai báo lớp đã học trước khi dùng hệ thống. Version append-only; bản mới áp dụng từ ngày hiệu lực đến trước mốc hiệu lực muộn hơn đã tồn tại, cùng ngày hiệu lực thì version cao hơn được ưu tiên. Bổ sung lịch quá khứ không ghi đè bản lịch có ngày hiệu lực muộn hơn. Chỉ từ chối khi thực sự thay đổi ngày/giờ lịch của buổi đã chốt (DAY_CLOSED), không chặn việc mở rộng lịch về trước nếu các buổi đã chốt không đổi. FLEXIBLE không có ngày học trước EffectiveFrom. Không tự ghi điểm danh, điểm 0 hoặc suy đoán vắng học cho ngày quá khứ; dữ liệu cũ được giữ nguyên. Sửa quy tắc ngày hiệu lực này không cần migration hay cấu hình GCP mới.
 
 Điểm danh reward là điểm danh **theo ngày lớp**, độc lập điểm danh từng assessment. Nhiều phiên cùng ngày gộp thành một ngày. Chưa ghi nhận: UNSET. Thưởng hợp lệ xác nhận PRESENT; nếu ABSENT phải đổi lại trước khi thưởng. Có thể cập nhật điểm danh ngày cũ (tối đa 10 năm), server tính lại chart từ ledger.
 
@@ -66,7 +66,7 @@ Lịch:
 {"version":0,"effectiveFrom":"2026-10-09","configuration":{"mode":"FIXED","cycle":"WEEKLY","timeMode":"SHARED","startTime":"17:00","endTime":"18:30","slots":[{"day":1,"date":null,"startTime":null,"endTime":null},{"day":5,"date":null,"startTime":null,"endTime":null}]}}
 ```
 
-Errors: 400 filter/range/key; 401 auth; 403 quyền/lớp chỉ xem; 404 hồ sơ/entry; 409 VERSION_CONFLICT/IDEMPOTENCY_CONFLICT/STUDENT_ABSENT/ALREADY_REVERSED/DAY_CLOSED/SCHEDULE_ORDER; 422 validation/INSUFFICIENT_POINTS/ATTENDANCE_PENDING. Form giữ nội dung khi lỗi, không tự retry mutation.
+Errors: 400 filter/range/key; 401 auth; 403 quyền/lớp chỉ xem; 404 hồ sơ/entry; 409 VERSION_CONFLICT/IDEMPOTENCY_CONFLICT/STUDENT_ABSENT/ALREADY_REVERSED/DAY_CLOSED; 422 validation/INVALID_EFFECTIVE_DATE/INSUFFICIENT_POINTS/ATTENDANCE_PENDING. Form giữ nội dung khi lỗi, không tự retry mutation.
 
 ## Realtime và vận hành GCP
 

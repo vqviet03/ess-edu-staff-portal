@@ -3,6 +3,7 @@ import { installHttpFixture } from "./support/http-fixture";
 import { seed } from "../src/mock/fixtures";
 import {
   vietnamToday,
+  dateWindow,
   type RewardEntry,
   type RewardTotals,
   type ScheduleConfig,
@@ -30,6 +31,7 @@ async function rewardsFixture(page: Page) {
       slots: [],
     },
     schedules = 0,
+    effectiveFrom = today,
     plannedSessions = 0,
     planStartDate: string | null = null;
   const writes: string[] = [];
@@ -73,6 +75,7 @@ async function rewardsFixture(page: Page) {
       if (method === "PUT") {
         version++;
         config = body!.configuration as ScheduleConfig;
+        effectiveFrom = String(body!.effectiveFrom);
         schedules++;
         plannedSessions = Number(body!.plannedSessions ?? plannedSessions);
         planStartDate = String(body!.planStartDate ?? planStartDate ?? today);
@@ -82,7 +85,7 @@ async function rewardsFixture(page: Page) {
         plannedSessions,
         planStartDate,
         version,
-        effectiveFrom: today,
+        effectiveFrom,
         configuration: config,
         occurrences: [],
         timeZone: "Asia/Ho_Chi_Minh",
@@ -180,6 +183,7 @@ async function rewardsFixture(page: Page) {
     schedules: () => schedules,
     plannedSessions: () => plannedSessions,
     configuration: () => config,
+    effectiveFrom: () => effectiveFrom,
   };
 }
 async function login(page: Page, id = "GV0001") {
@@ -286,7 +290,14 @@ test("manager saves weekly/monthly/flexible schedule; mobile reward cards fit", 
     .getByText("Ngày áp dụng & kế hoạch buổi học", { exact: true })
     .click();
   await dialog.getByLabel("Tổng buổi kế hoạch ban đầu").fill("12");
-  await dialog.getByLabel("Ngày bắt đầu kế hoạch").fill(vietnamToday());
+  const past = dateWindow(vietnamToday(), 90).from;
+  await dialog.getByLabel("Áp dụng từ", { exact: true }).fill(past);
+  expect(
+    await dialog
+      .getByLabel("Áp dụng từ", { exact: true })
+      .evaluate((input: HTMLInputElement) => input.validity.valid),
+  ).toBe(true);
+  await dialog.getByLabel("Ngày bắt đầu kế hoạch").fill(past);
   await dialog
     .getByText("Ngày áp dụng & kế hoạch buổi học", { exact: true })
     .click();
@@ -316,10 +327,21 @@ test("manager saves weekly/monthly/flexible schedule; mobile reward cards fit", 
     .click();
   await expect.poll(() => f.schedules()).toBe(1);
   expect(f.plannedSessions()).toBe(12);
+  expect(f.effectiveFrom()).toBe(past);
   await expect(dialog).not.toBeVisible();
   expect(f.configuration().slots.map((s) => s.day)).toEqual([1, 5]);
+  await page.reload();
   await page
     .getByRole("button", { name: "Thiết lập lịch học", exact: true })
+    .click();
+  await dialog
+    .getByText("Ngày áp dụng & kế hoạch buổi học", { exact: true })
+    .click();
+  await expect(dialog.getByLabel("Áp dụng từ", { exact: true })).toHaveValue(
+    past,
+  );
+  await dialog
+    .getByText("Ngày áp dụng & kế hoạch buổi học", { exact: true })
     .click();
   await dialog.getByLabel("Chu kỳ", { exact: true }).click();
   await page.getByRole("option", { name: "Theo tháng", exact: true }).click();
