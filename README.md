@@ -200,3 +200,5 @@ Tab Điểm danh trong chi tiết lớp: roster hôm nay, xác nhận buổi ngo
 Thread bỏ panel đếm bài/kho; nút Tạo bài đăng mở trình soạn giống post với loại bài/công bố và hai mục chọn kho/upload. Post căn giữa; ảnh đơn theo tỷ lệ tự nhiên, nhiều ảnh dùng tile cover. Bình luận ghim luôn hiển thị, xem thêm nối trang/Đóng thu gọn; thích và reply có tên người được trả lời. Các API mới: [docs/attendance-api.md](docs/attendance-api.md).
 
 Production vẫn dùng RTK Query/API thật và static export như cấu hình hiện có. HTTP fixtures chỉ nằm trong tests/e2e; không có dữ liệu điểm danh giả trong ứng dụng. Backend cần Core migration 016 + Materials 007 trước rollout chức năng mới; không thêm timer/polling hoặc biến GCP.
+
+Biểu đồ Unit, chênh lệch và điểm tích luỹ tự mở vùng cuộn ngang khi các mốc quá sát nhau so với chiều rộng khung. Icon −/+/đặt lại cạnh biểu đồ điều chỉnh zoom ngang 50–400%, giữ nguyên chiều cao, toàn bộ điểm, tooltip và các lựa chọn ẩn/hiện. Trục ngày giữ khoảng cách thời gian thực; cuộn bằng cảm ứng, trackpad hoặc bàn phím khi vùng biểu đồ được focus. Zoom/cuộn không gọi thêm API và không thêm interval.
