@@ -191,7 +191,7 @@ async function login(page: Page, id = "GV0001") {
 }
 test("teacher awards trophies, saves note, opens reward detail and does not poll", async ({
   page,
-}) => {
+}, testInfo) => {
   const f = await rewardsFixture(page);
   await login(page);
   await page.goto(`${base}/class/?classId=class-green`);
@@ -208,7 +208,7 @@ test("teacher awards trophies, saves note, opens reward detail and does not poll
     .filter({ hasText: /3 cúp$/ })
     .click();
   await dialog.screenshot({
-    path: "/workspace/ess-review-images/rewards-award-desktop.png",
+    path: testInfo.outputPath("rewards-award-desktop.png"),
   });
   await page.setViewportSize({ width: 390, height: 844 });
   await expect(
@@ -218,11 +218,11 @@ test("teacher awards trophies, saves note, opens reward detail and does not poll
     true,
   );
   await dialog.screenshot({
-    path: "/workspace/ess-review-images/rewards-award-mobile.png",
+    path: testInfo.outputPath("rewards-award-mobile.png"),
   });
   await page.emulateMedia({ colorScheme: "dark" });
   await dialog.screenshot({
-    path: "/workspace/ess-review-images/rewards-award-mobile-dark.png",
+    path: testInfo.outputPath("rewards-award-mobile-dark.png"),
   });
   await page.emulateMedia({ colorScheme: "light" });
   await page.setViewportSize({ width: 1280, height: 1000 });
@@ -266,7 +266,7 @@ test("teacher awards trophies, saves note, opens reward detail and does not poll
 });
 test("manager saves weekly/monthly/flexible schedule; mobile reward cards fit", async ({
   page,
-}) => {
+}, testInfo) => {
   const f = await rewardsFixture(page);
   await page.setViewportSize({ width: 1280, height: 1100 });
   await login(page, "MG0001");
@@ -299,14 +299,14 @@ test("manager saves weekly/monthly/flexible schedule; mobile reward cards fit", 
     e.scrollTop = 0;
   });
   await dialog.screenshot({
-    path: "/workspace/ess-review-images/schedule-weekly-shared.png",
+    path: testInfo.outputPath("schedule-weekly-shared.png"),
   });
   await dialog
     .getByRole("radio", { name: "Giờ áp dụng từng ngày", exact: true })
     .click();
   await expect(dialog.getByLabel("Giờ bắt đầu")).toHaveCount(2);
   await dialog.screenshot({
-    path: "/workspace/ess-review-images/schedule-weekly-per-day.png",
+    path: testInfo.outputPath("schedule-weekly-per-day.png"),
   });
   await dialog
     .getByRole("radio", { name: "Giờ áp dụng toàn bộ", exact: true })
@@ -345,7 +345,7 @@ test("manager saves weekly/monthly/flexible schedule; mobile reward cards fit", 
     e.scrollTop = 0;
   });
   await dialog.screenshot({
-    path: "/workspace/ess-review-images/schedule-monthly.png",
+    path: testInfo.outputPath("schedule-monthly.png"),
   });
   await dialog
     .getByRole("button", { name: "Lưu lịch học", exact: true })
@@ -393,7 +393,7 @@ test("manager saves weekly/monthly/flexible schedule; mobile reward cards fit", 
       .evaluate((e) => e.scrollWidth <= e.clientWidth + 1),
   ).toBe(true);
   await page.screenshot({
-    path: "/tmp/staff-rewards-mobile.png",
+    path: testInfo.outputPath("staff-rewards-mobile.png"),
     fullPage: true,
     animations: "disabled",
   });
