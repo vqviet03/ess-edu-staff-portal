@@ -182,3 +182,11 @@ Thread lớp, quyền tác giả và triển khai: [docs/class-thread-posts.md](
 Chi tiết lớp: **Thread / Tiến độ lớp / Hồ sơ & quan hệ**. Unit và danh sách phiên nằm trực tiếp trong Tiến độ lớp; học sinh chuyển vào bảng hồ sơ với menu ba chấm. Giảng viên xem hồ sơ qua `/student/?classId=...&studentId=...`; quản lý dùng hồ sơ đầy đủ hiện có. Xem [chi tiết tabs và quyền](docs/class-thread-posts.md#chi-tiết-lớp-trên-staff-portal).
 
 Thread: bài đăng căn giữa, controls MUI small/icon với tooltip, thống kê riêng từng reaction. Nhấp để bật/tắt reaction; nhấn giữ 450ms để mở bộ chọn với phản hồi thị giác/rung nếu thiết bị hỗ trợ, kéo để cuộn hủy thao tác giữ; bàn phím ArrowDown/Shift+F10. Ảnh bài đăng/bình luận dùng thumbnail xác thực trong khung cố định `object-fit: cover`; chỉ tải bản gốc khi mở viewer. Danh sách thông báo hỗ trợ thêm loại REPLY và SCORE từ backend.
+
+### Điểm động viên và lịch học
+
+Thiết kế [Figma](https://www.figma.com/design/4HTHoXVUEgn4o3Iq0JzBRB). Icon cúp ở đầu lớp mở popup ghi 1–5 điểm/lượt, lưu nhanh hoặc ghi chú; icon chi tiết mở `/student/?classId=...&studentId=...&tab=rewards`. Quỹ bắt đầu 0, không tạo dữ liệu khi mở. Có điểm danh/chốt ngày; lịch cố định tuần/tháng, ngày linh động và giờ chung/riêng/thông báo sau. Quản lý chỉ xem; giảng viên đang phụ trách lớp ACTIVE được thưởng/trừ/sử dụng/đảo giao dịch và sửa lịch.
+
+Bốn đường E, V, E−V, E−V−S theo ngày thực; ngày vắng/chưa xác nhận không bị tạo mốc 0. Thống kê và lịch sử sử dụng màu vàng. Số dư âm vì vi phạm được giữ, không tiêu vượt số dư. Ẩn/hiện đường, ngày/tháng/năm trong tooltip, filter thời gian và lịch sử phân trang. Không có interval cho reward; socket REWARD/SCHEDULE refresh đúng tags, audit refresh sau sự kiện archive hoàn tất.
+
+[Contract và rollout reward/schedule](docs/rewards-schedules.md). Backend cần migration **Core 015** trước merge/deploy frontend. Không đổi cấu hình Pages/Cloud Tasks; deployment chỉ chạy khi merge vào dev. Dữ liệu seed trong tests chỉ là fixtures HTTP; giao diện bản thật gọi API qua RTK Query như cấu hình hiện tại.

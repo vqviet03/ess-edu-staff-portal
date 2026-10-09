@@ -154,6 +154,8 @@ export const notificationTypes: Record<string, string> = {
   SOCIAL: "Bình luận / tương tác",
   REPLY: "Trả lời bình luận",
   SCORE: "Công bố điểm",
+  REWARD: "Điểm động viên",
+  SCHEDULE: "Lịch học",
   APPROVAL: "Yêu cầu xóa / phê duyệt",
   STORAGE: "Storage",
   SYSTEM: "Hệ thống",

@@ -2,11 +2,39 @@ export interface Guide { title: string; intro: string; steps: { title: string; t
 const step = (title: string, text: string[], illustration?: string) => ({ title, text, illustration });
 const login: Guide = { title: "Đăng nhập", intro: "Truy cập đúng tài khoản do trung tâm cấp; giao diện sáng/tối và thu/phóng có thể đổi ngay tại đây.", steps: [step("ID và mật khẩu", ["Nhập ID đăng nhập và mật khẩu, dùng nút Hiện/Ẩn để kiểm tra ký tự. Nút Đăng nhập hiển thị trạng thái đang xử lý; lỗi nằm ngay trong form.", "Không lưu mật khẩu trong trình duyệt. Khi hết phiên, đăng nhập lại để tiếp tục; dữ liệu đã lưu vẫn được giữ."], "form"), step("Liên kết đăng nhập", ["Mở link do trung tâm cấp. Mã chỉ dùng một lần và có thời hạn; mã sai/hết hạn/đã dùng có nút quay lại đăng nhập.", "Đăng xuất kết thúc phiên hiện tại. Thời gian đăng nhập và thông tin thiết bị/IP phục vụ bảo mật tài khoản."])] };
 const report: Guide = { title: "Báo cáo học tập", intro: "Đọc kết quả đánh giá theo Unit, đối chiếu các kỹ năng và nhận xét để biết phần cần luyện tập. Tỷ lệ điểm khác tiến độ hoàn thành khóa học.", steps: [step("Chọn lớp, học sinh và Unit", ["Chọn lớp để xem đúng lịch sử học tập. Staff chọn thêm học sinh; tab Unit dùng dữ liệu đã công bố cho học sinh đó.", "Mặc định mở Unit có thứ tự cao nhất. Đổi lớp/học sinh sẽ chọn lại Unit, tránh nhầm báo cáo. Nếu chưa công bố, màn hình báo chưa có dữ liệu."], "report"), step("Tổng quan kết quả", ["Mỗi ô ghi điểm đạt / điểm tối đa và tỷ lệ phần trăm của kỹ năng. Tổng điểm chia tổng điểm tối đa, không lấy trung bình phần trăm các kỹ năng.", "Dấu — là chưa có dữ liệu; số 0 là một kết quả đã nhập. Ngày kiểm tra thiếu được giữ là chưa có."], "report"), step("Đường kỹ năng và bảng Unit", ["Mỗi màu là một kỹ năng; trục ngang là các Unit, trục dọc là tỷ lệ điểm. Chạm hoặc rê lên node để đọc chi tiết. Đường cong đi qua đúng điểm; chỗ chưa có dữ liệu không được nối thay.", "Bấm tên kỹ năng để ẩn/hiện, hoặc Hiện tất cả để khôi phục. Chỉ thay cách xem biểu đồ, bảng và dữ liệu gốc giữ nguyên.", "Bảng điểm theo Unit giúp so sánh số liệu chính xác; trên điện thoại có thể cuộn ngang."], "chart"), step("Biểu đồ thay đổi", ["Mỗi biểu đồ so sánh hai Unit liên tiếp. Xanh là tăng, hồng là giảm; dấu +/− và tooltip thể hiện chênh lệch theo điểm phần trăm.", "Ví dụ 60% → 70% là +10 điểm phần trăm. Có thể ẩn/hiện từng biểu đồ kỹ năng hoặc tổng điểm; thiếu một mốc thì chưa tính chênh lệch."], "chart"), step("Nhận xét và lời khuyên", ["Đọc nhận xét theo kỹ năng, nhận xét tổng thể và các lời khuyên. Những phần chưa có được ghi rõ; không thay bằng nhận định tự động.", "Staff: quản lý xem báo cáo; giảng viên đang phụ trách lớp ACTIVE có thể bấm Sửa nhận xét. Form chỉ đổi nhận xét, giữ điểm/schema và lời khuyên. Lưu thành công cập nhật báo cáo học sinh và nguồn bài đánh giá khi còn khớp.", "Nếu báo xung đột, giữ nội dung đang nhập và tải phiên bản mới trước khi quyết định lưu lại. Đổi học sinh/Unit khi chưa lưu cần xác nhận."], "form")] };
+const rewardSteps = [
+  step(
+    "Điểm động viên",
+    [
+      "Bấm icon cúp ở đầu lớp. Mỗi lượt chọn 1–5 cúp; Lưu nhanh dùng ghi chú <biệt danh> vừa đạt được thành tích mới; icon ghi chú cho nhập nội dung riêng. Lưu thành công ô cúp về 0; lỗi giữ giá trị để thử lại.",
+      "Xác nhận Có tham gia/Vắng và Chốt ngày sau khi điểm danh đủ. Có tham gia, đã chốt nhưng không nhận thưởng = 0 ngày; vắng/chưa xác nhận không tạo mốc 0. Thanh hôm nay chia mức thưởng cao nhất trong ngày của bạn có tham gia, không phải điểm học tập.",
+    ],
+    "table",
+  ),
+  step(
+    "Hồ sơ · Điểm tích luỹ",
+    [
+      "Icon chi tiết mở tab Điểm tích luỹ của học sinh; chọn lớp để xem quỹ, hoạt động hôm nay, biểu đồ và lịch sử phân trang theo thưởng/vi phạm/sử dụng.",
+      "Giảng viên đang phụ trách lớp ACTIVE mới ghi thưởng, trừ vi phạm, sử dụng hoặc đảo giao dịch. Quản lý và học sinh chỉ xem; tài khoản hai vai trò phải chuyển Giảng viên. Đổi thưởng không vượt số dư; vi phạm có thể làm số dư âm.",
+      "Xanh lá = thưởng; đỏ = vi phạm; xanh biển = thưởng − vi phạm; tím = thưởng − vi phạm − đã dùng. Vàng trong lịch sử = đã dùng. Số dư giảm khi đổi quà không có nghĩa là giảm tích cực; điểm không thay thế đánh giá năng lực.",
+    ],
+    "chart",
+  ),
+  step(
+    "Thiết lập lịch học",
+    [
+      "Icon lịch mở panel chọn Cố định/Linh động. Cố định chọn thứ trong tuần hoặc thêm ngày trong tháng; nút thùng rác bỏ ngày, ngày 29–31 không tồn tại được bỏ qua. Linh động nhập từng ngày cụ thể.",
+      "Giờ chung, từng ngày hoặc linh động (phụ huynh theo dõi thông báo). Ngày theo Việt Nam. Lịch mới chỉ áp dụng từ ngày chọn, không sửa ngày đã chốt; xung đột cần tải lại trước khi lưu.",
+    ],
+    "form",
+  ),
+];
 const classGuide: Guide = {
   title: "Dashboard lớp",
   intro:
     "Thread mở mặc định để trao đổi trong lớp. Tab Tiến độ lớp chứa tiến độ Unit và phiên học; tab Hồ sơ & quan hệ chứa thông tin lớp, phân công và học sinh. Lớp lịch sử vẫn xem được; quyền sửa phụ thuộc phân công hiện tại.",
   steps: [
+    ...rewardSteps,
     step(
       "Thread lớp",
       [
@@ -130,6 +158,7 @@ export function pageGuide(pathname: string, entity: string | null, workspace?: s
       intro:
         "Hồ sơ theo lớp đang có quyền truy cập; chỉ hiển thị dữ liệu API của lớp.",
       steps: [
+        ...rewardSteps,
         step(
           "Hồ sơ",
           [

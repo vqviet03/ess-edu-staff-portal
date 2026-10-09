@@ -28,6 +28,7 @@ export const createStaffApi = (query = baseQuery) =>
     refetchOnReconnect: false,
     refetchOnMountOrArgChange: false,
     tagTypes: [
+      "Rewards", "Schedule",
       "Auth",
       "ApplicationSettings", "SettingsProposals",
       "Management",

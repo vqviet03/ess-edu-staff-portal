@@ -37,6 +37,9 @@ export async function installHttpFixture(page: Page, shared?: { get: () => strin
         await route.fulfill({status:200, headers:cors, contentType:'application/json', body:JSON.stringify({data:{items,nextCursor:null}})});
         return;
       }
+      if (/^\/classes\/[^/]+\/schedule$/.test(endpoint) && request.method() === 'GET') {
+        await route.fulfill({status:200, headers:cors, contentType:'application/json', body:JSON.stringify({data:{classId:endpoint.split('/')[2],version:0,effectiveFrom:null,configuration:{mode:'FLEXIBLE',cycle:'WEEKLY',timeMode:'FLEXIBLE',startTime:null,endTime:null,slots:[]},occurrences:[],timeZone:'Asia/Ho_Chi_Minh'}})}); return;
+      }
       const response = await adapter({url:endpoint, method:request.method(), headers:request.headers(), body}, runtime, {});
       if (!response.error && ['/auth/login','/auth/link/exchange'].includes(endpoint)) {
         const session = (response.data as Envelope<AuthSession>).data;

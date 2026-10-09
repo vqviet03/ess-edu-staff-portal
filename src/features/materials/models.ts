@@ -138,6 +138,7 @@ export interface DeletionItem {
   usages: { id: string; title: string; sessionId: string; classId: string }[];
 }
 export interface Notification {
+  classId?: string | null;
   id: string;
   type: string;
   title: string;

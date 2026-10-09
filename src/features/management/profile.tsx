@@ -1,4 +1,7 @@
 "use client";
+import dynamic from "next/dynamic";
+const ClassRewardActions=dynamic(()=>import("@/features/rewards/class-actions").then(m=>m.ClassRewardActions));
+const StudentRewards = dynamic(() => import("@/features/rewards/detail").then(m => m.StudentRewards), { loading: () => <Feedback loading /> });
 import { ClassThreadFeed } from "@/features/materials/feed";
 import { useClassCapabilities } from "@/features/access/hooks";
 import { publicId } from "@/shared/public-id";
@@ -276,6 +279,7 @@ function Profile({
     [edit, setEdit] = useState(false),
     [createAccount, setCreateAccount] = useState(false),
     [tab, setTab] = useState<ClassTab>(initialClassTab(p.get("tab"))),
+    [studentTab, setStudentTab] = useState(entity === "students" && p.get("tab") === "rewards" ? "rewards" : "profile"),
     [classStudentEdit, setClassStudentEdit] = useState<{
       student: ManagedStudent;
       mode?: "status";
@@ -570,6 +574,7 @@ function Profile({
           </>
         }
       />
+      {entity === "classes" && <ClassRewardActions classId={r.id} name={recordName(r)} editable={false}/>}
       {entity === "classes" && "totalUnits" in r ? (
         <ClassDetailTabs
           value={tab}
@@ -614,10 +619,11 @@ function Profile({
         />
       ) : (
         <>
-          <Tabs value={0} sx={{ mb: 2 }}>
-            <Tab label="Hồ sơ & quan hệ" />
+          <Tabs value={studentTab} onChange={(_, value: string) => { if(confirmLeave()) setStudentTab(value); }} sx={{ mb: 2 }}>
+            <Tab label="Hồ sơ & quan hệ" value="profile" />
+            {entity === "students" && <Tab label="Điểm tích luỹ" value="rewards" />}
           </Tabs>
-          {profileContent}
+          {entity === "students" && studentTab === "rewards" ? <StudentRewards classId={d.classes[0]?.id ?? ""} studentId={r.id} name={recordName(r)}/> : profileContent}
         </>
       )}
       {classStudentEdit && (
