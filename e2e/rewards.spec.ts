@@ -188,6 +188,7 @@ test("teacher awards trophies, saves note, opens reward detail and does not poll
   const f = await rewardsFixture(page);
   await login(page);
   await page.goto(`${base}/class/?classId=class-green`);
+  await expect(page.getByRole("button", { name: "Thiết lập lịch học", exact: true })).toHaveCount(0);
   await page
     .getByRole("button", { name: "Cộng điểm động viên", exact: true })
     .click();
@@ -235,11 +236,11 @@ test("teacher awards trophies, saves note, opens reward detail and does not poll
   await page.clock.fastForward(60000);
   expect(requests).toBe(0);
 });
-test("weekly/monthly/flexible schedule uses real save mutation; mobile award cards fit", async ({
+test("manager saves weekly/monthly/flexible schedule; mobile reward cards fit", async ({
   page,
 }) => {
   const f = await rewardsFixture(page);
-  await login(page);
+  await login(page, "MG0001");
   await page.goto(`${base}/class/?classId=class-green`);
   await page
     .getByRole("button", { name: "Thiết lập lịch học", exact: true })
@@ -312,7 +313,7 @@ test("weekly/monthly/flexible schedule uses real save mutation; mobile award car
   await expect(dialog).not.toBeVisible();
   await page.setViewportSize({ width: 390, height: 844 });
   await page
-    .getByRole("button", { name: "Cộng điểm động viên", exact: true })
+    .getByRole("button", { name: "Xem điểm động viên", exact: true })
     .click();
   await expect(
     page.getByRole("dialog").getByText("Hữu Văn (Bon)"),
@@ -328,7 +329,7 @@ test("weekly/monthly/flexible schedule uses real save mutation; mobile award car
     animations: "disabled",
   });
 });
-test("manager only sees rewards and schedule, cannot award or change them", async ({
+test("manager edits schedule but only views rewards", async ({
   page,
 }) => {
   await rewardsFixture(page);
@@ -343,9 +344,10 @@ test("manager only sees rewards and schedule, cannot award or change them", asyn
       .getByRole("button", { name: "Lưu nhanh", exact: true }),
   ).toHaveCount(0);
   await expect(page.getByRole("dialog").getByRole("radio")).toHaveCount(0);
+  await page.getByRole("dialog").getByRole("button", { name: "Đóng", exact: true }).click();
   await expect(
     page.getByRole("button", { name: "Thiết lập lịch học", exact: true }),
-  ).toHaveCount(0);
+  ).toHaveCount(1);
   await page.goto(
     `${base}/manage/profile/?entity=students&id=HV1001&tab=rewards`,
   );

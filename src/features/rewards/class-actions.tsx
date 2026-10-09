@@ -466,7 +466,6 @@ export function ClassRewardActions({
       </Stack>
       <StudySchedulePanel
         classId={classId}
-        editable={editable}
         onSaved={() => setMessage("Đã lưu lịch học.")}
       />
       {open && (

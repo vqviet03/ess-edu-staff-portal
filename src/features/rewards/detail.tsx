@@ -279,7 +279,6 @@ function ClassRewardDetail({
       )}
       <StudySchedulePanel
         classId={classId}
-        editable={permissions.editLearning}
       />
       {dialog && (
         <MutationDialog

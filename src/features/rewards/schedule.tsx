@@ -24,6 +24,7 @@ import {
 import { Feedback } from "@/shared/ui";
 import { IconAction } from "@/shared/icon-action";
 import { useUnsaved } from "@/shared/unsaved";
+import { useClassCapabilities } from "@/features/access/hooks";
 import {
   displayDate,
   scheduleLabel,
@@ -45,7 +46,8 @@ function ScheduleEditor({
   onClose: () => void;
   onSaved: () => void;
 }) {
-  const [config, setConfig] = useState<ScheduleConfig>(
+  const [version] = useState(data.version),
+    [config, setConfig] = useState<ScheduleConfig>(
       structuredClone(data.configuration),
     ),
     [effectiveFrom, setEffectiveFrom] = useState(
@@ -85,7 +87,7 @@ function ScheduleEditor({
     try {
       await save({
         classId,
-        version: data.version,
+        version,
         effectiveFrom,
         configuration: config,
       }).unwrap();
@@ -328,14 +330,14 @@ function ScheduleEditor({
 }
 export function StudySchedulePanel({
   classId,
-  editable = false,
   onSaved,
 }: {
   classId: string;
-  editable?: boolean;
   onSaved?: () => void;
 }) {
-  const query = useStudyScheduleQuery(classId, { skip: !classId }),
+  const permissions = useClassCapabilities(classId),
+    editable = permissions.editSchedule,
+    query = useStudyScheduleQuery(classId, { skip: !classId || !permissions.viewLearning }),
     [open, setOpen] = useState(false),
     [viewing, setViewing] = useState(false);
   const data = query.currentData;
@@ -354,14 +356,15 @@ export function StudySchedulePanel({
               <IconAction
                 label="Thiết lập lịch học"
                 icon={<EditCalendar />}
+                disabled={query.isFetching || permissions.loading}
                 onClick={() => setOpen(true)}
               />
             )}
           </Stack>
           <Feedback
-            loading={query.isLoading}
-            error={query.error}
-            retry={() => void query.refetch()}
+            loading={permissions.loading || query.isLoading}
+            error={permissions.error || query.error}
+            retry={() => void (permissions.error ? permissions.retry() : query.refetch())}
           />
           {data && (
             <>

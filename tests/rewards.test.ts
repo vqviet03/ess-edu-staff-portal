@@ -7,6 +7,21 @@ import {
   type ScheduleConfig,
 } from "../src/features/rewards/models";
 import { rewardNoticeTags } from "../src/features/rewards/realtime";
+import { capabilities } from "../src/features/access/capabilities";
+import type { Teacher } from "../src/types";
+import type { ClassAccess } from "../src/features/management/models";
+test("only active manager workspace can edit schedule; teacher assignment never grants schedule edit", () => {
+  const teacher: Teacher = { id: "t", name: "Teacher", roles: ["TEACHER"], profileStatus: "ACTIVE", accountStatus: "ACTIVE" };
+  const access: ClassAccess = { classId: "c", canView: true, assignmentStatus: "ACTIVE", assignmentConfirmed: true, classStatus: "ACTIVE", profileStatus: "ACTIVE", accountStatus: "ACTIVE" };
+  const manager: Teacher = { ...teacher, roles: ["MANAGER"] };
+  assert.equal(capabilities(teacher, "teacher", access).editSchedule, false);
+  assert.equal(capabilities(manager, "manager", { ...access, assignmentStatus: null }).editSchedule, true);
+  assert.equal(capabilities(manager, "manager", access).editLearning, false);
+  assert.equal(capabilities({ ...manager, roles: ["MANAGER", "TEACHER"] }, "teacher", access).editSchedule, false);
+  assert.equal(capabilities({ ...manager, profileStatus: "INACTIVE" }, "manager", access).editSchedule, false);
+  assert.equal(capabilities({ ...manager, accountStatus: "LOCKED" }, "manager", access).editSchedule, false);
+  assert.equal(capabilities(manager, "manager", { ...access, canView: false }).editSchedule, false);
+});
 test("reward dates use Vietnam midnight and real daily spacing", () => {
   assert.equal(vietnamToday(new Date("2026-10-08T17:01:00Z")), "2026-10-09");
   assert.deepEqual(dateWindow("2026-03-01", 1), {

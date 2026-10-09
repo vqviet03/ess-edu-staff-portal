@@ -8,7 +8,7 @@ E = tổng thưởng, V = tổng vi phạm, S = tổng đã dùng. Bốn đườ
 
 ## Quyền
 
-Read: manager toàn trường, teacher lớp từng được phân công, student chính mình trong lớp còn enrollment/profile hoạt động. Read class activities yêu cầu quyền lớp, không cho truy cập trường khác. Write/điểm danh/lịch/đảo: TEACHER + profile/account ACTIVE + assignment ACTIVE, không cần reconfirm + lớp ACTIVE; X-Workspace=manager bị chặn. Manager đơn thuần chỉ xem. Staff trả tên/ID công khai tác giả; UUID chỉ là liên kết kỹ thuật, frontend không hiển thị.
+Read: manager toàn trường, teacher lớp từng được phân công, student chính mình trong lớp còn enrollment/profile hoạt động. Read class activities yêu cầu quyền lớp, không cho truy cập trường khác. Write điểm/điểm danh/đảo: TEACHER + profile/account ACTIVE + assignment ACTIVE, không cần reconfirm + lớp ACTIVE; X-Workspace=manager bị chặn. Manager đơn thuần chỉ xem điểm. Riêng chỉnh sửa lịch học yêu cầu MANAGER đang hoạt động, không cần phân công giảng viên; giảng viên đơn thuần và học sinh chỉ xem lịch. Frontend chỉ hiện sửa lịch trong không gian Quản lý. Staff trả tên/ID công khai tác giả; UUID chỉ là liên kết kỹ thuật, frontend không hiển thị.
 
 ## Ngày học và điểm danh
 
