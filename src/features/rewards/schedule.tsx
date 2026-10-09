@@ -9,20 +9,27 @@ import DialogContent from "@mui/material/DialogContent";
 import DialogTitle from "@mui/material/DialogTitle";
 import MenuItem from "@mui/material/MenuItem";
 import Paper from "@mui/material/Paper";
+import Select from "@mui/material/Select";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import ToggleButton from "@mui/material/ToggleButton";
 import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
 import Typography from "@mui/material/Typography";
 import Add from "@mui/icons-material/Add";
-import DeleteOutlined from "@mui/icons-material/DeleteOutlined";
+import Close from "@mui/icons-material/Close";
 import EditCalendar from "@mui/icons-material/EditCalendar";
 import {
   useStudyScheduleQuery,
   useSaveStudyScheduleMutation,
 } from "@/api/rewards-api";
 import { Feedback } from "@/shared/ui";
-import { IconAction } from "@/shared/icon-action";
+import { RewardIconAction as IconAction, RewardIcon } from "./controls";
+import {
+  rewardButton,
+  rewardDialog,
+  rewardSurface,
+  rewardTint,
+} from "./design";
 import { useUnsaved } from "@/shared/unsaved";
 import { useClassCapabilities } from "@/features/access/hooks";
 import {
@@ -37,11 +44,13 @@ import {
 const weekdays = ["T2", "T3", "T4", "T5", "T6", "T7", "CN"];
 function ScheduleEditor({
   classId,
+  className,
   data,
   onClose,
   onSaved,
 }: {
   classId: string;
+  className?: string;
   data: StudySchedule;
   onClose: () => void;
   onSaved: () => void;
@@ -116,79 +125,128 @@ function ScheduleEditor({
     start: string | null,
     end: string | null,
     change: (p: { startTime?: string; endTime?: string }) => void,
+    label = "Giờ học chung",
   ) => (
-    <Stack direction="row" spacing={1} sx={{ minWidth: 0 }}>
-      <TextField
-        size="small"
-        label="Giờ bắt đầu"
-        type="time"
-        value={start ?? ""}
-        onChange={(e) => change({ startTime: e.target.value })}
-        slotProps={{ inputLabel: { shrink: true } }}
-      />
-      <TextField
-        size="small"
-        label="Giờ kết thúc"
-        type="time"
-        value={end ?? ""}
-        onChange={(e) => change({ endTime: e.target.value })}
-        slotProps={{ inputLabel: { shrink: true } }}
-      />
-    </Stack>
+    <Box
+      component="fieldset"
+      sx={{
+        m: 0,
+        px: 1.5,
+        pb: 1,
+        pt: 0.5,
+        minWidth: 0,
+        width: "100%",
+        border: "1px solid",
+        borderColor: "text.secondary",
+        borderRadius: "4px",
+      }}
+    >
+      <Typography component="legend" sx={{ px: 0.5, fontSize: 12 }}>
+        {label}
+      </Typography>
+      <Stack
+        direction="row"
+        spacing={1}
+        sx={{ alignItems: "center", minHeight: 32 }}
+      >
+        <Box
+          component="input"
+          type="time"
+          aria-label="Giờ bắt đầu"
+          value={start ?? ""}
+          onChange={(e) => change({ startTime: e.target.value })}
+          sx={(theme) => ({
+            border: 0,
+            bgcolor: "transparent",
+            color: "text.primary",
+            font: "inherit",
+            width: "45%",
+            maxWidth: 150,
+            minWidth: 0,
+            colorScheme: theme.palette.mode,
+          })}
+        />
+        <Typography aria-hidden>–</Typography>
+        <Box
+          component="input"
+          type="time"
+          aria-label="Giờ kết thúc"
+          value={end ?? ""}
+          onChange={(e) => change({ endTime: e.target.value })}
+          sx={(theme) => ({
+            border: 0,
+            bgcolor: "transparent",
+            color: "text.primary",
+            font: "inherit",
+            width: "45%",
+            maxWidth: 150,
+            minWidth: 0,
+            colorScheme: theme.palette.mode,
+          })}
+        />
+      </Stack>
+    </Box>
   );
+  const slotLabel = (s: ScheduleSlot) =>
+    config.mode === "FLEXIBLE"
+      ? displayDate(s.date ?? effectiveFrom)
+      : config.cycle === "WEEKLY"
+        ? s.day === 7
+          ? "Chủ nhật"
+          : `Thứ ${(s.day ?? 1) + 1}`
+        : `Ngày ${s.day}`;
+  const selectStyle = {
+    alignSelf: "flex-start",
+    width: "auto",
+    bgcolor: rewardTint,
+    color: "primary.main",
+    borderRadius: "12px",
+    "& .MuiSelect-select": {
+      py: 1.25,
+      pl: 2,
+      pr: "36px !important",
+      fontSize: 14,
+    },
+    "&:before, &:after": { display: "none" },
+  };
   return (
-    <Dialog open onClose={close} fullWidth maxWidth="sm">
-      <DialogTitle>Thiết lập lịch học</DialogTitle>
+    <Dialog
+      open
+      onClose={close}
+      fullWidth
+      maxWidth={false}
+      slotProps={{ paper: { sx: rewardDialog(760) } }}
+    >
+      <DialogTitle>
+        <Stack
+          direction="row"
+          sx={{ alignItems: "center", justifyContent: "space-between", gap: 1 }}
+        >
+          <Typography component="span" sx={{ fontSize: 24, fontWeight: 700 }}>
+            Thiết lập lịch học
+          </Typography>
+          <IconAction
+            label="Đóng thiết lập lịch"
+            icon={<Close fontSize="small" />}
+            onClick={close}
+            disabled={saving.isLoading}
+          />
+        </Stack>
+      </DialogTitle>
       <DialogContent>
-        <Stack spacing={2.5} sx={{ pt: 1 }}>
-          <TextField
-            size="small"
-            type="number"
-            label="Tổng buổi kế hoạch ban đầu"
-            value={plannedSessions}
-            disabled={!!data.plannedSessions}
-            onChange={(e) => {
-              setPlannedSessions(e.target.value);
-              setDirty(true);
-            }}
-            slotProps={{ htmlInput: { min: 1, max: 10000, step: 1 } }}
-            helperText="Dùng tính cảnh báo vắng học, không phải số Unit. Giữ nguyên sau lần lưu đầu; học bổ sung không tăng mẫu số."
-          />
-          {plannedSessions && (
-            <TextField
-              size="small"
-              type="date"
-              label="Ngày bắt đầu kế hoạch"
-              value={planStartDate}
-              disabled={!!data.plannedSessions}
-              onChange={(e) => {
-                setPlanStartDate(e.target.value);
-                setDirty(true);
-              }}
-              slotProps={{ inputLabel: { shrink: true } }}
-            />
-          )}
-
-          <TextField
-            size="small"
-            type="date"
-            label="Áp dụng từ"
-            value={effectiveFrom}
-            onChange={(e) => {
-              setEffectiveFrom(e.target.value);
-              setDirty(true);
-            }}
-            slotProps={{
-              inputLabel: { shrink: true },
-              htmlInput: { min: vietnamToday() },
-            }}
-            helperText="Giữ lịch và dữ liệu đã chốt; thay đổi từ ngày này trở đi."
-          />
-          <TextField
-            size="small"
-            select
-            label="Loại lịch"
+        <Stack spacing={2}>
+          <Typography variant="body2" color="text.secondary">
+            {className ? `${className} · ` : ""}Áp dụng từ{" "}
+            {displayDate(effectiveFrom)}
+          </Typography>
+          <Select
+            variant="standard"
             value={config.mode}
+            inputProps={{ "aria-label": "Loại lịch" }}
+            sx={selectStyle}
+            renderValue={(v) =>
+              `Loại lịch: ${v === "FIXED" ? "Cố định" : "Linh động"}`
+            }
             onChange={(e) =>
               update({
                 mode: e.target.value as ScheduleConfig["mode"],
@@ -198,13 +256,16 @@ function ScheduleEditor({
           >
             <MenuItem value="FIXED">Lịch cố định</MenuItem>
             <MenuItem value="FLEXIBLE">Lịch linh động</MenuItem>
-          </TextField>
+          </Select>
           {config.mode === "FIXED" && (
-            <TextField
-              size="small"
-              select
-              label="Chu kỳ"
+            <Select
+              variant="standard"
               value={config.cycle}
+              inputProps={{ "aria-label": "Chu kỳ" }}
+              sx={selectStyle}
+              renderValue={(v) =>
+                `Chu kỳ: ${v === "WEEKLY" ? "Theo tuần" : "Theo tháng"}`
+              }
               onChange={(e) =>
                 update({
                   cycle: e.target.value as ScheduleConfig["cycle"],
@@ -214,52 +275,82 @@ function ScheduleEditor({
             >
               <MenuItem value="WEEKLY">Theo tuần</MenuItem>
               <MenuItem value="MONTHLY">Theo tháng</MenuItem>
-            </TextField>
+            </Select>
           )}
           {config.mode === "FIXED" && config.cycle === "WEEKLY" ? (
-            <ToggleButtonGroup
-              value={config.slots.map((s) => s.day)}
-              onChange={(_, days: number[]) =>
-                update({
-                  slots: days.map(
-                    (day) =>
-                      config.slots.find((s) => s.day === day) ?? {
-                        ...newSlot(),
-                        day,
-                      },
-                  ),
-                })
-              }
-              size="small"
-              aria-label="Chọn ngày trong tuần"
-              sx={{ flexWrap: "wrap" }}
-            >
-              {weekdays.map((d, i) => (
-                <ToggleButton
-                  key={d}
-                  value={i + 1}
-                  aria-label={i === 6 ? "Chủ nhật" : `Thứ ${i + 2}`}
-                >
-                  {d}
-                </ToggleButton>
-              ))}
-            </ToggleButtonGroup>
+            <>
+              <ToggleButtonGroup
+                value={config.slots.map((s) => s.day)}
+                onChange={(_, days: number[]) =>
+                  update({
+                    slots: days.map(
+                      (day) =>
+                        config.slots.find((s) => s.day === day) ?? {
+                          ...newSlot(),
+                          day,
+                        },
+                    ),
+                  })
+                }
+                size="small"
+                aria-label="Chọn ngày trong tuần"
+                sx={{
+                  flexWrap: "wrap",
+                  gap: 1,
+                  "& .MuiToggleButtonGroup-grouped": {
+                    border: 0,
+                    m: 0,
+                    borderRadius: "12px",
+                    minWidth: 49,
+                    minHeight: 40,
+                    bgcolor: rewardTint,
+                    color: "primary.main",
+                    "&.Mui-selected": {
+                      bgcolor: "primary.main",
+                      color: "primary.contrastText",
+                    },
+                  },
+                }}
+              >
+                {weekdays.map((d, i) => (
+                  <ToggleButton
+                    key={d}
+                    value={i + 1}
+                    aria-label={i === 6 ? "Chủ nhật" : `Thứ ${i + 2}`}
+                  >
+                    {d}
+                  </ToggleButton>
+                ))}
+              </ToggleButtonGroup>
+              <Typography variant="caption" color="text.secondary">
+                Đã chọn:{" "}
+                {config.slots.length
+                  ? [...config.slots]
+                      .sort((a, b) => (a.day ?? 0) - (b.day ?? 0))
+                      .map(slotLabel)
+                      .join(", ")
+                  : "Chưa chọn ngày học"}
+              </Typography>
+            </>
           ) : (
-            <Stack spacing={1}>
+            <Stack spacing={2}>
               {config.mode === "FLEXIBLE" && (
                 <Typography variant="body2">
-                  Thêm từng ngày cụ thể, không tự lặp lại.
+                  Thêm từng ngày học cụ thể, không tự lặp theo tuần/tháng.
                 </Typography>
               )}
               {config.slots.map((s, i) => (
                 <Stack
                   key={i}
-                  direction={{ xs: "column", sm: "row" }}
-                  spacing={1}
-                  sx={{ alignItems: "center" }}
+                  direction="row"
+                  spacing={1.5}
+                  sx={{
+                    alignItems: "flex-start",
+                    flexWrap: "wrap",
+                    rowGap: 1.5,
+                  }}
                 >
                   <TextField
-                    fullWidth
                     size="small"
                     type={config.mode === "FIXED" ? "number" : "date"}
                     label={
@@ -283,85 +374,209 @@ function ScheduleEditor({
                           ? { min: 1, max: 31, step: 1 }
                           : { min: effectiveFrom },
                     }}
+                    sx={{
+                      width:
+                        config.mode === "FIXED"
+                          ? 180
+                          : { xs: "calc(100% - 60px)", sm: 240 },
+                      "& .MuiInputBase-root": { height: 56 },
+                    }}
                   />
+                  {config.mode === "FLEXIBLE" &&
+                    config.timeMode !== "FLEXIBLE" && (
+                      <Box
+                        sx={{
+                          flex: { xs: "1 1 100%", sm: "1 1 240px" },
+                          order: { xs: 2, sm: 0 },
+                        }}
+                      >
+                        {times(
+                          config.timeMode === "SHARED"
+                            ? config.startTime
+                            : s.startTime,
+                          config.timeMode === "SHARED"
+                            ? config.endTime
+                            : s.endTime,
+                          config.timeMode === "SHARED"
+                            ? update
+                            : (p) => changeSlot(i, p),
+                          "Giờ học",
+                        )}
+                      </Box>
+                    )}
                   <IconAction
                     label={`Xoá ngày ${i + 1}`}
-                    icon={<DeleteOutlined />}
+                    icon={<RewardIcon name="trash" />}
                     onClick={() =>
                       update({ slots: config.slots.filter((_, n) => n !== i) })
                     }
                   />
                 </Stack>
               ))}
-              <Box>
-                <IconAction
-                  label="Thêm ngày học"
-                  icon={<Add />}
-                  onClick={() =>
-                    update({ slots: [...config.slots, newSlot()] })
-                  }
-                />
-              </Box>
+              <Button
+                sx={{ ...rewardButton, alignSelf: "flex-start" }}
+                aria-label="Thêm ngày học"
+                startIcon={<Add />}
+                onClick={() => update({ slots: [...config.slots, newSlot()] })}
+              >
+                {config.mode === "FIXED" ? "Thêm ngày" : "Thêm buổi học"}
+              </Button>
               {config.cycle === "MONTHLY" && config.mode === "FIXED" && (
-                <Typography variant="caption">
-                  Ngày 29–31 được bỏ qua trong tháng không có ngày đó.
+                <Typography variant="caption" color="text.secondary">
+                  Ngày hợp lệ 1–31, không trùng. Tháng không có ngày đã chọn thì
+                  bỏ buổi đó; không tự chuyển sang ngày khác.
                 </Typography>
               )}
             </Stack>
           )}
-          <TextField
-            size="small"
-            select
-            label="Giờ học"
-            value={config.timeMode}
-            onChange={(e) =>
-              update({
-                timeMode: e.target.value as ScheduleConfig["timeMode"],
-                startTime: config.startTime ?? "17:00",
-                endTime: config.endTime ?? "18:30",
-              })
-            }
+          <Stack
+            role="radiogroup"
+            aria-label="Giờ học"
+            spacing={1}
+            sx={{ alignItems: "flex-start" }}
           >
-            <MenuItem value="SHARED">Áp dụng toàn bộ ngày</MenuItem>
-            <MenuItem value="PER_DAY">Áp dụng từng ngày</MenuItem>
-            <MenuItem value="FLEXIBLE">Giờ linh động · thông báo sau</MenuItem>
-          </TextField>
-          {config.timeMode === "SHARED" &&
+            {(
+              [
+                ["SHARED", "Giờ áp dụng toàn bộ"],
+                ["PER_DAY", "Giờ áp dụng từng ngày"],
+                ["FLEXIBLE", "Giờ flexible"],
+              ] as const
+            ).map(([value, label]) => (
+              <Button
+                key={value}
+                role="radio"
+                aria-checked={config.timeMode === value}
+                sx={{
+                  ...rewardButton,
+                  ...(config.timeMode === value
+                    ? {
+                        bgcolor: "primary.main",
+                        color: "primary.contrastText",
+                        "&:hover": { bgcolor: "primary.dark" },
+                      }
+                    : {}),
+                }}
+                onClick={() =>
+                  update({
+                    timeMode: value,
+                    startTime: config.startTime ?? "17:00",
+                    endTime: config.endTime ?? "18:30",
+                  })
+                }
+              >
+                <Box component="span" aria-hidden sx={{ mr: 0.75 }}>
+                  {config.timeMode === value ? "●" : "○"}
+                </Box>
+                {label}
+              </Button>
+            ))}
+          </Stack>
+          {config.mode === "FIXED" &&
+            config.timeMode === "SHARED" &&
             times(config.startTime, config.endTime, update)}
-          {config.timeMode === "PER_DAY" &&
+          {config.mode === "FIXED" &&
+            config.timeMode === "PER_DAY" &&
             config.slots.map((s, i) => (
-              <Stack key={i} spacing={1}>
-                <Typography variant="body2">
-                  {config.mode === "FLEXIBLE"
-                    ? displayDate(s.date ?? effectiveFrom)
-                    : config.cycle === "WEEKLY"
-                      ? weekdays[(s.day ?? 1) - 1]
-                      : `Ngày ${s.day}`}
-                </Typography>
-                {times(s.startTime, s.endTime, (p) => changeSlot(i, p))}
-              </Stack>
+              <Box key={i}>
+                {times(
+                  s.startTime,
+                  s.endTime,
+                  (p) => changeSlot(i, p),
+                  slotLabel(s),
+                )}
+              </Box>
             ))}
           {config.timeMode === "FLEXIBLE" && (
-            <Alert severity="info">
+            <Typography
+              variant="body2"
+              sx={{ bgcolor: rewardTint, p: 2, borderRadius: "12px" }}
+            >
               Phụ huynh theo dõi thông báo của giảng viên để biết giờ học.
-            </Alert>
+            </Typography>
           )}
           <Typography variant="caption" color="text.secondary">
-            Múi giờ Việt Nam. Có tham gia + đã chốt ngày + không được thưởng = 0
-            điểm ngày; vắng không tạo điểm 0. Không tự tạo giao dịch khi ngày
+            Múi giờ: Việt Nam · Buổi có tham gia nhưng không nhận thưởng được
+            chốt 0. Buổi vắng không tính điểm 0. Không tự tạo giao dịch khi ngày
             học đến.
           </Typography>
+          <Box
+            component="details"
+            sx={{ borderTop: "1px solid", borderColor: "divider", pt: 1.5 }}
+          >
+            <Typography
+              component="summary"
+              variant="body2"
+              sx={{
+                cursor: "pointer",
+                color: "primary.main",
+                fontWeight: 600,
+                minHeight: 32,
+              }}
+            >
+              Ngày áp dụng & kế hoạch buổi học
+            </Typography>
+            <Stack spacing={2} sx={{ pt: 1 }}>
+              <TextField
+                size="small"
+                type="date"
+                label="Áp dụng từ"
+                value={effectiveFrom}
+                onChange={(e) => {
+                  setEffectiveFrom(e.target.value);
+                  setDirty(true);
+                }}
+                slotProps={{
+                  inputLabel: { shrink: true },
+                  htmlInput: { min: vietnamToday() },
+                }}
+                helperText="Giữ lịch và dữ liệu đã chốt; thay đổi từ ngày này trở đi."
+              />
+              <TextField
+                size="small"
+                type="number"
+                label="Tổng buổi kế hoạch ban đầu"
+                value={plannedSessions}
+                disabled={!!data.plannedSessions}
+                onChange={(e) => {
+                  setPlannedSessions(e.target.value);
+                  setDirty(true);
+                }}
+                slotProps={{ htmlInput: { min: 1, max: 10000, step: 1 } }}
+                helperText="Dùng tính cảnh báo vắng học, không phải số Unit. Giữ nguyên sau lần lưu đầu; học bổ sung không tăng mẫu số."
+              />
+              {plannedSessions && (
+                <TextField
+                  size="small"
+                  type="date"
+                  label="Ngày bắt đầu kế hoạch"
+                  value={planStartDate}
+                  disabled={!!data.plannedSessions}
+                  onChange={(e) => {
+                    setPlanStartDate(e.target.value);
+                    setDirty(true);
+                  }}
+                  slotProps={{ inputLabel: { shrink: true } }}
+                />
+              )}
+            </Stack>
+          </Box>
           {validation && <Alert severity="warning">{validation}</Alert>}
           <Feedback error={error} />
         </Stack>
       </DialogContent>
       <DialogActions>
-        <Button size="small" onClick={close} disabled={saving.isLoading}>
+        <Button
+          size="small"
+          sx={rewardButton}
+          onClick={close}
+          disabled={saving.isLoading}
+        >
           Đóng
         </Button>
         <Button
           size="small"
           variant="contained"
+          sx={{ minHeight: 40, borderRadius: "12px", px: 2 }}
           disabled={!!validation || !effectiveFrom || saving.isLoading}
           onClick={() => void submit()}
         >
@@ -371,11 +586,14 @@ function ScheduleEditor({
     </Dialog>
   );
 }
+
 export function StudySchedulePanel({
   classId,
+  className,
   onSaved,
 }: {
   classId: string;
+  className?: string;
   onSaved?: () => void;
 }) {
   const permissions = useClassCapabilities(classId),
@@ -388,13 +606,13 @@ export function StudySchedulePanel({
   const data = query.currentData;
   return (
     <>
-      <Paper sx={{ p: 2.5, borderRadius: 3 }}>
+      <Paper sx={rewardSurface}>
         <Stack spacing={1.5}>
           <Stack
             direction="row"
             sx={{ alignItems: "center", justifyContent: "space-between" }}
           >
-            <Typography variant="h6">
+            <Typography variant="h6" sx={{ fontSize: 18 }}>
               Lịch học{data ? ` · ${scheduleLabel(data.configuration)}` : ""}
             </Typography>
             {editable && (
@@ -434,7 +652,7 @@ export function StudySchedulePanel({
                     gap: 1,
                   }}
                 >
-                  {data.occurrences.slice(0, 6).map((o) => (
+                  {data.occurrences.slice(0, 1).map((o) => (
                     <Typography key={o.date} variant="body2">
                       {displayDate(o.date)} ·{" "}
                       {o.startTime && o.endTime
@@ -444,9 +662,13 @@ export function StudySchedulePanel({
                   ))}
                 </Box>
               )}
-              {data.occurrences.length > 6 && (
-                <Button size="small" onClick={() => setViewing(true)}>
-                  Xem lịch đầy đủ
+              {data.occurrences.length > 0 && (
+                <Button
+                  size="small"
+                  sx={{ ...rewardButton, alignSelf: "flex-start" }}
+                  onClick={() => setViewing(true)}
+                >
+                  Xem lịch học
                 </Button>
               )}
               {data.configuration.timeMode === "FLEXIBLE" && (
@@ -461,6 +683,7 @@ export function StudySchedulePanel({
       {open && data && editable && (
         <ScheduleEditor
           classId={classId}
+          className={className}
           data={data}
           onClose={() => setOpen(false)}
           onSaved={() => {
@@ -470,8 +693,18 @@ export function StudySchedulePanel({
         />
       )}
       {viewing && data && (
-        <Dialog open onClose={() => setViewing(false)} fullWidth maxWidth="sm">
-          <DialogTitle>Lịch học của lớp</DialogTitle>
+        <Dialog
+          open
+          onClose={() => setViewing(false)}
+          fullWidth
+          maxWidth={false}
+          slotProps={{ paper: { sx: rewardDialog(760) } }}
+        >
+          <DialogTitle>
+            <Typography component="span" sx={{ fontSize: 24, fontWeight: 700 }}>
+              Lịch học của lớp
+            </Typography>
+          </DialogTitle>
           <DialogContent>
             <Stack spacing={1}>
               {data.occurrences.length ? (
@@ -489,7 +722,11 @@ export function StudySchedulePanel({
             </Stack>
           </DialogContent>
           <DialogActions>
-            <Button size="small" onClick={() => setViewing(false)}>
+            <Button
+              size="small"
+              sx={rewardButton}
+              onClick={() => setViewing(false)}
+            >
               Đóng
             </Button>
           </DialogActions>

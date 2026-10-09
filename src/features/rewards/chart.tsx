@@ -1,7 +1,7 @@
 "use client";
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import Box from "@mui/material/Box";
-import Chip from "@mui/material/Chip";
+import ButtonBase from "@mui/material/ButtonBase";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import {
@@ -20,7 +20,13 @@ import {
   type RewardPoint,
 } from "./models";
 const series = ["earned", "penalty", "net", "balance"] as const;
-export default function RewardChart({ points }: { points: RewardPoint[] }) {
+export default function RewardChart({
+  points,
+  filters,
+}: {
+  points: RewardPoint[];
+  filters?: ReactNode;
+}) {
   const [hidden, setHidden] = useState<string[]>([]);
   const data = points.map((p) => ({
     ...p,
@@ -29,10 +35,34 @@ export default function RewardChart({ points }: { points: RewardPoint[] }) {
   const hasPoints = data.some((p) => p.earned !== null);
   return (
     <Stack spacing={2}>
-      <Typography variant="h6">Hành trình tích luỹ</Typography>
+      <Typography variant="h6" sx={{ fontSize: 18 }}>
+        Hành trình tích luỹ
+      </Typography>
+      {filters && (
+        <Box component="details">
+          <Typography
+            component="summary"
+            variant="caption"
+            sx={{ cursor: "pointer", color: "text.secondary", minHeight: 32 }}
+          >
+            Khoảng ngày hiển thị
+          </Typography>
+          <Box sx={{ pt: 1 }}>{filters}</Box>
+        </Box>
+      )}
+      <Typography variant="caption" color="text.secondary">
+        Điểm
+      </Typography>
       {hasPoints ? (
         <Box
-          sx={{ height: { xs: 260, md: 320 }, width: "100%", minWidth: 0 }}
+          sx={{
+            height: { xs: 260, md: 320 },
+            width: "100%",
+            minWidth: 0,
+            bgcolor: "background.default",
+            borderRadius: "12px",
+            p: 1,
+          }}
           aria-label="Biểu đồ điểm cộng dồn theo ngày"
         >
           <ResponsiveContainer width="100%" height="100%">
@@ -40,7 +70,7 @@ export default function RewardChart({ points }: { points: RewardPoint[] }) {
               data={data}
               margin={{ left: 0, right: 18, top: 10, bottom: 8 }}
             >
-              <CartesianGrid strokeDasharray="3 3" vertical={false} />
+              <CartesianGrid stroke="var(--reward-grid)" vertical={false} />
               <XAxis
                 dataKey="time"
                 type="number"
@@ -52,13 +82,28 @@ export default function RewardChart({ points }: { points: RewardPoint[] }) {
                 scale="time"
                 tickFormatter={(v) => String(new Date(Number(v)).getUTCDate())}
                 minTickGap={20}
+                axisLine={false}
+                tickLine={false}
+                tick={{ fontSize: 12, fill: "var(--reward-muted)" }}
+                label={{
+                  value: "Ngày",
+                  position: "insideBottomRight",
+                  offset: -4,
+                  fontSize: 12,
+                  fill: "var(--reward-muted)",
+                }}
               />
-              <YAxis width={44} allowDecimals={false} />
+              <YAxis
+                width={40}
+                allowDecimals={false}
+                axisLine={false}
+                tickLine={false}
+                tick={{ fontSize: 12, fill: "var(--reward-muted)" }}
+              />
               <Tooltip
                 content={({ active, payload }) => {
                   const p = payload?.[0]?.payload as
-                    | (RewardPoint & { time: number })
-                    | undefined;
+                    (RewardPoint & { time: number }) | undefined;
                   return active && p ? (
                     <Box
                       sx={{
@@ -66,7 +111,7 @@ export default function RewardChart({ points }: { points: RewardPoint[] }) {
                         border: 1,
                         borderColor: "divider",
                         p: 1.5,
-                        borderRadius: 2,
+                        borderRadius: "12px",
                       }}
                     >
                       <Typography sx={{ fontWeight: 700 }}>
@@ -111,25 +156,48 @@ export default function RewardChart({ points }: { points: RewardPoint[] }) {
           trên biểu đồ.
         </Typography>
       )}
-      <Stack direction="row" useFlexGap spacing={1} sx={{ flexWrap: "wrap" }}>
+      <Stack spacing={0.5} sx={{ alignItems: "flex-start" }}>
         {series.map((s) => (
-          <Chip
+          <ButtonBase
             key={s}
-            label={rewardLabels[s]}
-            component="button"
-            clickable
+            aria-label={rewardLabels[s]}
             aria-pressed={!hidden.includes(s)}
-            variant={hidden.includes(s) ? "outlined" : "filled"}
             onClick={() =>
               setHidden((v) =>
                 v.includes(s) ? v.filter((k) => k !== s) : [...v, s],
               )
             }
             sx={{
-              borderColor: rewardColors[s],
-              color: hidden.includes(s) ? "text.secondary" : rewardColors[s],
+              minHeight: 44,
+              borderRadius: "4px",
+              gap: 1,
+              textAlign: "left",
+              color: "text.secondary",
+              opacity: hidden.includes(s) ? 0.4 : 1,
+              "&:focus-visible": {
+                outline: "2px solid",
+                outlineColor: "primary.main",
+              },
             }}
-          />
+          >
+            <Box
+              aria-hidden
+              sx={{
+                width: 20,
+                borderTop: `3px ${s === "net" ? "dashed" : "solid"} ${rewardColors[s]}`,
+              }}
+            />
+            <Typography variant="caption">
+              {rewardLabels[s]} —{" "}
+              {s === "earned"
+                ? "tổng điểm thưởng"
+                : s === "penalty"
+                  ? "tổng điểm bị trừ"
+                  : s === "net"
+                    ? "đã nhận − vi phạm"
+                    : "đã nhận − vi phạm − đã dùng"}
+            </Typography>
+          </ButtonBase>
         ))}
       </Stack>
       <Typography variant="caption" color="text.secondary">

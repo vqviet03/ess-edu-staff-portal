@@ -11,7 +11,6 @@ import DialogContent from "@mui/material/DialogContent";
 import DialogTitle from "@mui/material/DialogTitle";
 import LinearProgress from "@mui/material/LinearProgress";
 import MenuItem from "@mui/material/MenuItem";
-import Rating from "@mui/material/Rating";
 import Snackbar from "@mui/material/Snackbar";
 import Stack from "@mui/material/Stack";
 import Table from "@mui/material/Table";
@@ -23,9 +22,7 @@ import TableRow from "@mui/material/TableRow";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import EmojiEvents from "@mui/icons-material/EmojiEvents";
-import Save from "@mui/icons-material/Save";
-import EditNote from "@mui/icons-material/EditNote";
-import PersonSearch from "@mui/icons-material/PersonSearch";
+import Close from "@mui/icons-material/Close";
 import Refresh from "@mui/icons-material/Refresh";
 import DoneAll from "@mui/icons-material/DoneAll";
 import {
@@ -34,7 +31,12 @@ import {
   useSaveRewardAttendanceMutation,
 } from "@/api/rewards-api";
 import { Feedback } from "@/shared/ui";
-import { IconAction } from "@/shared/icon-action";
+import {
+  RewardIconAction as IconAction,
+  RewardIcon,
+  TrophyRating,
+} from "./controls";
+import { rewardButton, rewardDialog, rewardTint } from "./design";
 import { useUnsaved } from "@/shared/unsaved";
 import {
   attendanceLabels,
@@ -121,57 +123,94 @@ function AwardDialog({
   };
   return (
     <>
-      <Dialog open onClose={close} fullWidth maxWidth="lg">
+      <Dialog
+        open
+        onClose={close}
+        fullWidth
+        maxWidth={false}
+        slotProps={{ paper: { sx: rewardDialog(1180) } }}
+      >
         <DialogTitle>
           <Stack
             direction="row"
             sx={{ alignItems: "center", justifyContent: "space-between" }}
           >
-            <Typography component="span" variant="h5">
+            <Typography component="span" variant="h5" sx={{ fontSize: 24 }}>
               {editable ? "Cộng điểm động viên" : "Điểm động viên của lớp"}
             </Typography>
-            <IconAction
-              label="Làm mới điểm"
-              icon={<Refresh />}
-              onClick={() => void query.refetch()}
-              disabled={busy}
-            />
+            <Stack direction="row" spacing={1}>
+              <IconAction
+                label="Làm mới điểm"
+                icon={<Refresh />}
+                onClick={() => void query.refetch()}
+                disabled={busy}
+              />
+              <IconAction
+                label="Đóng điểm động viên"
+                icon={<Close fontSize="small" />}
+                onClick={close}
+                disabled={busy}
+              />
+            </Stack>
           </Stack>
         </DialogTitle>
         <DialogContent>
           <Stack spacing={2}>
-            <Typography color="text.secondary">
-              {name} · {displayDate(date)}
-            </Typography>
-            <TextField
-              size="small"
-              label="Ngày học"
-              type="date"
-              value={date}
-              onChange={(e) => {
-                if (!dirty || window.confirm("Bỏ các ô cúp chưa lưu?")) {
-                  setValues({});
-                  setDate(e.target.value);
-                }
+            <Stack
+              direction={{ xs: "column", sm: "row" }}
+              spacing={1.5}
+              sx={{
+                alignItems: { sm: "center" },
+                justifyContent: "space-between",
               }}
-              slotProps={{
-                inputLabel: { shrink: true },
-                htmlInput: { max: vietnamToday() },
+            >
+              <Typography variant="body2" color="text.secondary">
+                {name} · {date === vietnamToday() ? "Hôm nay, " : ""}
+                {displayDate(date)}
+              </Typography>
+              <TextField
+                size="small"
+                label="Ngày học"
+                type="date"
+                value={date}
+                onChange={(e) => {
+                  if (!dirty || window.confirm("Bỏ các ô cúp chưa lưu?")) {
+                    setValues({});
+                    setDate(e.target.value);
+                  }
+                }}
+                slotProps={{
+                  inputLabel: { shrink: true },
+                  htmlInput: { max: vietnamToday() },
+                }}
+                sx={{ maxWidth: 200 }}
+              />
+            </Stack>
+            <Alert
+              severity="success"
+              icon={false}
+              sx={{
+                bgcolor: rewardTint,
+                color: "text.primary",
+                border: "1px solid",
+                borderColor: "divider",
+                p: 2,
+                borderRadius: "16px",
+                "& .MuiAlert-message": { p: 0 },
               }}
-              sx={{ maxWidth: 240 }}
-            />
-            <Alert severity="info" icon={false}>
+            >
               <Typography sx={{ fontWeight: 700 }}>
                 {query.currentData?.closed
                   ? "Ngày học đã chốt"
                   : date === vietnamToday()
-                    ? "Điểm thưởng hôm nay bắt đầu từ 0"
+                    ? (query.currentData?.highestToday ?? 0) === 0
+                      ? "Ngày mới · Tất cả điểm hôm nay bắt đầu từ 0"
+                      : "Điểm động viên hôm nay"
                     : "Điểm thưởng của ngày đang xem"}
               </Typography>
               <Typography variant="body2">
-                Thanh trong ngày = điểm thưởng của bạn / điểm thưởng cao nhất
-                của bạn có tham gia trong lớp. Không phải điểm học tập hay tỷ lệ
-                hoàn thành khoá học.
+                Thanh hôm nay so với bạn nhận nhiều điểm nhất lớp trong ngày.
+                Không phải điểm số học tập hay tiến độ khoá học.
               </Typography>
             </Alert>
             <Feedback
@@ -186,58 +225,87 @@ function AwardDialog({
                 <Table
                   size="small"
                   sx={{
-                    minWidth: { xs: 0, md: editable ? 830 : 580 },
+                    minWidth: { xs: 0, md: editable ? 990 : 680 },
                     "& thead": {
                       display: { xs: "none", md: "table-header-group" },
                     },
+                    "& th": {
+                      bgcolor: "transparent",
+                      fontSize: 13,
+                      border: 0,
+                      px: 1.5,
+                      py: 1,
+                      color: "text.secondary",
+                    },
                     "& tbody": {
                       display: { xs: "grid", md: "table-row-group" },
-                      gap: 2,
+                      gap: 3,
                     },
                     "& tbody tr": {
                       display: { xs: "grid", md: "table-row" },
-                      gridTemplateColumns: "1fr 1fr",
+                      gridTemplateColumns: "1fr",
                       border: { xs: "1px solid", md: 0 },
-                      borderColor: "divider",
-                      borderRadius: 2,
-                      p: { xs: 1, md: 0 },
+                      borderColor: { xs: "divider", md: "divider" },
+                      borderRadius: "16px",
+                      p: { xs: 2, md: 0 },
+                      gap: 1,
                     },
                     "& tbody td": {
                       minWidth: { xs: "0 !important" },
-                      borderBottom: { xs: 0 },
-                      p: { xs: 1, md: 2 },
+                      border: 0,
+                      p: { xs: 0, md: 1.5 },
                     },
                     "& tbody td:first-of-type": { gridColumn: "1 / -1" },
-                    "& tbody td:last-of-type": { gridColumn: "1 / -1" },
-                    "& tbody td:nth-of-type(4)": { gridColumn: "1 / -1" },
+                    "& tbody td:nth-of-type(2)": {
+                      display: { xs: "none", md: "table-cell" },
+                    },
+                    "& tbody td:nth-of-type(3)": { gridColumn: "1 / -1" },
                   }}
                 >
                   <TableHead>
                     <TableRow>
                       <TableCell>Học sinh (biệt danh)</TableCell>
                       <TableCell>Đã nhận / Còn dùng</TableCell>
-                      <TableCell>Trong ngày</TableCell>
+                      <TableCell>Hôm nay</TableCell>
                       {editable && (
                         <>
                           <TableCell>Điểm lần này</TableCell>
-                          <TableCell>Thao tác</TableCell>
                         </>
                       )}
+                      <TableCell>Thao tác</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
                     {query.currentData.items.map((row) => (
                       <TableRow key={row.studentId}>
                         <TableCell sx={{ py: 2, minWidth: 200 }}>
-                          <Typography sx={{ fontWeight: 700 }}>
+                          <Typography sx={{ fontWeight: 700, fontSize: 15 }}>
                             {row.name}
                             {row.nickname ? ` (${row.nickname})` : ""}
+                          </Typography>
+                          <Typography
+                            sx={{
+                              display: { xs: "block", md: "none" },
+                              fontWeight: 700,
+                              fontSize: 15,
+                              color: "#69ab85",
+                              mt: 0.5,
+                            }}
+                          >
+                            {row.totals.earned} đã nhận ·{" "}
+                            <Box
+                              component="span"
+                              sx={{ color: "#a18aca", fontSize: 12 }}
+                            >
+                              {row.totals.balance} còn dùng
+                            </Box>
                           </Typography>
                           {editable ? (
                             <TextField
                               size="small"
                               select
                               label="Tham gia"
+                              variant="standard"
                               value={row.attendance}
                               disabled={busy}
                               onChange={(e) => {
@@ -254,7 +322,19 @@ function AwardDialog({
                                   { studentId: row.studentId, status },
                                 ]);
                               }}
-                              sx={{ mt: 1, minWidth: 180 }}
+                              sx={{
+                                mt: 0.5,
+                                minWidth: 120,
+                                width: "auto",
+                                "& .MuiInputLabel-root": { display: "none" },
+                                "& .MuiInput-root": {
+                                  mt: "0 !important",
+                                  fontSize: 12,
+                                  color: "text.secondary",
+                                  "&:before, &:after": { display: "none" },
+                                },
+                                "& .MuiSelect-select": { py: 0.5 },
+                              }}
                             >
                               {Object.entries(attendanceLabels).map(
                                 ([value, label]) => (
@@ -275,11 +355,15 @@ function AwardDialog({
                         </TableCell>
                         <TableCell>
                           <Typography
-                            sx={{ color: "#69ab85", fontWeight: 700 }}
+                            sx={{
+                              color: "#69ab85",
+                              fontWeight: 700,
+                              fontSize: 16,
+                            }}
                           >
                             {row.totals.earned} đã nhận
                           </Typography>
-                          <Typography sx={{ color: "#a18aca" }}>
+                          <Typography sx={{ color: "#a18aca", fontSize: 12 }}>
                             {row.totals.balance} còn dùng
                           </Typography>
                         </TableCell>
@@ -287,7 +371,7 @@ function AwardDialog({
                           <Typography variant="body2">
                             {row.attendance === "ABSENT"
                               ? attendanceLabels.ABSENT
-                              : `${row.today.earned} điểm · ${row.todayProgress.toFixed(1)}%`}
+                              : `${row.today.earned} điểm hôm nay`}
                           </Typography>
                           <LinearProgress
                             variant="determinate"
@@ -296,13 +380,22 @@ function AwardDialog({
                                 ? 0
                                 : row.todayProgress
                             }
-                            sx={{ mt: 1, height: 6, borderRadius: 3 }}
+                            sx={{
+                              mt: 1,
+                              height: 8,
+                              borderRadius: "4px",
+                              bgcolor: "divider",
+                              "& .MuiLinearProgress-bar": {
+                                bgcolor: "#69ab85",
+                                borderRadius: "4px",
+                              },
+                            }}
                           />
                         </TableCell>
                         {editable && (
                           <>
                             <TableCell>
-                              <Rating
+                              <TrophyRating
                                 name={`Cúp của ${row.nickname || row.name}`}
                                 value={values[row.studentId] ?? 0}
                                 max={5}
@@ -318,21 +411,13 @@ function AwardDialog({
                                     [row.studentId]: v ?? 0,
                                   }))
                                 }
-                                icon={<EmojiEvents fontSize="inherit" />}
-                                emptyIcon={<EmojiEvents fontSize="inherit" />}
-                                sx={{
-                                  fontSize: 28,
-                                  "& .MuiRating-iconEmpty": {
-                                    color: "#c3a45a55",
-                                  },
-                                }}
                               />
                             </TableCell>
                             <TableCell>
-                              <Stack direction="row">
+                              <Stack direction="row" spacing={1}>
                                 <IconAction
                                   label="Lưu nhanh"
-                                  icon={<Save />}
+                                  icon={<RewardIcon name="save" />}
                                   disabled={
                                     busy ||
                                     !values[row.studentId] ||
@@ -343,7 +428,7 @@ function AwardDialog({
                                 />
                                 <IconAction
                                   label="Lưu kèm ghi chú"
-                                  icon={<EditNote />}
+                                  icon={<RewardIcon name="note" />}
                                   disabled={
                                     busy ||
                                     !values[row.studentId] ||
@@ -354,7 +439,7 @@ function AwardDialog({
                                 />
                                 <IconAction
                                   label="Xem chi tiết tích thưởng"
-                                  icon={<PersonSearch />}
+                                  icon={<RewardIcon name="detail" />}
                                   onClick={() => {
                                     if (
                                       !dirty ||
@@ -376,7 +461,7 @@ function AwardDialog({
                           <TableCell>
                             <IconAction
                               label="Xem chi tiết tích thưởng"
-                              icon={<PersonSearch />}
+                              icon={<RewardIcon name="detail" />}
                               onClick={() =>
                                 router.push(
                                   `/student/?classId=${encodeURIComponent(classId)}&studentId=${encodeURIComponent(row.studentId)}&tab=rewards`,
@@ -403,6 +488,14 @@ function AwardDialog({
           </Stack>
         </DialogContent>
         <DialogActions>
+          <Button
+            size="small"
+            sx={rewardButton}
+            onClick={close}
+            disabled={busy}
+          >
+            Đóng
+          </Button>
           {editable && (
             <Button
               size="small"
@@ -413,16 +506,14 @@ function AwardDialog({
               Chốt ngày
             </Button>
           )}
-          <Button size="small" onClick={close} disabled={busy}>
-            Đóng
-          </Button>
         </DialogActions>
       </Dialog>
       {noteRow && (
         <NoteDialog
           classId={classId}
           studentId={noteRow.studentId}
-          name={noteRow.nickname || noteRow.name}
+          name={`${noteRow.name}${noteRow.nickname ? ` (${noteRow.nickname})` : ""}`}
+          className={name}
           kind="EARN"
           initialAmount={values[noteRow.studentId] ?? 1}
           onClose={() => setNoteRow(null)}
@@ -466,6 +557,7 @@ export function ClassRewardActions({
       </Stack>
       <StudySchedulePanel
         classId={classId}
+        className={name}
         onSaved={() => setMessage("Đã lưu lịch học.")}
       />
       {open && (

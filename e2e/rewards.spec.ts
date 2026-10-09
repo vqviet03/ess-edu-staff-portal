@@ -29,7 +29,9 @@ async function rewardsFixture(page: Page) {
       endTime: null,
       slots: [],
     },
-    schedules = 0;
+    schedules = 0,
+    plannedSessions = 0,
+    planStartDate: string | null = null;
   const writes: string[] = [];
   await page.route("**/v1/**", async (route) => {
     const request = route.request(),
@@ -72,9 +74,13 @@ async function rewardsFixture(page: Page) {
         version++;
         config = body!.configuration as ScheduleConfig;
         schedules++;
+        plannedSessions = Number(body!.plannedSessions ?? plannedSessions);
+        planStartDate = String(body!.planStartDate ?? planStartDate ?? today);
       }
       return reply({
         classId: "class-green",
+        plannedSessions,
+        planStartDate,
         version,
         effectiveFrom: today,
         configuration: config,
@@ -172,6 +178,7 @@ async function rewardsFixture(page: Page) {
     entries,
     writes,
     schedules: () => schedules,
+    plannedSessions: () => plannedSessions,
     configuration: () => config,
   };
 }
@@ -188,7 +195,9 @@ test("teacher awards trophies, saves note, opens reward detail and does not poll
   const f = await rewardsFixture(page);
   await login(page);
   await page.goto(`${base}/class/?classId=class-green`);
-  await expect(page.getByRole("button", { name: "Thiết lập lịch học", exact: true })).toHaveCount(0);
+  await expect(
+    page.getByRole("button", { name: "Thiết lập lịch học", exact: true }),
+  ).toHaveCount(0);
   await page
     .getByRole("button", { name: "Cộng điểm động viên", exact: true })
     .click();
@@ -196,8 +205,27 @@ test("teacher awards trophies, saves note, opens reward detail and does not poll
     row = dialog.getByRole("row").filter({ hasText: "Hữu Văn" });
   await row
     .locator("label")
-    .filter({ hasText: /^3 cúp$/ })
+    .filter({ hasText: /3 cúp$/ })
     .click();
+  await dialog.screenshot({
+    path: "/workspace/ess-review-images/rewards-award-desktop.png",
+  });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect(
+    row.getByRole("button", { name: "Lưu nhanh", exact: true }),
+  ).toBeVisible();
+  expect(await dialog.evaluate((e) => e.scrollWidth <= e.clientWidth + 1)).toBe(
+    true,
+  );
+  await dialog.screenshot({
+    path: "/workspace/ess-review-images/rewards-award-mobile.png",
+  });
+  await page.emulateMedia({ colorScheme: "dark" });
+  await dialog.screenshot({
+    path: "/workspace/ess-review-images/rewards-award-mobile-dark.png",
+  });
+  await page.emulateMedia({ colorScheme: "light" });
+  await page.setViewportSize({ width: 1280, height: 1000 });
   await row.getByRole("button", { name: "Lưu nhanh", exact: true }).click();
   await expect.poll(() => f.entries.length).toBe(1);
   expect(f.entries[0].note).toBe("Bon vừa đạt được thành tích mới");
@@ -208,7 +236,7 @@ test("teacher awards trophies, saves note, opens reward detail and does not poll
   ).toBeDisabled();
   await row
     .locator("label")
-    .filter({ hasText: /^2 cúp$/ })
+    .filter({ hasText: /2 cúp$/ })
     .click();
   await row
     .getByRole("button", { name: "Lưu kèm ghi chú", exact: true })
@@ -217,7 +245,7 @@ test("teacher awards trophies, saves note, opens reward detail and does not poll
     .getByRole("dialog")
     .filter({ has: page.getByText("Ghi nhận thành tích", { exact: true }) });
   await note.getByLabel("Ghi chú thành tích").fill("Chủ động hỗ trợ bạn");
-  await note.getByRole("button", { name: "Lưu", exact: true }).click();
+  await note.getByRole("button", { name: "Lưu +2 điểm", exact: true }).click();
   await expect.poll(() => f.entries.length).toBe(2);
   await row
     .getByRole("button", { name: "Xem chi tiết tích thưởng", exact: true })
@@ -240,6 +268,7 @@ test("manager saves weekly/monthly/flexible schedule; mobile reward cards fit", 
   page,
 }) => {
   const f = await rewardsFixture(page);
+  await page.setViewportSize({ width: 1280, height: 1100 });
   await login(page, "MG0001");
   await page.goto(`${base}/class/?classId=class-green`);
   await page
@@ -250,16 +279,43 @@ test("manager saves weekly/monthly/flexible schedule; mobile reward cards fit", 
   await page.getByRole("option", { name: "Lịch cố định", exact: true }).click();
   await dialog.getByRole("button", { name: "Thứ 2", exact: true }).click();
   await dialog.getByRole("button", { name: "Thứ 6", exact: true }).click();
-  await dialog.getByLabel("Giờ học", { exact: true }).click();
-  await page
-    .getByRole("option", { name: "Áp dụng toàn bộ ngày", exact: true })
+  await dialog
+    .getByRole("radio", { name: "Giờ áp dụng toàn bộ", exact: true })
+    .click();
+  await dialog
+    .getByText("Ngày áp dụng & kế hoạch buổi học", { exact: true })
+    .click();
+  await dialog.getByLabel("Tổng buổi kế hoạch ban đầu").fill("12");
+  await dialog.getByLabel("Ngày bắt đầu kế hoạch").fill(vietnamToday());
+  await dialog
+    .getByText("Ngày áp dụng & kế hoạch buổi học", { exact: true })
     .click();
   await dialog.getByLabel("Giờ bắt đầu").fill("17:00");
   await dialog.getByLabel("Giờ kết thúc").fill("18:30");
   await dialog
+    .getByRole("radio", { name: "Giờ áp dụng toàn bộ", exact: true })
+    .focus();
+  await dialog.locator(".MuiDialogContent-root").evaluate((e) => {
+    e.scrollTop = 0;
+  });
+  await dialog.screenshot({
+    path: "/workspace/ess-review-images/schedule-weekly-shared.png",
+  });
+  await dialog
+    .getByRole("radio", { name: "Giờ áp dụng từng ngày", exact: true })
+    .click();
+  await expect(dialog.getByLabel("Giờ bắt đầu")).toHaveCount(2);
+  await dialog.screenshot({
+    path: "/workspace/ess-review-images/schedule-weekly-per-day.png",
+  });
+  await dialog
+    .getByRole("radio", { name: "Giờ áp dụng toàn bộ", exact: true })
+    .click();
+  await dialog
     .getByRole("button", { name: "Lưu lịch học", exact: true })
     .click();
   await expect.poll(() => f.schedules()).toBe(1);
+  expect(f.plannedSessions()).toBe(12);
   await expect(dialog).not.toBeVisible();
   expect(f.configuration().slots.map((s) => s.day)).toEqual([1, 5]);
   await page
@@ -271,12 +327,26 @@ test("manager saves weekly/monthly/flexible schedule; mobile reward cards fit", 
     .getByRole("button", { name: "Thêm ngày học", exact: true })
     .click();
   await dialog.getByLabel("Ngày trong tháng").fill("31");
-  await dialog.getByLabel("Giờ học", { exact: true }).click();
-  await page
-    .getByRole("option", { name: "Áp dụng từng ngày", exact: true })
+  await dialog
+    .getByRole("button", { name: "Thêm ngày học", exact: true })
+    .click();
+  await expect(dialog.getByLabel("Ngày trong tháng")).toHaveCount(2);
+  await dialog.getByRole("button", { name: "Xoá ngày 2", exact: true }).click();
+  await expect(dialog.getByLabel("Ngày trong tháng")).toHaveCount(1);
+  await dialog
+    .getByRole("radio", { name: "Giờ áp dụng từng ngày", exact: true })
     .click();
   await dialog.getByLabel("Giờ bắt đầu").fill("18:00");
   await dialog.getByLabel("Giờ kết thúc").fill("19:30");
+  await dialog
+    .getByRole("radio", { name: "Giờ áp dụng từng ngày", exact: true })
+    .focus();
+  await dialog.locator(".MuiDialogContent-root").evaluate((e) => {
+    e.scrollTop = 0;
+  });
+  await dialog.screenshot({
+    path: "/workspace/ess-review-images/schedule-monthly.png",
+  });
   await dialog
     .getByRole("button", { name: "Lưu lịch học", exact: true })
     .click();
@@ -298,9 +368,8 @@ test("manager saves weekly/monthly/flexible schedule; mobile reward cards fit", 
     .getByRole("button", { name: "Thêm ngày học", exact: true })
     .click();
   await dialog.getByLabel("Ngày học", { exact: true }).fill(vietnamToday());
-  await dialog.getByLabel("Giờ học", { exact: true }).click();
-  await page
-    .getByRole("option", { name: "Giờ linh động · thông báo sau", exact: true })
+  await dialog
+    .getByRole("radio", { name: "Giờ flexible", exact: true })
     .click();
   await dialog
     .getByRole("button", { name: "Lưu lịch học", exact: true })
@@ -329,9 +398,7 @@ test("manager saves weekly/monthly/flexible schedule; mobile reward cards fit", 
     animations: "disabled",
   });
 });
-test("manager edits schedule but only views rewards", async ({
-  page,
-}) => {
+test("manager edits schedule but only views rewards", async ({ page }) => {
   await rewardsFixture(page);
   await login(page, "MG0001");
   await page.goto(`${base}/class/?classId=class-green`);
@@ -344,7 +411,10 @@ test("manager edits schedule but only views rewards", async ({
       .getByRole("button", { name: "Lưu nhanh", exact: true }),
   ).toHaveCount(0);
   await expect(page.getByRole("dialog").getByRole("radio")).toHaveCount(0);
-  await page.getByRole("dialog").getByRole("button", { name: "Đóng", exact: true }).click();
+  await page
+    .getByRole("dialog")
+    .getByRole("button", { name: "Đóng", exact: true })
+    .click();
   await expect(
     page.getByRole("button", { name: "Thiết lập lịch học", exact: true }),
   ).toHaveCount(1);
@@ -367,23 +437,20 @@ test("class activities paginate sequentially without skipping the second page", 
   const f = await rewardsFixture(page),
     student = seed().students["class-green"][0];
   f.entries.push(
-    ...Array.from(
-      { length: 21 },
-      (_, i): RewardEntry => ({
-        id: `entry-${i}`,
-        kind: "EARN",
-        amount: 1,
-        note: `Hoạt động số ${i + 1}`,
-        date: vietnamToday(),
-        createdAt: new Date().toISOString(),
-        authorName: "Vũ Quốc Việt",
-        authorPublicId: "vq.viet",
-        reversesId: null,
-        studentId: student.id,
-        studentName: student.name,
-        nickname: student.nickname ?? "",
-      }),
-    ),
+    ...Array.from({ length: 21 }, (_, i): RewardEntry => ({
+      id: `entry-${i}`,
+      kind: "EARN",
+      amount: 1,
+      note: `Hoạt động số ${i + 1}`,
+      date: vietnamToday(),
+      createdAt: new Date().toISOString(),
+      authorName: "Vũ Quốc Việt",
+      authorPublicId: "vq.viet",
+      reversesId: null,
+      studentId: student.id,
+      studentName: student.name,
+      nickname: student.nickname ?? "",
+    })),
   );
   await login(page);
   await page.goto(

@@ -6,11 +6,12 @@ import Dialog from "@mui/material/Dialog";
 import DialogActions from "@mui/material/DialogActions";
 import DialogContent from "@mui/material/DialogContent";
 import DialogTitle from "@mui/material/DialogTitle";
-import Rating from "@mui/material/Rating";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
-import EmojiEvents from "@mui/icons-material/EmojiEvents";
+import Close from "@mui/icons-material/Close";
+import { RewardIconAction, TrophyRating } from "./controls";
+import { rewardButton, rewardDialog } from "./design";
 import {
   useAddRewardMutation,
   useReverseRewardMutation,
@@ -22,6 +23,7 @@ export function RewardMutationDialog({
   classId,
   studentId,
   name,
+  className,
   kind,
   reverse,
   initialAmount = 1,
@@ -31,6 +33,7 @@ export function RewardMutationDialog({
   classId: string;
   studentId: string;
   name: string;
+  className?: string;
   kind: RewardKind;
   reverse?: RewardEntry;
   initialAmount?: number;
@@ -93,37 +96,57 @@ export function RewardMutationDialog({
     }
   };
   return (
-    <Dialog open onClose={close} fullWidth maxWidth="sm">
+    <Dialog
+      open
+      onClose={close}
+      fullWidth
+      maxWidth={false}
+      slotProps={{ paper: { sx: rewardDialog(560) } }}
+    >
       <DialogTitle>
-        {reverse
-          ? "Điều chỉnh giao dịch"
-          : kind === "EARN"
-            ? "Ghi nhận thành tích"
-            : kind === "PENALTY"
-              ? "Ghi nhận vi phạm"
-              : "Ghi nhận sử dụng điểm"}
+        <Stack
+          direction="row"
+          sx={{ alignItems: "center", justifyContent: "space-between", gap: 1 }}
+        >
+          <Typography component="span" sx={{ fontSize: 24, fontWeight: 700 }}>
+            {reverse
+              ? "Điều chỉnh giao dịch"
+              : kind === "EARN"
+                ? "Ghi nhận thành tích"
+                : kind === "PENALTY"
+                  ? "Ghi nhận vi phạm"
+                  : "Ghi nhận sử dụng điểm"}
+          </Typography>
+          <RewardIconAction
+            label="Đóng ghi nhận điểm"
+            icon={<Close fontSize="small" />}
+            onClick={close}
+            disabled={busy}
+          />
+        </Stack>
       </DialogTitle>
       <DialogContent>
-        <Stack spacing={2} sx={{ pt: 1 }}>
-          <Typography>{name}</Typography>
+        <Stack spacing={2}>
+          <Typography variant="body2" color="text.secondary">
+            {name}
+            {className ? ` · ${className}` : ""}
+            {!reverse ? ` · ${kind === "EARN" ? "+" : "−"}${amount} điểm` : ""}
+          </Typography>
           {reverse ? (
             <Alert severity="warning">
               Đảo {reverse.amount} điểm · {kindLabels[reverse.kind]}. Giữ giao
               dịch gốc và ghi thêm lượt điều chỉnh, không xoá lịch sử.
             </Alert>
           ) : kind === "EARN" ? (
-            <Rating
+            <TrophyRating
               name="Điểm lần này"
               value={amount}
               max={5}
-              icon={<EmojiEvents fontSize="inherit" />}
-              emptyIcon={<EmojiEvents fontSize="inherit" />}
               getLabelText={(v) => `${v} cúp`}
               onChange={(_, v) => {
                 setAmount(v ?? 0);
                 setChanged(true);
               }}
-              sx={{ fontSize: 32 }}
             />
           ) : (
             <TextField
@@ -150,7 +173,7 @@ export function RewardMutationDialog({
               setChanged(true);
             }}
             multiline
-            minRows={3}
+            minRows={1}
             required
             helperText={`${note.length}/2000`}
             error={note.length > 2000}
@@ -160,16 +183,21 @@ export function RewardMutationDialog({
         </Stack>
       </DialogContent>
       <DialogActions>
-        <Button size="small" onClick={close} disabled={busy}>
+        <Button size="small" sx={rewardButton} onClick={close} disabled={busy}>
           Đóng
         </Button>
         <Button
           size="small"
           variant="contained"
+          sx={{ minHeight: 40, px: 2, borderRadius: "12px" }}
           disabled={!valid || busy}
           onClick={() => void save()}
         >
-          {busy ? "Đang lưu…" : "Lưu"}
+          {busy
+            ? "Đang lưu…"
+            : reverse
+              ? "Lưu điều chỉnh"
+              : `Lưu ${kind === "EARN" ? "+" : "−"}${amount} điểm`}
         </Button>
       </DialogActions>
     </Dialog>

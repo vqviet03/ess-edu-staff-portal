@@ -79,3 +79,9 @@ Rollout: merge/deploy backend image mới trước → Cloud Run Jobs `ess-prod-
 SELECT name, applied_at FROM schema_migrations WHERE name='015_class_rewards_schedule.sql';
 ```
 Sau đó merge FE PRs vào dev để Pages deploy. Migration không tạo/sửa điểm cũ và không cần đụng các secrets Cloud Tasks/PubSub đã cấu hình.
+
+## Đối chiếu giao diện Figma
+
+Phần điểm động viên/lịch học dùng frame của file thiết kế trên: popup 3:2497, ghi chú 3:3108, hồ sơ 3:3148, lịch 3:4786/3:4895/3:5124/3:5477 và mobile 3:5725/3:5890. Card metric có nền pastel riêng, bán kính 12px; panel/dialog 16px, tiêu đề 18/24px. Popup dùng cúp emoji và action 44px cùng SVG gốc (lưu tại `public/rewards/`, không gọi Figma khi chạy ứng dụng). Style chỉ áp dụng trong feature rewards.
+
+Lịch có dropdown loại/chu kỳ, các nút chọn thứ và ba lựa chọn giờ hiển thị đồng thời. Ngày hiệu lực và kế hoạch buổi ban đầu nằm trong **Ngày áp dụng & kế hoạch buổi học**; giữ nguyên validation, version và quyền quản lý. Form giờ dùng native time input, định dạng hiển thị theo trình duyệt; API luôn HH:mm. Biểu đồ vẫn là Recharts lazy-load với dữ liệu thật, chú thích tương tác ẩn/hiện và bộ lọc thời gian mở bằng **Khoảng ngày hiển thị**. Không sửa công thức, endpoint, cache/realtime, migration hoặc deployment cho lần chỉnh UI này.

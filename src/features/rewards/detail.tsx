@@ -24,11 +24,12 @@ import {
 } from "@/api/rewards-api";
 import { useClassCapabilities } from "@/features/access/hooks";
 import { Feedback } from "@/shared/ui";
-import { IconAction } from "@/shared/icon-action";
+import { RewardIconAction as IconAction } from "./controls";
 import { confirmLeave } from "@/shared/unsaved";
 import { RewardEntries, RewardOverview } from "./view";
 import { vietnamToday, type RewardKind, type RewardEntry } from "./models";
 import { StudySchedulePanel } from "./schedule";
+import { rewardSurface, rewardTabs } from "./design";
 const MutationDialog = dynamic(() =>
   import("./mutation-dialog").then((m) => m.RewardMutationDialog),
 );
@@ -192,9 +193,11 @@ function ClassRewardDetail({
             ) : undefined
           }
           history={
-            <Paper sx={{ p: 2.5, borderRadius: 3 }}>
+            <Paper sx={rewardSurface}>
               <Stack spacing={2}>
-                <Typography variant="h6">Lịch sử điểm</Typography>
+                <Typography variant="h6" sx={{ fontSize: 18 }}>
+                  Lịch sử điểm
+                </Typography>
                 <Tabs
                   value={kind}
                   onChange={(_, v: RewardKind | "") => {
@@ -203,6 +206,7 @@ function ClassRewardDetail({
                   }}
                   variant="scrollable"
                   aria-label="Loại lịch sử điểm"
+                  sx={rewardTabs}
                 >
                   <Tab label="Tất cả" value="" />
                   <Tab label="Được thưởng" value="EARN" />
@@ -277,9 +281,7 @@ function ClassRewardDetail({
           }
         />
       )}
-      <StudySchedulePanel
-        classId={classId}
-      />
+      <StudySchedulePanel classId={classId} />
       {dialog && (
         <MutationDialog
           classId={classId}
@@ -334,6 +336,7 @@ export function StudentRewards({
             }}
             variant="scrollable"
             aria-label="Lớp tích luỹ điểm"
+            sx={rewardTabs}
           >
             {classes.map((c) => (
               <Tab key={c.id} label={c.name} value={c.id} />
