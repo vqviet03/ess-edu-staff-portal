@@ -1,4 +1,5 @@
 import { defineConfig } from "@playwright/test";
+const port = Number(process.env.PORT ?? 4173);
 const base = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
 export default defineConfig({
   testDir: "./e2e",
@@ -6,10 +7,10 @@ export default defineConfig({
   workers: 1,
   timeout: 45000,
   retries: process.env.CI ? 1 : 0,
-  use: { baseURL: `http://127.0.0.1:4173${base}/`, trace: "retain-on-failure", launchOptions: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH ? {executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH} : {} },
+  use: { baseURL: `http://127.0.0.1:${port}${base}/`, trace: "retain-on-failure", launchOptions: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH ? {executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH} : {} },
   webServer: {
     command: "npm run preview",
-    url: `http://127.0.0.1:4173${base}/login/`,
+    url: `http://127.0.0.1:${port}${base}/login/`,
     reuseExistingServer: !process.env.CI,
     timeout: 15000,
   },

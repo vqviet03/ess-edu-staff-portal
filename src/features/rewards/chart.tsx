@@ -1,19 +1,13 @@
 "use client";
-import { useState, type ReactNode } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import Box from "@mui/material/Box";
-import { ChartViewport } from "@/components/chart-viewport";
+import { NativeChart } from "@/components/native-chart";
+import { chartAxes, chartTooltip, curvedLine } from "@/utils/chart-options";
+import { useTheme } from "@mui/material/styles";
+import type { EChartsOption } from "echarts";
 import ButtonBase from "@mui/material/ButtonBase";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
-import {
-  ResponsiveContainer,
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-} from "recharts";
 import {
   displayDate,
   rewardColors,
@@ -29,11 +23,69 @@ export default function RewardChart({
   filters?: ReactNode;
 }) {
   const [hidden, setHidden] = useState<string[]>([]);
-  const data = points.map((p) => ({
-    ...p,
-    time: Date.parse(`${p.date}T00:00:00Z`),
-  }));
+  const theme = useTheme();
+  const data = useMemo(
+    () =>
+      points
+        .map((p) => ({ ...p, time: Date.parse(`${p.date}T00:00:00Z`) }))
+        .sort((a, b) => a.time - b.time),
+    [points],
+  );
   const hasPoints = data.some((p) => p.earned !== null);
+  const option = useMemo<EChartsOption>(
+    () => ({
+      ...chartAxes(theme),
+      xAxis: {
+        ...chartAxes(theme).xAxis,
+        type: "time",
+        min: data.length === 1 ? data[0].time - 86400000 : data[0]?.time,
+        max:
+          data.length === 1
+            ? data[0].time + 86400000
+            : data[data.length - 1]?.time,
+        axisLabel: {
+          color: theme.palette.text.secondary,
+          formatter: (value: number) => String(new Date(value).getUTCDate()),
+          hideOverlap: true,
+        },
+        name: "Ngày",
+        nameLocation: "end",
+        nameGap: 4,
+        nameTextStyle: { color: theme.palette.text.secondary, fontSize: 12 },
+      },
+      yAxis: { ...chartAxes(theme).yAxis, minInterval: 1 },
+      tooltip: {
+        formatter: (params) => {
+          const item = Array.isArray(params) ? params[0] : params;
+          const p = data[item?.dataIndex];
+          if (!p) return "";
+          return chartTooltip(
+            displayDate(p.date),
+            series
+              .filter((s) => !hidden.includes(s))
+              .map((s) => ({
+                label: rewardLabels[s],
+                color: rewardColors[s],
+                value: String(p[s] ?? "—"),
+              })),
+            `Trong ngày: +${p.dailyEarned} thưởng · −${p.dailyPenalty} vi phạm · ${p.dailySpent} sử dụng`,
+          );
+        },
+      },
+      series: series
+        .filter((s) => !hidden.includes(s))
+        .map((s) => ({
+          ...curvedLine,
+          id: s,
+          name: rewardLabels[s],
+          data: data.map((p) => [p.time, p[s]]),
+          connectNulls: true,
+          itemStyle: { color: rewardColors[s] },
+          lineStyle: { width: 2.5, type: s === "net" ? "dashed" : "solid" },
+        })),
+    }),
+    [data, hidden, theme],
+  );
   return (
     <Stack spacing={2}>
       <Typography variant="h6" sx={{ fontSize: 18 }}>
@@ -65,93 +117,13 @@ export default function RewardChart({
           }}
           aria-label="Biểu đồ điểm cộng dồn theo ngày"
         >
-          <ChartViewport height={{ xs: 260, md: 320 }} pointCount={data.length}
-            minPointGap={48} xValues={data.map((p) => p.time)} label="Điểm cộng dồn theo ngày">
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart
-              data={data}
-              margin={{ left: 0, right: 18, top: 10, bottom: 8 }}
-            >
-              <CartesianGrid stroke="var(--reward-grid)" vertical={false} />
-              <XAxis
-                dataKey="time"
-                type="number"
-                domain={
-                  data.length === 1
-                    ? [data[0].time - 86400000, data[0].time + 86400000]
-                    : ["dataMin", "dataMax"]
-                }
-                scale="time"
-                tickFormatter={(v) => String(new Date(Number(v)).getUTCDate())}
-                minTickGap={20}
-                axisLine={false}
-                tickLine={false}
-                tick={{ fontSize: 12, fill: "var(--reward-muted)" }}
-                label={{
-                  value: "Ngày",
-                  position: "insideBottomRight",
-                  offset: -4,
-                  fontSize: 12,
-                  fill: "var(--reward-muted)",
-                }}
-              />
-              <YAxis
-                width={40}
-                allowDecimals={false}
-                axisLine={false}
-                tickLine={false}
-                tick={{ fontSize: 12, fill: "var(--reward-muted)" }}
-              />
-              <Tooltip
-                content={({ active, payload }) => {
-                  const p = payload?.[0]?.payload as
-                    (RewardPoint & { time: number }) | undefined;
-                  return active && p ? (
-                    <Box
-                      sx={{
-                        bgcolor: "background.paper",
-                        border: 1,
-                        borderColor: "divider",
-                        p: 1.5,
-                        borderRadius: "12px",
-                      }}
-                    >
-                      <Typography sx={{ fontWeight: 700 }}>
-                        {displayDate(p.date)}
-                      </Typography>
-                      {series.map((s) => (
-                        <Typography key={s} sx={{ color: rewardColors[s] }}>
-                          {rewardLabels[s]}: {p[s] ?? "—"}
-                        </Typography>
-                      ))}
-                      <Typography variant="caption">
-                        Trong ngày: +{p.dailyEarned} thưởng · −{p.dailyPenalty}{" "}
-                        vi phạm · {p.dailySpent} sử dụng
-                      </Typography>
-                    </Box>
-                  ) : null;
-                }}
-              />
-              {series
-                .filter((s) => !hidden.includes(s))
-                .map((s) => (
-                  <Line
-                    key={s}
-                    name={rewardLabels[s]}
-                    type="monotone"
-                    dataKey={s}
-                    stroke={rewardColors[s]}
-                    strokeWidth={2.5}
-                    strokeDasharray={s === "net" ? "4 3" : undefined}
-                    dot={{ r: 3 }}
-                    activeDot={{ r: 5 }}
-                    connectNulls
-                    isAnimationActive={false}
-                  />
-                ))}
-            </LineChart>
-          </ResponsiveContainer>
-          </ChartViewport>
+          <NativeChart
+            option={option}
+            positions={data.map((p) => p.time)}
+            height={300}
+            gap={48}
+            label="Điểm cộng dồn theo ngày"
+          />
         </Box>
       ) : (
         <Typography color="text.secondary">
