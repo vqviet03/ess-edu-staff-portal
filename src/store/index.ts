@@ -7,7 +7,7 @@ import { relatedTags } from "@/features/operations/models";
 import { libraryApi } from "@/api/library-api";
 import { libraryNoticeReceived, librarySnapshotReceived, mergeNotice } from "@/features/materials/notification-state";
 import { api } from "@/api/api";
-import { authSlice, signedIn, signedOut, verified } from "./auth";
+import { authSlice, signedIn, signedOut, verified, profileUpdated } from "./auth";
 import { writeSession } from "@/features/auth/storage";
 export function makeStore(service = api) {
   const listener = createListenerMiddleware();
@@ -61,7 +61,7 @@ export function makeStore(service = api) {
   });
   listener.startListening({
     matcher: (a) =>
-      signedIn.match(a) || signedOut.match(a) || verified.match(a),
+      signedIn.match(a) || signedOut.match(a) || verified.match(a) || profileUpdated.match(a),
     effect: (action) => {
       writeSession(store.getState().auth.session);
       if (signedIn.match(action) || !store.getState().auth.session)

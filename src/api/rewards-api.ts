@@ -182,6 +182,7 @@ export const rewardsApi = api.injectEndpoints({
         planStartDate?: string;
         effectiveFrom: string;
         configuration: ScheduleConfig;
+        notifyStudents?:boolean;
       }
     >({
       query: ({ classId, ...body }) => ({

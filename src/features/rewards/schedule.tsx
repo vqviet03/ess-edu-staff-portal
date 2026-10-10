@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import { StudentNotificationSelect } from "@/features/notifications/delivery";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
@@ -61,6 +62,7 @@ function ScheduleEditor({
     [planStartDate, setPlanStartDate] = useState(
       data.planStartDate ?? vietnamToday(),
     );
+  const [notifyStudents,setNotifyStudents]=useState<boolean|undefined>();
   const [version] = useState(data.version),
     [config, setConfig] = useState<ScheduleConfig>(
       structuredClone(data.configuration),
@@ -110,6 +112,7 @@ function ScheduleEditor({
         version,
         effectiveFrom,
         configuration: config,
+        notifyStudents,
         plannedSessions: plannedSessions ? Number(plannedSessions) : undefined,
         planStartDate: plannedSessions ? planStartDate : undefined,
       }).unwrap();
@@ -558,7 +561,8 @@ function ScheduleEditor({
             </Stack>
           </Box>
           {validation && <Alert severity="warning">{validation}</Alert>}
-          <Feedback error={error} />
+          <StudentNotificationSelect value={notifyStudents} onChange={setNotifyStudents}/>
+            <Feedback error={error} />
         </Stack>
       </DialogContent>
       <DialogActions>

@@ -36,7 +36,7 @@ function ProfileForm({initial,saved}:{initial:PersonalProfile;saved:()=>void}) {
   useUnsaved(dirty);
   const validation=profileError(draft), changedId=draft.loginId!==initial.loginId;
   const field=(key:"loginId"|"fullName"|"nickname"|"email"|"phone"|"parentPhone"|"parentName"|"dateOfBirth",value:string)=>{setDraft(d=>({...d,[key]:value||((key==="dateOfBirth"||key==="nickname")?null:"")}));};
-  return <Paper component="form" sx={{p:{xs:2,md:3}} onSubmit={async e=>{
+  return <Paper component="form" sx={{p:{xs:2,md:3}}} onSubmit={async e=>{
     e.preventDefault();if(validation||state.isLoading)return;
     try{await save({...draft,currentPassword:changedId?password:undefined}).unwrap();setPassword("");saved();}catch{}
   }}><Stack spacing={2}>
