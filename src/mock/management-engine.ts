@@ -1,3 +1,4 @@
+import {validateEnrollmentDates, type EnrollmentDates, type EnrollmentDatesRequest} from "@/features/management/enrollment-dates";
 import { sessionExpiry } from "@/features/management/session-duration";
 import type { SessionDuration } from "@/features/management/session-duration";
 import { requestHeaders } from "@/api/headers";
@@ -898,6 +899,8 @@ export function commitPreview(
     renameReferences(db, c.entity, c.id, c.after.id);
     lifecycle(db, c.entity, c.before, c.after, reason);
   }
+  if (item.extra?.kind === "enrollmentDates")
+    applyEnrollmentDates(db, item.extra.data, reason);
   if (item.extra?.kind === "assignment")
     applyAssignment(db, item.extra.data, reason);
   if (item.extra?.kind === "enrollment")
@@ -908,7 +911,7 @@ export function commitPreview(
     id: uid(),
     at: now(),
     actorId: staff.id,
-    action: item.extra?.kind ?? "PREVIEW_COMMIT",
+    action: item.extra?.kind === "enrollmentDates" ? "CORRECT_DATES" : item.extra?.kind ?? "PREVIEW_COMMIT",
     entity: item.request.entity,
     ids: item.extra
       ? [
@@ -1308,6 +1311,51 @@ export function stats(db: Database, filter: StatsFilter) {
     },
   };
 }
+
+function enrollmentDates(db: Database, classId: string, studentId: string): EnrollmentDates {
+  const enrollment = management(db).enrollments.find(e => e.classId === classId && e.studentId === studentId);
+  if (!enrollment) reject(404, "NOT_FOUND", "Không tìm thấy ghi danh.");
+  const day = (at: string) => new Intl.DateTimeFormat("en-CA", {timeZone: "Asia/Ho_Chi_Minh"}).format(new Date(at));
+  const history = enrollment.history.map((p, i) => ({
+    ...p, id: p.id ?? `${enrollment.id}:period:${i}`,
+    joinedOn: p.joinedOn ?? day(p.startAt), endedOn: p.endedOn ?? (p.endAt ? day(p.endAt) : null),
+  }));
+  return {...enrollment, datesConfirmed: enrollment.datesConfirmed ?? false,
+    dateSource: enrollment.datesConfirmed ? "MANAGER_CONFIRMED" : "RECORDED_UNVERIFIED",
+    recordedAt: enrollment.recordedAt ?? enrollment.createdAt,
+    joinedOn: history.at(-1)?.joinedOn, endedOn: history.at(-1)?.endedOn, history};
+}
+function checkEnrollmentDates(db: Database, input: unknown) {
+  const request = obj(input) as unknown as EnrollmentDatesRequest;
+  const before = enrollmentDates(db, request.classId, request.studentId);
+  if (before.version !== request.version) reject(409, "VERSION_CONFLICT", "Ghi danh đã thay đổi. Xem trước lại.");
+  if (!Array.isArray(request.periods) || request.periods.some(p => !p || typeof p.id !== "string" || typeof p.joinedOn !== "string" || !(p.endedOn === null || typeof p.endedOn === "string")))
+    reject(422, "INVALID_ENROLLMENT_PERIODS", "Các đợt ghi danh không hợp lệ.");
+  const today = new Intl.DateTimeFormat("en-CA", {timeZone: "Asia/Ho_Chi_Minh"}).format(new Date());
+  const errors = validateEnrollmentDates(request.periods, before.history, today);
+  if (errors.length) reject(422, "INVALID_ENROLLMENT_PERIODS", errors.join(" "));
+  return {request, before};
+}
+function applyEnrollmentDates(db: Database, input: Record<string, unknown>, reason: string) {
+  const {request, before} = checkEnrollmentDates(db, input);
+  const e = management(db).enrollments.find(e => e.id === before.id)!;
+  e.history = before.history.map((h, i) => {
+    const p = request.periods[i];
+    const start = i > 0 && request.periods[i - 1].endedOn === p.joinedOn
+      ? new Date(Date.parse(`${p.joinedOn}T00:00:00+07:00`) + 86400000 - 1).toISOString()
+      : new Date(`${p.joinedOn}T00:00:00+07:00`).toISOString();
+    return {...h, ...p, startAt: start,
+      endAt: p.endedOn ? new Date(Date.parse(`${p.endedOn}T00:00:00+07:00`) + 86400000 - 1).toISOString() : null,
+      reason};
+  });
+  e.joinedOn = request.periods.at(-1)!.joinedOn;
+  e.endedOn = request.periods.at(-1)!.endedOn;
+  e.datesConfirmed = true;
+  e.recordedAt = before.recordedAt;
+  e.updatedAt = now();
+  e.version++;
+}
+
 export async function managementRequest(
   db: Database,
   staff: Teacher,
@@ -1405,6 +1453,20 @@ export async function managementRequest(
       items: items.slice((page - 1) * pageSize, page * pageSize), page, pageSize,
       total: items.length,
     });
+  }
+  if (path === "/manager/enrollments/dates" && method === "GET")
+    return envelope(enrollmentDates(db, params.get("classId") ?? "", params.get("studentId") ?? ""));
+  if (path === "/manager/enrollments/dates/preview" && method === "POST") {
+    const {request} = checkEnrollmentDates(db, req.body);
+    const p: BulkPreview = {
+      previewId: uid(), version: 1, count: 1, scope: "Ngày ghi danh thực tế",
+      changes: [], impacts: [], warnings: [], errors: [], requiredConfirmations: ["ENROLLMENT_DATES"],
+      expiresAt: new Date(Date.now() + 600000).toISOString(),
+    };
+    m.previews[p.previewId] = {preview: p, request: {entity: "classes"}, revision: m.revision, actorId: staff.id,
+      extra: {kind: "enrollmentDates", id: request.classId, data: {...request}}};
+    save(db);
+    return envelope(p);
   }
   if (path === "/manager/changes/preview") {
     const p = buildPreview(

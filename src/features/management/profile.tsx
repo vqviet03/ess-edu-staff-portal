@@ -62,6 +62,7 @@ import { EntityEditor } from "./editor";
 import { entityLabels, ManagerOnly, PreviewPanel, showValue } from "./shared";
 import { fieldNames } from "./validation";
 import { AccountSessions } from "./account-sessions";
+import { EnrollmentDatesEditor } from "./enrollment-dates-editor";
 const AttendancePanel = dynamic(
   () =>
     import("@/features/attendance/class-panel").then(
@@ -214,7 +215,7 @@ function RelationshipEditor({
                 </MenuItem>
               ))}
             </TextField>
-            {kind === "enrollment" && (
+            {kind === "enrollment" && (!enrollment || (status === "ACTIVE" && enrollment.status !== "ACTIVE")) && (
               <TextField
                 size="small"
                 type="date"
@@ -231,7 +232,7 @@ function RelationshipEditor({
               disabled={
                 !personId ||
                 (kind === "assignment" && !labelId) ||
-                (kind === "enrollment" && !joinedOn)
+                (kind === "enrollment" && (!enrollment || (status === "ACTIVE" && enrollment.status !== "ACTIVE")) && !joinedOn)
               }
               onClick={async () => {
                 try {
@@ -249,7 +250,7 @@ function RelationshipEditor({
                           classId,
                           studentId: personId,
                           status: status as Enrollment["status"],
-                          joinedOn,
+                          ...(!enrollment || (status === "ACTIVE" && enrollment.status !== "ACTIVE") ? {joinedOn} : {}),
                           version: enrollment?.version,
                         }).unwrap(),
                   );
@@ -335,6 +336,7 @@ function Profile({
       mode?: "status";
     } | null>(null),
     [showHistory, setShowHistory] = useState(false),
+    [datesEdit, setDatesEdit] = useState<{classId: string; studentId: string} | null>(null),
     [relationship, setRelationship] = useState<{
       kind: "assignment" | "enrollment";
       classId: string;
@@ -369,6 +371,7 @@ function Profile({
     setEdit(false);
     setCreateAccount(false);
     setRelationship(null);
+    setDatesEdit(null);
     if (n) setMessage(`Đã lưu ${n} thay đổi.`);
   };
   const profileContent = (
@@ -576,11 +579,7 @@ function Profile({
                 (e) => e.studentId === s.id && e.classId === r.id,
               );
               if (enrollment)
-                setRelationship({
-                  kind: "enrollment",
-                  classId: r.id,
-                  enrollment,
-                });
+                setDatesEdit({classId: r.id, studentId: enrollment.studentId});
             }}
             onStatus={(s) => {
               const managed = d.students.find((person) => person.id === s.id);
@@ -595,6 +594,7 @@ function Profile({
           <Typography variant="h5">Lịch sử ghi danh</Typography>
           {d.enrollments.map((e) => (
             <Box key={e.id} sx={{ mt: 2 }}>
+              <Button onClick={() => setDatesEdit({classId: e.classId, studentId: e.studentId})}>Sửa ngày nhập học / nghỉ học</Button>
               <Typography sx={{ fontWeight: 600 }}>
                 {d.classes.find((c) => c.id === e.classId)?.name} ·{" "}
                 {showValue(e.status)}
@@ -752,6 +752,7 @@ function Profile({
         />
       )}
       {relationship && <RelationshipEditor {...relationship} close={saved} />}
+      {datesEdit && <EnrollmentDatesEditor {...datesEdit} close={saved} />}
       <Dialog open={!!activation} onClose={() => setActivation(null)} fullWidth>
         <DialogTitle>Link kích hoạt ngắn hạn</DialogTitle>
         <DialogContent>

@@ -91,10 +91,16 @@ export interface TeacherClassAssignment extends Versioned {
 }
 export interface Enrollment extends Versioned {
   joinedOn?: string;
+  endedOn?: string | null;
+  datesConfirmed?: boolean;
+  recordedAt?: string;
   classId: string;
   studentId: string;
   status: "ACTIVE" | "ENDED" | "COMPLETED";
   history: {
+    id?: string;
+    joinedOn?: string;
+    endedOn?: string | null;
     startAt: string;
     endAt: string | null;
     status: Enrollment["status"];
