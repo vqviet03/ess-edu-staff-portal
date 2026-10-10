@@ -57,6 +57,7 @@ function PostCard({
   edit: (post: Post) => void;
 }) {
   const me = useAppSelector((s) => s.auth.session?.teacher),
+    [notifyStudents,setNotifyStudents]=useState<boolean|undefined>(),
     [actionPriority,setActionPriority]=useState<"NORMAL"|"IMPORTANT"|undefined>(),
     [showComments, setShowComments] = useState(false),
     [preview, setPreview] = useState<MaterialFile | null>(null),
@@ -71,7 +72,7 @@ function PostCard({
     <>
       <PostSurface
         post={post}
-        headerActions={<NotificationActionPriority classId={post.classId} feature="SOCIAL" value={actionPriority} onChange={setActionPriority}/>}
+        headerActions={<NotificationActionPriority notifyStudents={notifyStudents} onNotifyStudentsChange={setNotifyStudents} classId={post.classId} feature="SOCIAL" value={actionPriority} onChange={setActionPriority}/>}
         commentOpen={showComments}
         openComments={() => setShowComments((s) => !s)}
         preview={setPreview}
@@ -85,7 +86,7 @@ function PostCard({
               classId: post.classId,
               cursor,
               reaction: post.myReaction === value ? null : value,
-              notificationPriority:actionPriority,
+              notifyStudents,notificationPriority:actionPriority,
             }).unwrap();
           } catch (e) {
             setError(e);
@@ -103,7 +104,7 @@ function PostCard({
                     id: post.id,
                     version: post.version,
                     reason,
-                    notificationPriority:actionPriority,
+                    notifyStudents,notificationPriority:actionPriority,
                   }).unwrap();
                 } catch (e) {
                   setError(e);
@@ -353,7 +354,7 @@ export function SessionFeed({
                 <MenuItem value="DRAFT">Nháp</MenuItem>
               </TextField>
             </Stack>
-            <NotificationPrioritySelect classId={classId??""} feature="MATERIAL" value={draft.notificationPriority} onChange={v=>{setDraft(d=>({...d,notificationPriority:v}));setDirty(true);}}/>
+            <NotificationPrioritySelect notifyStudents={draft.notifyStudents} onNotifyStudentsChange={v=>{setDraft(d=>({...d,notifyStudents:v}));setDirty(true);}} classId={classId??""} feature="MATERIAL" value={draft.notificationPriority} onChange={v=>{setDraft(d=>({...d,notificationPriority:v}));setDirty(true);}}/>
             {!sessionId && draft.postType === "SESSION_MATERIAL" && (
               <>
                 <Autocomplete
@@ -615,6 +616,7 @@ export function SessionFeed({
       </Dialog>
       {upload && (
         <UploadDialog
+          source="post"
           folderId={null}
           sessionId={
             draft.postType === "SESSION_MATERIAL"

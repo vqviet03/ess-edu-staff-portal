@@ -2,7 +2,7 @@
 import {NotificationPrioritySelect} from "@/features/notifications/priority";
 import {ContentViews} from "@/features/presence/views";
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import Avatar from "@mui/material/Avatar";
+import {ProfileAvatar} from "@/features/profile/avatar";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Chip from "@mui/material/Chip";
@@ -31,7 +31,6 @@ import { useAppSelector } from "@/store";
 import { Feedback } from "@/shared/ui";
 import { useUnsaved } from "@/shared/unsaved";
 import type { Comment, MaterialFile, Post } from "./models";
-import { initials } from "./post-surface";
 import { CommentAttachment } from "./comment-attachment";
 import { IconAction } from "@/shared/icon-action";
 import { MaterialViewer } from "./viewer";
@@ -100,6 +99,7 @@ export function Comments({
   targetComment?: string;
 }) {
   const me = useAppSelector((s) => s.auth.session?.teacher);
+  const [notifyStudents,setNotifyStudents]=useState<boolean|undefined>();
   const [priority,setPriority]=useState<"NORMAL"|"IMPORTANT"|undefined>();
   const [body, setBody] = useState(""),
     [upload, setUpload] = useState(false),
@@ -138,7 +138,7 @@ export function Comments({
         body,
         parentId: parent?.id,
         materialIds: attachments.map((f) => f.id),
-        notificationPriority:priority,
+        notifyStudents,notificationPriority:priority,
       }).unwrap();
       setBody("");
       setAttachments([]);
@@ -148,14 +148,6 @@ export function Comments({
       setError(e);
     }
   }
-  const avatarSx = {
-    width: { xs: 32, sm: 36 },
-    height: { xs: 32, sm: 36 },
-    fontSize: 12,
-    bgcolor: "var(--post-soft)",
-    color: "var(--post-muted)",
-    flexShrink: 0,
-  };
   const render = (c: Comment) => (
     <Stack
       key={c.id}
@@ -165,7 +157,7 @@ export function Comments({
       spacing={1}
       sx={{ ml: c.parentId ? 2 : 0, alignItems: "flex-start" }}
     >
-      <Avatar sx={avatarSx}>{initials(c.authorName)}</Avatar>
+      <ProfileAvatar name={c.authorName} value={c.authorAvatar}/>
       <Box
         sx={{
           flex: 1,
@@ -349,7 +341,7 @@ export function Comments({
         </Stack>
       )}
       <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
-        <Avatar sx={avatarSx}>{initials(me?.name ?? "Bạn")}</Avatar>
+        <ProfileAvatar name={me?.name??"Bạn"} value={me?.avatar}/>
         <Box
           component="form"
           aria-label="Soạn bình luận"
@@ -433,7 +425,7 @@ export function Comments({
           </Tooltip>
         </Box>
       </Stack>
-      <NotificationPrioritySelect classId={post.classId} feature={parent?"REPLY":"SOCIAL"} value={priority} onChange={setPriority}/>
+      <NotificationPrioritySelect notifyStudents={notifyStudents} onNotifyStudentsChange={setNotifyStudents} classId={post.classId} feature={parent?"REPLY":"SOCIAL"} value={priority} onChange={setPriority}/>
       <Menu anchorEl={menu?.anchor} open={!!menu} onClose={() => setMenu(null)}>
         {post.canPinComment && (
           <MenuItem
@@ -449,7 +441,7 @@ export function Comments({
                   postId: post.id,
                   isPinned: !c.isPinned,
                   version: c.version,
-                  notificationPriority:priority,
+                  notifyStudents,notificationPriority:priority,
                 }).unwrap();
               } catch (e) {
                 setError(e);

@@ -44,7 +44,9 @@ export function createAppBaseQuery(config: {
     });
   const permissionRefreshes = new Map<string, Promise<void>>();
   return async (args, api, options) => {
-    const request = typeof args === "string" ? { url: args } : args;
+    let request: FetchArgs = typeof args === "string" ? { url: args } : args;
+    if (request.body && typeof request.body === "object" && "notifyStudents" in request.body && typeof request.body.notifyStudents === "boolean")
+      request = { ...request, params: { ...request.params, notifyStudents: request.body.notifyStudents } };
     if (config.configurationError || resolved.error)
       return {
         error: {

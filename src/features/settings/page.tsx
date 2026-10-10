@@ -1,4 +1,5 @@
 "use client";
+import { NotificationRetentionSettings } from "./notification-retention";
 import { publicId } from "@/shared/public-id";
 import { useState } from "react";
 import Alert from "@mui/material/Alert";
@@ -21,6 +22,7 @@ function SettingsContent() {
     <Feedback loading={query.isLoading} error={query.error} retry={() => void query.refetch()} />
     {query.data && settings.schemaReady === false && <Alert severity="warning">Cấu hình hệ thống chưa sẵn sàng. Cần chạy migration Core 012 qua job backend trước khi gửi đề xuất. Các màn hình khác vẫn dùng tên mặc định.</Alert>}
     {query.data && settings.schemaReady !== false && <SettingsForm key={settings.version} settings={settings} />}
+    <NotificationRetentionSettings/>
     <Typography component="h2" variant="h6" sx={{ my: 2 }}>Đề xuất & xác nhận</Typography>
     <Feedback loading={proposals.isLoading} error={proposals.error} retry={() => void proposals.refetch()} />
     <Stack spacing={2}>{proposals.currentData?.items.map(p => <ProposalCard key={p.id + ":" + p.version} proposal={p} actor={actor} />)}</Stack>

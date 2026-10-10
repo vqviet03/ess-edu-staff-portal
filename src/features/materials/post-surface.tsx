@@ -1,7 +1,7 @@
 "use client";
 import { ContentViews } from "@/features/presence/views";
 import { useState, type ReactNode } from "react";
-import Avatar from "@mui/material/Avatar";
+import {ProfileAvatar} from "@/features/profile/avatar";
 import Box from "@mui/material/Box";
 import ButtonBase from "@mui/material/ButtonBase";
 import Chip from "@mui/material/Chip";
@@ -104,18 +104,7 @@ export function PostSurface({
       <Stack spacing={2}>
         {!draft && <Box sx={{alignSelf:"flex-end"}}><ContentViews kind="POST" id={post.id}/></Box>}
         <Stack direction="row" spacing={1.5} sx={{ alignItems: "flex-start" }}>
-          <Avatar
-            sx={{
-              width: 44,
-              height: 44,
-              fontSize: 14,
-              fontWeight: 600,
-              bgcolor: "var(--post-tint)",
-              color: "var(--post-green)",
-            }}
-          >
-            {initials(post.authorName)}
-          </Avatar>
+          <ProfileAvatar name={post.authorName} value={post.authorAvatar} size={44}/>
           <Box sx={{ flex: 1, minWidth: 0 }}>
             <Typography
               sx={{ fontSize: 14, fontWeight: 600, overflowWrap: "anywhere" }}

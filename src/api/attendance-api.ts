@@ -50,7 +50,7 @@ export const attendanceApi = api.injectEndpoints({
         version: number;
         rows: { studentId: string; status: "PRESENT" | "ABSENT" }[];
         reason: string;
-        notificationPriority?: "NORMAL"|"IMPORTANT";
+        notifyStudents?:boolean; notificationPriority?: "NORMAL"|"IMPORTANT";
       }
     >({
       query: ({ classId, ...body }) => ({

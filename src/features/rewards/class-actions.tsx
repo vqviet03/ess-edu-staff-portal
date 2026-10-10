@@ -62,6 +62,7 @@ function AwardDialog({
   onClose: () => void;
 }) {
   const router = useRouter(),
+    [notifyStudents,setNotifyStudents]=useState<boolean|undefined>(),
     [priority,setPriority]=useState<"NORMAL"|"IMPORTANT"|undefined>(),
     [date, setDate] = useState(vietnamToday()),
     query = useClassRewardsQuery({ classId, date }),
@@ -100,7 +101,7 @@ function AwardDialog({
         amount,
         date,
         key: req.key,
-        notificationPriority:priority,
+        notifyStudents,notificationPriority:priority,
       }).unwrap();
       delete requests.current[row.studentId];
       setValues((v) => ({ ...v, [row.studentId]: 0 }));
@@ -161,7 +162,7 @@ function AwardDialog({
             </Stack>
           </Stack>
         </DialogTitle>
-        <DialogContent><NotificationPrioritySelect classId={classId} feature="REWARD" value={priority} onChange={setPriority}/>
+        <DialogContent><NotificationPrioritySelect notifyStudents={notifyStudents} onNotifyStudentsChange={setNotifyStudents} classId={classId} feature="REWARD" value={priority} onChange={setPriority}/>
           <Stack spacing={2}>
             <Stack
               direction={{ xs: "column", sm: "row" }}

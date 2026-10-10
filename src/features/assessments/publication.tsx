@@ -16,6 +16,7 @@ export function PublicationPanel({ assessment, publication, canEdit, loading, er
   assessment: Assessment; publication?: Publication; canEdit: boolean; loading: boolean; error: unknown; retry: () => void; onSuccess: (message: string) => void;
 }) {
   const classId=useSearchParams().get("classId")??"";
+  const [notifyStudents,setNotifyStudents]=useState<boolean|undefined>();
   const [priority,setPriority]=useState<"NORMAL"|"IMPORTANT"|undefined>();
   const [publish, state] = usePublishAssessmentMutation(), [failure, setFailure] = useState("");
   const published = publication?.isPublished ?? false;
@@ -25,7 +26,7 @@ export function PublicationPanel({ assessment, publication, canEdit, loading, er
     if (!confirmLeave() || !window.confirm(question)) return;
     setFailure("");
     try {
-      await publish({ id: assessment.id, version: assessment.version, publish: !published,notificationPriority:priority }).unwrap();
+      await publish({ id: assessment.id, version: assessment.version, publish: !published,notifyStudents,notificationPriority:priority }).unwrap();
       onSuccess(published ? "Đã gỡ công bố. Có thể chuyển bài về nháp để chỉnh sửa." : "Đã công bố báo cáo. Học sinh chọn đúng lớp và tải lại trang để xem.");
     } catch (e) { setFailure(errorMessage(e)); }
   }
@@ -40,7 +41,7 @@ export function PublicationPanel({ assessment, publication, canEdit, loading, er
       {!publication.unitId && <Alert severity="warning">Phiên cần liên kết một Unit đã được cấu hình trong lớp trước khi công bố.</Alert>}
       {!published && assessment.status === "DRAFT" && <Typography variant="body2">Nhập đủ điểm hoặc xác nhận vắng cho từng học sinh, rồi đánh dấu hoàn thành bài trước khi công bố.</Typography>}
       {!!failure && <Alert severity="error">{failure}</Alert>}
-      {canEdit&&<NotificationPrioritySelect classId={classId} feature="SCORE" value={priority} onChange={setPriority}/>}
+      {canEdit&&<NotificationPrioritySelect notifyStudents={notifyStudents} onNotifyStudentsChange={setNotifyStudents} classId={classId} feature="SCORE" value={priority} onChange={setPriority}/>}
       <Button variant={published ? "outlined" : "contained"} onClick={() => void submit()} disabled={!canEdit || state.isLoading || !publication.unitId || (!published && assessment.status !== "COMPLETED")} sx={{ alignSelf: "flex-start" }}>
         {state.isLoading ? "Đang xử lý…" : published ? "Gỡ công bố báo cáo" : "Công bố báo cáo cho học sinh"}
       </Button>
