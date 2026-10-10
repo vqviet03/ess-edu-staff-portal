@@ -449,6 +449,7 @@ export function Comments({
                   postId: post.id,
                   isPinned: !c.isPinned,
                   version: c.version,
+                  notificationPriority:priority,
                 }).unwrap();
               } catch (e) {
                 setError(e);

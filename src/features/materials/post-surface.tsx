@@ -50,10 +50,12 @@ export function PostSurface({
   draft = false,
   content,
   afterMedia,
+  headerActions,
 }: {
   draft?: boolean;
   content?: ReactNode;
   afterMedia?: ReactNode;
+  headerActions?: ReactNode;
   post: Post;
   children: ReactNode;
   commentOpen: boolean;
@@ -139,6 +141,7 @@ export function PostSurface({
               </Typography>
             )}
           </Box>
+          {headerActions}
           {(onEdit || onDelete) && (
             <>
               <Tooltip title="Thao tác bài đăng">
