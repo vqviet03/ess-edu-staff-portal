@@ -6,6 +6,7 @@ import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import ButtonBase from "@mui/material/ButtonBase";
 import Tooltip from "@mui/material/Tooltip";
+import PushPin from "@mui/icons-material/PushPin";
 import ChevronLeft from "@mui/icons-material/ChevronLeft";
 import ChevronRight from "@mui/icons-material/ChevronRight";
 import { useTheme } from "@mui/material/styles";
@@ -81,7 +82,7 @@ export function AttendanceMetric({
 }
 export function AttendanceBadge({ status }: { status: string }) {
   const color =
-    status === "ABSENT" ? "red" : status === "UNSET" ? "blue" : "green";
+    status === "HOLIDAY" ? "orange" : status === "ABSENT" ? "red" : ["UNSET","PLANNED","CANCELLED"].includes(status) ? "blue" : "green";
   return (
     <Box
       component="span"
@@ -190,7 +191,9 @@ export function AttendanceCalendar({
         {cells.map((date) => {
           const item = byDate.get(date),
             color =
-              item?.status === "ABSENT"
+              item?.isHoliday || item?.status==="HOLIDAY"
+                ? "orange"
+                : item?.status === "ABSENT"
                 ? "red"
                 : item?.status === "UNSET" && date <= today
                   ? "blue"
@@ -198,7 +201,9 @@ export function AttendanceCalendar({
           return (
             <Tooltip
               key={date}
-              title={`${dateLabel(date)} · ${item ? (statusLabels[item.status] ?? "Theo lịch") : "Không trong lịch"}`}
+              enterTouchDelay={0}
+              leaveTouchDelay={5000}
+              title={`${dateLabel(date)} · ${item ? (statusLabels[item.status] ?? "Theo lịch") : "Không trong lịch"}${item?.reason ? ` · ${item.reason}` : ""}`}
             >
               <ButtonBase
                 aria-label={dateLabel(date)}
@@ -226,7 +231,9 @@ export function AttendanceCalendar({
                   {Number(date.slice(-2))}
                 </Typography>
                 <Typography sx={{ fontSize: 10, color: "var(--att-muted)" }}>
-                  {date === today
+                  {item?.isPinned
+                    ? <PushPin sx={{fontSize:13,color:"var(--att-blue)"}}/>
+                    : item?.isHoliday ? "Nghỉ" : date === today
                     ? "Nay"
                     : item?.replaced
                       ? "Bù"
@@ -246,7 +253,7 @@ export function AttendanceCalendar({
         })}
       </Box>
       <Typography sx={{ fontSize: 12, color: "var(--att-muted)", mt: 1.5 }}>
-        Xanh: có mặt / theo lịch · Đỏ: vắng · Xanh dương: chưa ghi nhận
+        Xanh: có mặt / theo lịch · Đỏ: vắng · Vàng: nghỉ học · Ghim: lịch dự kiến
       </Typography>
       <Typography sx={{ fontSize: 12, color: "var(--att-muted)", mt: 1 }}>
         Ngày tương lai chỉ xem, không điểm danh.

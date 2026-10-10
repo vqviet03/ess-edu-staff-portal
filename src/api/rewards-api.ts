@@ -92,6 +92,7 @@ export const rewardsApi = api.injectEndpoints({
         amount: number;
         note?: string;
         date?: string;
+        notificationPriority?:"NORMAL"|"IMPORTANT";
         key: string;
       }
     >({

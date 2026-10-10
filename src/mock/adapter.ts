@@ -1,3 +1,4 @@
+import {collaborationRequest} from "./collaboration";
 import { currentSettings, settingsRequest } from "./settings";
 import { sessionExpiry } from "@/features/management/session-duration";
 import type {
@@ -278,6 +279,8 @@ export function createMockAdapter(
       if (path === "/auth/me") return envelope(staff);
       const settingResponse = settingsRequest(db, staff, { ...req, headers });
       if (settingResponse) { save(db); return settingResponse; }
+      const collaboration=collaborationRequest(db,staff,{...req,headers});
+      if(collaboration!==undefined){save(db);return envelope(collaboration);}
       const managedResponse = await managementRequest(
         db,
         staff,

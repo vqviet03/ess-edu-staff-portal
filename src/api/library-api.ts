@@ -491,6 +491,7 @@ export const libraryApi = api.injectEndpoints({
         parentId?: string;
         version?: number;
         materialIds?: string[];
+        notificationPriority?: "NORMAL"|"IMPORTANT";
       }
     >({
       query: ({ id, postId, ...body }) =>

@@ -1,4 +1,6 @@
 "use client";
+import {CalendarActions} from "./calendar-actions";
+import {NotificationPrioritySelect} from "@/features/notifications/priority";
 import { useState } from "react";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
@@ -8,14 +10,12 @@ import Dialog from "@mui/material/Dialog";
 import DialogTitle from "@mui/material/DialogTitle";
 import DialogContent from "@mui/material/DialogContent";
 import DialogActions from "@mui/material/DialogActions";
-import MenuItem from "@mui/material/MenuItem";
 import Paper from "@mui/material/Paper";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import {
   useClassAttendanceQuery,
-  useConfirmAttendanceMutation,
   useSaveAttendanceMutation,
 } from "@/api/attendance-api";
 import { useClassCapabilities } from "@/features/access/hooks";
@@ -33,7 +33,6 @@ import {
   reasonLabels,
   todayDate,
   type ClassAttendance,
-  type ReasonKind,
   type AttendanceRow,
 } from "./models";
 function Roster({
@@ -181,6 +180,7 @@ function DayEditor({
         data.items.map((r) => [r.studentId, r.status === "PRESENT"]),
       ),
     ),
+    [priority,setPriority]=useState<"NORMAL"|"IMPORTANT"|undefined>(),
     [reason, setReason] = useState(""),
     [dirty, setDirty] = useState(false),
     [confirm, setConfirm] = useState(false),
@@ -226,6 +226,7 @@ function DayEditor({
           slotProps={{ htmlInput: { maxLength: 2000 } }}
         />
       )}
+      <NotificationPrioritySelect classId={classId} feature="ATTENDANCE" value={priority} onChange={setPriority}/>
       <Feedback error={error} />
       <Stack direction="row" spacing={1}>
         <Button
@@ -329,6 +330,7 @@ function DayEditor({
                   date: initial.date,
                   version: initial.version,
                   reason,
+                  notificationPriority:priority,
                   rows: initial.items.map((r) => ({
                     studentId: r.studentId,
                     status: checked[r.studentId] ? "PRESENT" : "ABSENT",
@@ -361,16 +363,9 @@ function AttendanceDay({
   editable: boolean;
   today: boolean;
 }) {
-  const [edit, setEdit] = useState(false),
-    [dialog, setDialog] = useState(false),
-    [kind, setKind] = useState<ReasonKind>("SUPPLEMENTAL"),
-    [reason, setReason] = useState(""),
-    [original, setOriginal] = useState(""),
-    [error, setError] = useState<unknown>(),
-    [message, setMessage] = useState(""),
-    [confirm, confirming] = useConfirmAttendanceMutation();
-  const allowed = editable && data.date <= data.today && !data.replaced,
-    ready = data.scheduled || data.confirmed;
+  const [edit,setEdit]=useState(false),[message,setMessage]=useState("");
+  const allowed=editable && data.date<=data.today && !data.replaced && !data.isHoliday && !data.isCancelled,
+    ready=data.scheduled||data.confirmed;
   return (
     <Paper sx={{ p: { xs: 2, sm: 3 } }}>
       <Stack spacing={1.5}>
@@ -387,7 +382,7 @@ function AttendanceDay({
         </Typography>
         <Box>
           <AttendanceBadge
-            status={data.replaced ? "REPLACED" : data.saved ? "SAVED" : "UNSET"}
+            status={data.isHoliday?"HOLIDAY":data.isCancelled?"CANCELLED":data.isPlanned?"PLANNED":data.replaced ? "REPLACED" : data.saved ? "SAVED" : "UNSET"}
           />
           {data.scheduled && (
             <Typography
@@ -425,23 +420,8 @@ function AttendanceDay({
             Ngày tương lai chỉ xem, không điểm danh.
           </Alert>
         )}
-        {!ready && (
-          <>
-            <Alert severity="info">
-              Ngày này không nằm trong lịch học. Xác nhận lý do trước khi điểm
-              danh.
-            </Alert>
-            <Button
-              size="small"
-              variant="contained"
-              sx={{ alignSelf: "flex-start" }}
-              disabled={!allowed || confirming.isLoading}
-              onClick={() => setDialog(true)}
-            >
-              Xác nhận ngày học ngoài lịch
-            </Button>
-          </>
-        )}
+        <CalendarActions data={data} classId={classId} editable={editable}/>
+        {!ready&&!data.isHoliday&&<Alert severity="info">Ngày ngoài lịch. Xếp học bù hoặc học thêm trước khi điểm danh.</Alert>}
         {message && (
           <Alert severity="success" onClose={() => setMessage("")}>
             {message}
@@ -505,106 +485,7 @@ function AttendanceDay({
             ))}
           </Box>
         )}
-        <Feedback error={error} />
       </Stack>
-      <Dialog
-        open={dialog}
-        onClose={() => {
-          if (!confirming.isLoading) setDialog(false);
-        }}
-        fullWidth
-        maxWidth="sm"
-      >
-        <DialogTitle>Xác nhận buổi học</DialogTitle>
-        <DialogContent>
-          <Stack spacing={1.5} sx={{ pt: 1 }}>
-            <Typography color="text.secondary">
-              {dateLabel(data.date)} · Ngày ngoài lịch
-            </Typography>
-            <TextField
-              size="small"
-              select
-              label="Lý do"
-              required
-              value={kind}
-              onChange={(e) => setKind(e.target.value as ReasonKind)}
-            >
-              {Object.entries(reasonLabels).map(([v, l]) => (
-                <MenuItem key={v} value={v}>
-                  {l}
-                </MenuItem>
-              ))}
-            </TextField>
-            <TextField
-              size="small"
-              label="Chi tiết lý do"
-              required
-              value={reason}
-              onChange={(e) => setReason(e.target.value)}
-              slotProps={{ htmlInput: { maxLength: 2000 } }}
-            />
-            {kind === "MAKEUP" && (
-              <TextField
-                size="small"
-                type="date"
-                label="Buổi gốc được học bù"
-                value={original}
-                required
-                onChange={(e) => setOriginal(e.target.value)}
-                slotProps={{
-                  inputLabel: { shrink: true },
-                  htmlInput: { max: data.date },
-                }}
-              />
-            )}
-            <Alert severity="info">
-              <Typography variant="body2" sx={{ fontWeight: 700 }}>
-                Chỉ tạo buổi học cho ngày đã chọn
-              </Typography>
-              Không sửa lịch cố định, không tự đánh dấu học sinh có mặt và không
-              tăng tổng buổi kế hoạch ban đầu.
-            </Alert>
-            <Feedback error={error} />
-          </Stack>
-        </DialogContent>
-        <DialogActions>
-          <Button
-            size="small"
-            disabled={confirming.isLoading}
-            onClick={() => setDialog(false)}
-          >
-            Hủy
-          </Button>
-          <Button
-            size="small"
-            variant="contained"
-            disabled={
-              confirming.isLoading ||
-              !reason.trim() ||
-              (kind === "MAKEUP" && !original)
-            }
-            onClick={async () => {
-              setError(undefined);
-              try {
-                await confirm({
-                  classId,
-                  date: data.date,
-                  version: data.version,
-                  reasonKind: kind,
-                  reason,
-                  replacesDate: kind === "MAKEUP" ? original : undefined,
-                }).unwrap();
-                setDialog(false);
-                setEdit(true);
-              } catch (e) {
-                setError(e);
-              }
-            }}
-          >
-            Xác nhận
-          </Button>
-        </DialogActions>
-      </Dialog>
     </Paper>
   );
 }

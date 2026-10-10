@@ -1,4 +1,5 @@
 "use client";
+import {NotificationPrioritySelect} from "@/features/notifications/priority";
 import { Comments } from "./comments";
 import { IconAction } from "@/shared/icon-action";
 import FirstPage from "@mui/icons-material/FirstPage";
@@ -347,6 +348,7 @@ export function SessionFeed({
                 <MenuItem value="DRAFT">Nháp</MenuItem>
               </TextField>
             </Stack>
+            <NotificationPrioritySelect classId={classId??""} feature="MATERIAL" value={draft.notificationPriority} onChange={v=>{setDraft(d=>({...d,notificationPriority:v}));setDirty(true);}}/>
             {!sessionId && draft.postType === "SESSION_MATERIAL" && (
               <>
                 <Autocomplete

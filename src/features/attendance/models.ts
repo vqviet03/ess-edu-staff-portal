@@ -1,4 +1,4 @@
-export type AttendanceStatus = "UNSET" | "PRESENT" | "ABSENT" | "REPLACED";
+export type AttendanceStatus = "UNSET" | "PRESENT" | "ABSENT" | "REPLACED" | "HOLIDAY" | "PLANNED" | "CANCELLED";
 export type ReasonKind = "MAKEUP" | "SUPPLEMENTAL" | "OTHER";
 export interface AttendanceStats {
   present: number;
@@ -9,6 +9,11 @@ export interface AttendanceStats {
   warning: "NO_PLAN" | "ACCEPTABLE" | "WARNING" | "DANGER";
 }
 export interface AttendanceDate {
+  isHoliday?: boolean;
+  isPlanned?: boolean;
+  isCancelled?: boolean;
+  isPinned?: boolean;
+
   date: string;
   status: AttendanceStatus | "SAVED";
   scheduled: boolean;
@@ -38,6 +43,11 @@ export interface AttendanceEdit {
   createdAt: string;
 }
 export interface ClassAttendance {
+  isHoliday?: boolean;
+  isPlanned?: boolean;
+  isCancelled?: boolean;
+  isPinned?: boolean;
+
   classId: string;
   today: string;
   date: string;
@@ -78,6 +88,9 @@ export const statusLabels: Record<AttendanceStatus | string, string> = {
   UNSET: "Chưa ghi nhận",
   REPLACED: "Đã có buổi học bù",
   SAVED: "Đã điểm danh",
+  HOLIDAY: "Nghỉ học",
+  PLANNED: "Lịch dự kiến",
+  CANCELLED: "Đã hủy lịch",
 };
 export const reasonLabels: Record<ReasonKind, string> = {
   MAKEUP: "Học bù",

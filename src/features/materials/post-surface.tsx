@@ -1,4 +1,5 @@
 "use client";
+import { ContentViews } from "@/features/presence/views";
 import { useState, type ReactNode } from "react";
 import Avatar from "@mui/material/Avatar";
 import Box from "@mui/material/Box";
@@ -99,6 +100,7 @@ export function PostSurface({
       }}
     >
       <Stack spacing={2}>
+        {!draft && <Box sx={{alignSelf:"flex-end"}}><ContentViews kind="POST" id={post.id}/></Box>}
         <Stack direction="row" spacing={1.5} sx={{ alignItems: "flex-start" }}>
           <Avatar
             sx={{

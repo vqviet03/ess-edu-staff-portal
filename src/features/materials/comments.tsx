@@ -1,4 +1,6 @@
 "use client";
+import {NotificationPrioritySelect} from "@/features/notifications/priority";
+import {ContentViews} from "@/features/presence/views";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import Avatar from "@mui/material/Avatar";
 import Box from "@mui/material/Box";
@@ -98,6 +100,7 @@ export function Comments({
   targetComment?: string;
 }) {
   const me = useAppSelector((s) => s.auth.session?.teacher);
+  const [priority,setPriority]=useState<"NORMAL"|"IMPORTANT"|undefined>();
   const [body, setBody] = useState(""),
     [upload, setUpload] = useState(false),
     [attachments, setAttachments] = useState<MaterialFile[]>([]),
@@ -135,6 +138,7 @@ export function Comments({
         body,
         parentId: parent?.id,
         materialIds: attachments.map((f) => f.id),
+        notificationPriority:priority,
       }).unwrap();
       setBody("");
       setAttachments([]);
@@ -182,6 +186,7 @@ export function Comments({
             {c.authorId === post.authorId ? " · Giảng viên" : ""}
           </Typography>
           <Stack direction="row" sx={{ alignItems: "center" }}>
+            <ContentViews kind="COMMENT" id={c.id}/>
             {c.isPinned && (
               <Tooltip title="Bình luận đã ghim — luôn hiển thị">
                 <PushPin sx={{ fontSize: 15, color: "var(--post-green)" }} />
@@ -428,6 +433,7 @@ export function Comments({
           </Tooltip>
         </Box>
       </Stack>
+      <NotificationPrioritySelect classId={post.classId} feature={parent?"REPLY":"SOCIAL"} value={priority} onChange={setPriority}/>
       <Menu anchorEl={menu?.anchor} open={!!menu} onClose={() => setMenu(null)}>
         {post.canPinComment && (
           <MenuItem

@@ -1,4 +1,6 @@
 "use client";
+import {NotificationToast} from "@/features/notifications/toast";
+import {SwipeDismiss} from "@/shared/swipe-dismiss";
 import { useEffect, useRef, useState } from "react";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
@@ -31,7 +33,7 @@ export function OperationsRuntime() {
   }, [notices, localMutations, session?.teacher.id]);
   const pending = Object.values(jobs).filter((j) => j.status === "IN_PROGRESS");
   if (!session) return null;
-  return <>
+  return <><NotificationToast />
     {!!pending.length && <Box sx={{ position: "fixed", bottom: 84, right: 16, left: { xs: 16, sm: "auto" }, zIndex: 1600 }}><Alert severity="info" action={<Button disabled={lookup.isFetching} onClick={async () => {
       for (const job of pending) {
         try {
@@ -41,6 +43,6 @@ export function OperationsRuntime() {
         } catch { setToast({ text: "Không kiểm tra được tác vụ. Vui lòng thử lại.", error: true }); }
       }
     }}>Kiểm tra trạng thái</Button>}>Đang xử lý {pending.length} tác vụ. Bạn có thể tiếp tục thao tác.</Alert></Box>}
-    <Snackbar open={!!toast} autoHideDuration={6000} onClose={() => setToast(null)} anchorOrigin={{ vertical: "bottom", horizontal: "right" }}><Alert severity={toast?.error ? "error" : "success"} onClose={() => setToast(null)}>{toast?.text}</Alert></Snackbar>
+    <Snackbar open={!!toast} autoHideDuration={6000} onClose={() => setToast(null)} anchorOrigin={{ vertical: "bottom", horizontal: "right" }}><SwipeDismiss onDismiss={()=>setToast(null)}><Alert severity={toast?.error ? "error" : "success"} onClose={() => setToast(null)}>{toast?.text}</Alert></SwipeDismiss></Snackbar>
   </>;
 }
