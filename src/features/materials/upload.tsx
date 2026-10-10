@@ -168,9 +168,7 @@ export function UploadDialog({
       fullWidth
       maxWidth="md"
     >
-      <DialogTitle>
-        Upload {source === "avatar" ? "ảnh đại diện" : postId ? "đính kèm bình luận" : sessionId ? "vào phiên học" : "vào kho"}
-      </DialogTitle>
+      <DialogTitle>{source === "avatar" ? "Tải ảnh đại diện" : "Upload " + (postId ? "đính kèm bình luận" : sessionId ? "vào phiên học" : "vào kho")}</DialogTitle>
       <DialogContent>
         <Feedback
           loading={settings.isLoading}

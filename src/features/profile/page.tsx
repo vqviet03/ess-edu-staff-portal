@@ -52,7 +52,7 @@ function ProfileForm({initial,saved}:{initial:PersonalProfile;saved:()=>void}) {
           <ProfileAvatar name={icon} value={{fileId:null,icon,color:draft.avatar.color}}/>
         </IconButton></Tooltip>)}
     </Stack>
-    <Stack direction="row" spacing={1}>{avatarColors.map(color=><IconButton key={color} aria-label={`Màu ${color}`} aria-pressed={draft.avatar.color===color} onClick={()=>setDraft(d=>({...d,avatar:{...d.avatar,color}}))} sx={{border:draft.avatar.color===color?"2px solid":"1px solid",borderColor:"primary.main",width:36,height:36}}><Box sx={{bgcolor:color,width:24,height:24,borderRadius:"50%"}}/></IconButton>)}</Stack>
+    <Stack direction="row" sx={{flexWrap:"wrap",gap:1}}>{avatarColors.map(color=><IconButton key={color} aria-label={`Màu ${color}`} aria-pressed={draft.avatar.color===color} onClick={()=>setDraft(d=>({...d,avatar:{...d.avatar,color}}))} sx={{border:draft.avatar.color===color?"2px solid":"1px solid",borderColor:"primary.main",width:44,height:44}}><Box sx={{bgcolor:color,width:24,height:24,borderRadius:"50%"}}/></IconButton>)}</Stack>
     <TextField size="small" label="Họ tên" value={draft.fullName} onChange={e=>field("fullName",e.target.value)} required slotProps={{htmlInput:{maxLength:200}}}/>
     <Stack direction={{xs:"column",sm:"row"}} spacing={2}>
       <TextField fullWidth size="small" label="Biệt danh" value={draft.nickname??""} onChange={e=>field("nickname",e.target.value)}/>
