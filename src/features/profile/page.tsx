@@ -17,7 +17,7 @@ import { errorMessage } from "@/api/base-query";
 import { UploadDialog } from "@/features/materials/upload";
 import { useUnsaved } from "@/shared/unsaved";
 import { ProfileAvatar } from "./avatar";
-import { avatarColors, avatarIcons, profileError, type PersonalProfile } from "./models";
+import { avatarColors, avatarIcons, avatarLabels, profileError, type PersonalProfile } from "./models";
 export function PersonalProfilePage() {
   const q = usePersonalProfileQuery();
   const [message,setMessage]=useState("");
@@ -47,8 +47,8 @@ function ProfileForm({initial,saved}:{initial:PersonalProfile;saved:()=>void}) {
     </Stack>
     <Typography variant="body2">Chọn biểu tượng và màu pastel hoặc tải ảnh của bạn.</Typography>
     <Stack direction="row" sx={{flexWrap:"wrap",gap:1}}>
-      {avatarIcons.map(icon=><Tooltip key={icon} title={{person:"Người",pets:"Thú cưng",rabbit:"Thỏ",nature:"Thiên nhiên",robot:"Robot",face:"Gương mặt",child:"Em bé"}[icon]}>
-        <IconButton aria-label={icon} aria-pressed={!draft.avatar.fileId&&draft.avatar.icon===icon} onClick={()=>setDraft(d=>({...d,avatar:{...d.avatar,fileId:null,icon}}))} sx={{outline:draft.avatar.icon===icon&&!draft.avatar.fileId?"2px solid":"none",outlineColor:"primary.main"}}>
+      {avatarIcons.map(icon=><Tooltip key={icon} title={avatarLabels[icon]}>
+        <IconButton aria-label={avatarLabels[icon]} aria-pressed={!draft.avatar.fileId&&draft.avatar.icon===icon} onClick={()=>setDraft(d=>({...d,avatar:{...d.avatar,fileId:null,icon}}))} sx={{outline:draft.avatar.icon===icon&&!draft.avatar.fileId?"2px solid":"none",outlineColor:"primary.main"}}>
           <ProfileAvatar name={icon} value={{fileId:null,icon,color:draft.avatar.color}}/>
         </IconButton></Tooltip>)}
     </Stack>
