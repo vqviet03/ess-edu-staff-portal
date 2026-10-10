@@ -19,7 +19,7 @@ export const collaborationApi = api.injectEndpoints({
    }
   }),
   recordContentView:b.mutation<{recorded:boolean},{kind:"POST"|"COMMENT";id:string}>({
-   query:q=>({url:`/${q.kind==="POST"?"posts":"comments"}/${q.id}/view`,method:"POST"})
+   query:q=>({url:`/${q.kind==="POST"?"posts":"comments"}/${q.id}/view`,method:"POST"}),transformResponse:unwrap<{recorded:boolean}>
   }),
   contentViewers:b.query<Viewers,{kind:"POST"|"COMMENT";id:string;page:number}>({
    query:q=>({url:`/${q.kind==="POST"?"posts":"comments"}/${q.id}/viewers`,params:{page:q.page}}),

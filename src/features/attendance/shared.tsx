@@ -232,7 +232,7 @@ export function AttendanceCalendar({
                 </Typography>
                 <Typography sx={{ fontSize: 10, color: "var(--att-muted)" }}>
                   {item?.isPinned
-                    ? <PushPin sx={{fontSize:13,color:"var(--att-blue)"}}/>
+                    ? <PushPin aria-label="Lịch dự kiến đã ghim" sx={{fontSize:13,color:"var(--att-blue)"}}/>
                     : item?.isHoliday ? "Nghỉ" : date === today
                     ? "Nay"
                     : item?.replaced

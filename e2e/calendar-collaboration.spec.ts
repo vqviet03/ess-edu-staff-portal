@@ -17,12 +17,12 @@ test("manager pins future bonus, cannot attend it, and cancellation retains cale
  await page.getByRole("button",{name:"Xác nhận",exact:true}).click();
  await expect(page.getByText("Học thêm dự kiến",{exact:false})).toBeVisible();
  const futureDay=page.getByRole("button",{name:dateLabel(future),exact:true});
- await expect(futureDay.locator('[data-testid="PushPinIcon"]')).toBeVisible();
+ await expect(futureDay.locator('svg[aria-label="Lịch dự kiến đã ghim"]')).toBeVisible();
  await expect(page.getByRole("checkbox",{name:/Có mặt:/}).last()).toBeDisabled();
  await page.getByRole("button",{name:"Hủy lịch đã xếp",exact:true}).click();
  await page.getByLabel("Ghi chú / lý do").fill("Chưa đủ học sinh đăng ký");
  await page.getByRole("button",{name:"Xác nhận",exact:true}).click();
- await expect(futureDay.locator('[data-testid="PushPinIcon"]')).toHaveCount(0);
+ await expect(futureDay.locator('svg[aria-label="Lịch dự kiến đã ghim"]')).toHaveCount(0);
  await expect(page.getByText("Đã hủy lịch",{exact:true}).last()).toBeVisible();
 });
 test("manager notification policy is versioned and schedule priority remains important",async({page})=>{
