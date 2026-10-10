@@ -1,4 +1,5 @@
 "use client";
+import { ContentViews } from "@/features/presence/views";
 import { useState, type ReactNode } from "react";
 import Avatar from "@mui/material/Avatar";
 import Box from "@mui/material/Box";
@@ -49,10 +50,12 @@ export function PostSurface({
   draft = false,
   content,
   afterMedia,
+  headerActions,
 }: {
   draft?: boolean;
   content?: ReactNode;
   afterMedia?: ReactNode;
+  headerActions?: ReactNode;
   post: Post;
   children: ReactNode;
   commentOpen: boolean;
@@ -99,6 +102,7 @@ export function PostSurface({
       }}
     >
       <Stack spacing={2}>
+        {!draft && <Box sx={{alignSelf:"flex-end"}}><ContentViews kind="POST" id={post.id}/></Box>}
         <Stack direction="row" spacing={1.5} sx={{ alignItems: "flex-start" }}>
           <Avatar
             sx={{
@@ -137,6 +141,7 @@ export function PostSurface({
               </Typography>
             )}
           </Box>
+          {headerActions}
           {(onEdit || onDelete) && (
             <>
               <Tooltip title="Thao tác bài đăng">

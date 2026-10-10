@@ -29,6 +29,7 @@ export const createStaffApi = (query = baseQuery) =>
     refetchOnMountOrArgChange: false,
     tagTypes: [
       "Attendance",
+      "Members",
       "Rewards",
       "Schedule",
       "Auth",
@@ -196,12 +197,12 @@ export const createStaffApi = (query = baseQuery) =>
       }),
       publishAssessment: b.mutation<
         { published: boolean },
-        { id: string; version: number; publish: boolean }
+        { id: string; version: number; publish: boolean;notificationPriority?:"NORMAL"|"IMPORTANT" }
       >({
-        query: ({ id, version, publish }) => ({
+        query: ({ id, version, publish, notificationPriority }) => ({
           url: `/assessments/${encodeURIComponent(id)}/${publish ? "publish" : "unpublish"}`,
           method: "POST",
-          body: { version },
+          body: { version,notificationPriority },
         }),
         transformResponse: unwrap<{ published: boolean }>,
         invalidatesTags: (_, error) =>

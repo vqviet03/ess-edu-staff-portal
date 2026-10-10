@@ -1,4 +1,5 @@
 "use client";
+import {NotificationPrioritySelect} from "@/features/notifications/priority";
 import { useRef, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
@@ -61,6 +62,7 @@ function AwardDialog({
   onClose: () => void;
 }) {
   const router = useRouter(),
+    [priority,setPriority]=useState<"NORMAL"|"IMPORTANT"|undefined>(),
     [date, setDate] = useState(vietnamToday()),
     query = useClassRewardsQuery({ classId, date }),
     [values, setValues] = useState<Record<string, number>>({}),
@@ -98,6 +100,7 @@ function AwardDialog({
         amount,
         date,
         key: req.key,
+        notificationPriority:priority,
       }).unwrap();
       delete requests.current[row.studentId];
       setValues((v) => ({ ...v, [row.studentId]: 0 }));
@@ -158,7 +161,7 @@ function AwardDialog({
             </Stack>
           </Stack>
         </DialogTitle>
-        <DialogContent>
+        <DialogContent><NotificationPrioritySelect classId={classId} feature="REWARD" value={priority} onChange={setPriority}/>
           <Stack spacing={2}>
             <Stack
               direction={{ xs: "column", sm: "row" }}

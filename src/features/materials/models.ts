@@ -87,6 +87,7 @@ export interface Post {
   canPinComment?: boolean;
 }
 export interface PostInput {
+  notificationPriority?: "NORMAL" | "IMPORTANT";
   postType?: PostType;
   sessionId?: string | null;
   title: string;
@@ -144,6 +145,8 @@ export interface DeletionItem {
   usages: { id: string; title: string; sessionId: string; classId: string }[];
 }
 export interface Notification {
+  priority?: "NORMAL" | "IMPORTANT";
+  actorName?: string; actorPublicId?: string; actorRole?: string; subject?: string; message?: string;
   classId?: string | null;
   id: string;
   type: string;

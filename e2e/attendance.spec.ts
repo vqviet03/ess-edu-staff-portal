@@ -41,12 +41,12 @@ async function fixture(page: Page, scheduled = true) {
           ? null
           : (request.postDataJSON() as Record<string, unknown>),
       date = url.searchParams.get("date") ?? today;
-    if (request.method() === "POST") {
+    if (request.method() === "POST" || url.pathname.endsWith("/calendar")) {
       confirmed = true;
       version++;
       writes.push("CONFIRM");
     }
-    if (request.method() === "PUT") {
+    if (request.method() === "PUT" && !url.pathname.endsWith("/calendar")) {
       saved = true;
       version++;
       writes.push("SAVE");
@@ -181,10 +181,10 @@ test("off-schedule requires reason, manager controls stay read-only", async ({
     page.getByRole("checkbox", { name: /Có mặt:/ }).first(),
   ).toBeDisabled();
   await page
-    .getByRole("button", { name: "Xác nhận ngày học ngoài lịch", exact: true })
+    .getByRole("button", { name: "Ghim lịch học bù / học thêm", exact: true })
     .first()
     .click();
-  await page.getByLabel("Chi tiết lý do").fill("Ôn tập");
+  await page.getByLabel("Ghi chú / lý do").fill("Ôn tập");
   await page.getByRole("button", { name: "Xác nhận", exact: true }).click();
   await expect(
     page.getByRole("checkbox", { name: /Có mặt:/ }).first(),

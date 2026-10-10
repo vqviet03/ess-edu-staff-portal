@@ -202,3 +202,8 @@ Thread bỏ panel đếm bài/kho; nút Tạo bài đăng mở trình soạn gi�
 Production vẫn dùng RTK Query/API thật và static export như cấu hình hiện có. HTTP fixtures chỉ nằm trong tests/e2e; không có dữ liệu điểm danh giả trong ứng dụng. Backend cần Core migration 016 + Materials 007 trước rollout chức năng mới; không thêm timer/polling hoặc biến GCP.
 
 Biểu đồ Unit, chênh lệch và điểm tích luỹ dùng Apache ECharts 6 (Apache-2.0, không cần license thương mại), tải theo màn hình báo cáo. Zoom/pan và slider là `dataZoom` native trên trục X: khung biểu đồ/trục Y luôn cố định, mặc định hiển thị các mốc mới nhất theo chiều rộng. Kéo biểu đồ/slider để xem lịch sử; chụm hai ngón hoặc Ctrl + lăn chuột để zoom, Shift + lăn chuột để pan. Icon −/+ thu/phóng, icon khung xem toàn bộ, icon cuối về dữ liệu mới nhất. Khi focus biểu đồ: ←/→ pan, +/− zoom, End về mới nhất. Trục ngày giữ khoảng cách thời gian thực và tooltip ngày/tháng/năm; ô null không thành 0. Giữ đủ 7 kỹ năng, 8 biểu đồ chênh lệch và 4 đường điểm tích luỹ, màu/chú thích/nút ẩn hiện theo giao diện MUI. Đường cong monotone-X đi qua điểm, không vượt giá trị hai đầu đoạn. Pan/zoom/ẩn hiện không gọi API và không có interval. GitHub Pages vẫn static export; không thay đổi cấu hình backend hoặc deployment.
+
+
+## Lịch ngoại lệ, thông báo và thành viên
+
+Xem [hướng dẫn chức năng và API](docs/calendar-notifications-presence.md). Bản này cần migrations mới của backend trước khi dùng. Không có polling presence/notifications hoặc worker quét DB; tab ẩn đóng socket.

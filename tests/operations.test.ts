@@ -72,5 +72,6 @@ test("Excel CREATE cho phép ID rỗng/trùng; UPDATE vẫn yêu cầu ID ổn �
 });
 test("Chỉ mutation nghiệp vụ dùng hàng đợi; thông báo invalidate đúng nhóm query", () => {
   assert(businessMutation("/manager/changes/commit", "POST")); assert(businessMutation("/assessments/a/results/batch", "PATCH")); assert(!businessMutation("/manager/changes/preview", "POST")); assert(!businessMutation("/auth/login", "POST"));
+  for(const path of ["/classes/c/attendance/calendar","/classes/c/notification-settings","/classes/c/schedule","/classes/c/rewards"])assert(!businessMutation(path,"PUT"));
   assert(!relatedTags(["teachers"]).includes("ClassAccess")); assert(!relatedTags(["accounts"]).includes("Auth")); assert(relatedTags(["results"]).includes("Results")); assert(!relatedTags(["labels"]).includes("Results"));
 });

@@ -1,4 +1,6 @@
 "use client";
+import {ClassNotificationSettings} from "@/features/notifications/class-settings";
+import {ClassPresenceContext,ClassMembersButton} from "@/features/presence/roster";
 import dynamic from "next/dynamic";
 const ClassRewardActions = dynamic(() =>
   import("@/features/rewards/class-actions").then((m) => m.ClassRewardActions),
@@ -643,6 +645,8 @@ function Profile({
         />
       )}
       {entity === "classes" && "totalUnits" in r ? (
+        <><ClassPresenceContext classId={r.id}/>
+        <Stack direction="row"><ClassMembersButton classId={r.id}/><ClassNotificationSettings classId={r.id}/></Stack>
         <ClassDetailTabs
           attendance={
             access.access?.canView ? (
@@ -690,7 +694,7 @@ function Profile({
             )
           }
           profile={profileContent}
-        />
+        /></>
       ) : (
         <>
           <Tabs

@@ -1,4 +1,6 @@
 "use client";
+import {ClassNotificationSettings} from "@/features/notifications/class-settings";
+import {ClassPresenceContext,ClassMembersButton} from "@/features/presence/roster";
 import dynamic from "next/dynamic";
 import { useState } from "react";
 import { useSearchParams } from "next/navigation";
@@ -167,6 +169,8 @@ function TeacherClassDashboard({
         name={c.name}
         editable={permissions.editLearning}
       />
+      <ClassPresenceContext classId={c.id}/>
+      <Stack direction="row"><ClassMembersButton classId={c.id}/><ClassNotificationSettings classId={c.id}/></Stack>
       <ClassDetailTabs
         attendance={<AttendancePanel classId={c.id} />}
         value={tab}

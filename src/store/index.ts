@@ -1,4 +1,4 @@
-import { rewardNoticeTags } from "@/features/rewards/realtime";
+import { notificationResourceTags } from "@/features/notifications/resource-tags";
 import { configureStore, createListenerMiddleware } from "@reduxjs/toolkit";
 import { useDispatch, useSelector } from "react-redux";
 import { workspaceSlice } from "./workspace";
@@ -29,9 +29,10 @@ export function makeStore(service = api) {
       const before = runtime.getOriginalState() as { operations: { librarySnapshot: unknown; libraryNotices: Record<string, boolean> } };
       store.dispatch(libraryApi.util.upsertQueryData("notifications", {}, action.payload));
       if (action.payload.items.some(n => n.type === "SYSTEM" && n.href === "/manage/settings/" && !before.operations.libraryNotices[n.id])) runtime.dispatch(service.util.invalidateTags(["ApplicationSettings", "SettingsProposals"]));
-      if(before.operations.librarySnapshot) for(const n of action.payload.items.filter(n=>!before.operations.libraryNotices[n.id])) { const t=rewardNoticeTags(n.type,n.classId); if(t)runtime.dispatch(service.util.invalidateTags(t)); }
-      if (before.operations.librarySnapshot && action.payload.items.some((notice) => !before.operations.libraryNotices[notice.id] && !rewardNoticeTags(notice.type,notice.classId)))
-        runtime.dispatch(service.util.invalidateTags(["Materials", "Folders", "Posts", "Comments", "Storages", "DeletionRequests"]));
+      if (before.operations.librarySnapshot) {
+        const tags=action.payload.items.filter(n=>!before.operations.libraryNotices[n.id]).flatMap(n=>notificationResourceTags(n.type,n.classId));
+        if(tags.length)runtime.dispatch(service.util.invalidateTags(tags));
+      }
     },
   });
   listener.startListening({
@@ -45,7 +46,8 @@ export function makeStore(service = api) {
       }
       // Only an actual server change refreshes subscribed data; notices are
       // patched locally and never cause another /notifications request.
-      runtime.dispatch(service.util.invalidateTags(rewardNoticeTags(action.payload.notice.type,action.payload.notice.classId) ?? ["Materials", "Folders", "Posts", "Comments", "Storages", "DeletionRequests"]));
+      const tags=notificationResourceTags(action.payload.notice.type,action.payload.notice.classId);
+      if(tags.length)runtime.dispatch(service.util.invalidateTags(tags));
     },
   });
   listener.startListening({

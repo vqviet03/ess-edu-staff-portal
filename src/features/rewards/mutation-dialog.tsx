@@ -1,4 +1,5 @@
 "use client";
+import {NotificationPrioritySelect} from "@/features/notifications/priority";
 import { useRef, useState } from "react";
 import Alert from "@mui/material/Alert";
 import Button from "@mui/material/Button";
@@ -50,6 +51,7 @@ export function RewardMutationDialog({
   onClose: () => void;
   onSaved: () => void;
 }) {
+  const [notificationPriority,setNotificationPriority]=useState<"NORMAL"|"IMPORTANT"|undefined>();
   const [amount, setAmount] = useState(edit?.amount ?? initialAmount),
     [note, setNote] = useState(edit?.note ?? ""),
     [reason, setReason] = useState(""),
@@ -90,6 +92,7 @@ export function RewardMutationDialog({
       date,
       reason,
       kind,
+      notificationPriority,
       classId,
       studentId,
     });
@@ -105,6 +108,7 @@ export function RewardMutationDialog({
           note: note.trim(),
           reason: reason.trim(),
           key: request.current.key,
+          notificationPriority,
         }).unwrap();
       else if (reverse)
         await undo({
@@ -113,6 +117,7 @@ export function RewardMutationDialog({
           entryId: reverse.id,
           note: note.trim(),
           key: request.current.key,
+          notificationPriority,
         }).unwrap();
       else
         await add({
@@ -123,6 +128,7 @@ export function RewardMutationDialog({
           date,
           note: note.trim(),
           key: request.current.key,
+          notificationPriority,
         }).unwrap();
       setChanged(false);
       onSaved();
@@ -246,6 +252,7 @@ export function RewardMutationDialog({
             error={note.length > 2000}
             slotProps={{ htmlInput: { maxLength: 2000 } }}
           />
+          <NotificationPrioritySelect classId={classId} feature="REWARD" value={notificationPriority} onChange={v=>{setNotificationPriority(v);setChanged(true);}}/>
           <Feedback error={error} />
           {edit && (
             <TextField

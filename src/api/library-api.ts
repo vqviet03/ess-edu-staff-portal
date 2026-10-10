@@ -389,9 +389,9 @@ export const libraryApi = api.injectEndpoints({
     }),
     removePost: b.mutation<
       unknown,
-      { id: string; version: number; reason: string }
+      { id: string; version: number; reason: string; notificationPriority?: "NORMAL"|"IMPORTANT" }
     >({
-      query: ({ id, ...body }) => mutation(`/posts/${id}`, body, "DELETE"),
+      query: ({ id, notificationPriority, ...body }) => ({...mutation(`/posts/${id}`, body, "DELETE"),params:{notificationPriority}}),
       invalidatesTags: ["Posts"],
     }),
     reaction: b.mutation<
@@ -402,14 +402,13 @@ export const libraryApi = api.injectEndpoints({
         classId?: string;
         cursor?: string;
         reaction: Reaction | null;
+        notificationPriority?: "NORMAL"|"IMPORTANT";
       }
     >({
-      query: (q) =>
-        mutation(
-          `/posts/${q.id}/reaction`,
-          q.reaction ? { reaction: q.reaction } : undefined,
-          q.reaction ? "PUT" : "DELETE",
-        ),
+      query: (q) => ({
+        ...mutation(`/posts/${q.id}/reaction`,q.reaction ? { reaction:q.reaction } : undefined,q.reaction?"PUT":"DELETE"),
+        params:{notificationPriority:q.notificationPriority},
+      }),
       async onQueryStarted(q, { dispatch, getState, queryFulfilled }) {
         const patches = [
           ...libraryApi.util
@@ -459,12 +458,13 @@ export const libraryApi = api.injectEndpoints({
     }),
     pinComment: b.mutation<
       Comment,
-      { id: string; postId: string; isPinned: boolean; version: number }
+      { id: string; postId: string; isPinned: boolean; version: number; notificationPriority?: "NORMAL"|"IMPORTANT" }
     >({
       query: (q) => ({
         url: `/comments/${q.id}/pin`,
         method: "PUT",
         body: { isPinned: q.isPinned, version: q.version },
+        params:{notificationPriority:q.notificationPriority},
       }),
       transformResponse: unwrap<Comment>,
       invalidatesTags: (_, e, q) =>
@@ -491,6 +491,7 @@ export const libraryApi = api.injectEndpoints({
         parentId?: string;
         version?: number;
         materialIds?: string[];
+        notificationPriority?: "NORMAL"|"IMPORTANT";
       }
     >({
       query: ({ id, postId, ...body }) =>
@@ -549,14 +550,12 @@ export const libraryApi = api.injectEndpoints({
     }),
     removeComment: b.mutation<
       unknown,
-      { id: string; postId: string; version: number }
+      { id: string; postId: string; version: number; notificationPriority?: "NORMAL"|"IMPORTANT" }
     >({
-      query: ({ id, version }) =>
-        mutation(
-          `/comments/${id}`,
-          { version, reason: "Người dùng xóa bình luận" },
-          "DELETE",
-        ),
+      query: ({ id, version,notificationPriority }) => ({
+        ...mutation(`/comments/${id}`,{version,reason:"Người dùng xóa bình luận"},"DELETE"),
+        params:{notificationPriority},
+      }),
       invalidatesTags: (_, error, q) =>
         error ? [] : [{ type: "Comments", id: q.postId }, "Posts"],
     }),
