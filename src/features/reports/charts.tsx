@@ -1,36 +1,307 @@
-'use client';
-import { Bar, BarChart, CartesianGrid, Cell, LabelList, Legend, Line, LineChart, Rectangle, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
-import { useState } from 'react';
-import { ChartViewport } from '@/components/chart-viewport';
-import Button from '@mui/material/Button';
-import Stack from '@mui/material/Stack';
-import Alert from '@mui/material/Alert';
-import { useTheme } from '@mui/material/styles';
-import Box from '@mui/material/Box';
-import Typography from '@mui/material/Typography';
-import { changes, percentage, skills } from './utils';
-import type { ProgressEntry } from './models';
-export default function Charts({entries, deltas}: {entries: ProgressEntry[]; deltas: boolean}) {
+"use client";
+import { useMemo, useState } from "react";
+import Button from "@mui/material/Button";
+import Stack from "@mui/material/Stack";
+import Alert from "@mui/material/Alert";
+import Box from "@mui/material/Box";
+import Typography from "@mui/material/Typography";
+import { useTheme } from "@mui/material/styles";
+import type { EChartsOption } from "echarts";
+import { NativeChart } from "@/components/native-chart";
+import {
+  chartAxes,
+  chartTooltip,
+  curvedLine,
+  signedPercentage,
+} from "@/utils/chart-options";
+import { changes, percentage, skills } from "./utils";
+import type { ProgressEntry } from "./models";
+export default function Charts({
+  entries,
+  deltas,
+}: {
+  entries: ProgressEntry[];
+  deltas: boolean;
+}) {
   const [hidden, setHidden] = useState<string[]>([]);
-  const toggle = (code: string) => setHidden(current => current.includes(code) ? current.filter(item => item !== code) : [...current, code]);
-  const choices = deltas ? [...skills, {code: 'total', label: 'Tổng điểm', color: ''}] : skills;
-  const controls = <Stack direction="row" useFlexGap sx={{gap: .5, flexWrap: 'wrap', mb: 1.5}} aria-label={deltas ? 'Hiện hoặc ẩn biểu đồ thay đổi' : 'Hiện hoặc ẩn kỹ năng'}>{choices.map(skill => <Button key={skill.code} size="small" variant={hidden.includes(skill.code) ? 'outlined' : 'contained'} aria-pressed={!hidden.includes(skill.code)} aria-label={`${hidden.includes(skill.code) ? 'Hiện' : 'Ẩn'} ${skill.label}${deltas ? ' · thay đổi' : ''}`} onClick={() => toggle(skill.code)}>{skill.label}</Button>)}<Button onClick={() => setHidden([])}>Hiện tất cả{deltas ? ' biểu đồ thay đổi' : ' kỹ năng'}</Button><Button onClick={() => setHidden(choices.map(skill => skill.code))}>Ẩn tất cả{deltas ? ' biểu đồ thay đổi' : ' kỹ năng'}</Button></Stack>;
-  const theme = useTheme(); const tick = {fill: theme.palette.text.secondary, fontSize: 12};
-  const tooltipStyle = {backgroundColor: theme.palette.background.paper, color: theme.palette.text.primary, borderColor: theme.palette.divider, borderRadius: 10};
-  const data = entries.map(entry => ({name: entry.unitName, ...entry.skills}));
-  if (!deltas) return <><Box>{controls}</Box>{hidden.length === skills.length && <Alert severity="info">Tất cả đường đang ẩn. Chọn kỹ năng để hiển thị lại.</Alert>}<Box data-testid="skills-chart" sx={{width: '100%', minWidth: 0}}><ChartViewport height={370} pointCount={data.length} label="Tiến độ kỹ năng theo Unit"><ResponsiveContainer width="100%" height="100%"><LineChart data={data} margin={{top: 12, right: 12, left: -20, bottom: 0}} accessibilityLayer>
-    <CartesianGrid stroke={theme.palette.divider} strokeDasharray="3 3"/><XAxis dataKey="name" tick={tick} axisLine={false} tickLine={false}/><YAxis domain={[0, 100]} ticks={[0, 20, 40, 60, 80, 100]} tickFormatter={n => `${n}%`} tick={tick} axisLine={false} tickLine={false}/>
-    <Tooltip contentStyle={tooltipStyle} formatter={(value, name) => [percentage(value == null ? null : Number(value)), name]}/><Legend wrapperStyle={{fontSize: 12, paddingTop: 14}} iconType="circle"/>
-    {skills.map(skill => <Line key={skill.code} hide={hidden.includes(skill.code)} name={skill.label} dataKey={skill.code} type="monotone" stroke={skill.color} strokeWidth={2} dot={{r: 3}} activeDot={{r: 5}} connectNulls={false} isAnimationActive={false}/>)}
-  </LineChart></ResponsiveContainer></ChartViewport></Box></>;
-  return <>{controls}{hidden.length === choices.length && <Alert severity="info">Tất cả biểu đồ thay đổi đang ẩn. Chọn kỹ năng để hiển thị lại.</Alert>}<Box sx={{display: 'grid', gridTemplateColumns: {xs: '1fr', sm: '1fr 1fr', lg: 'repeat(4, minmax(0, 1fr))'}, gap: 1.5}}>
-    {[...skills, {code: 'total' as const, label: 'Tổng điểm', color: ''}].filter(skill => !hidden.includes(skill.code)).map(skill => {
-      const values = changes(entries, skill.code); const limit = Math.max(80, ...values.map(v => Math.ceil(Math.abs(v.value ?? 0) / 20) * 20));
-      return <Box data-testid="change-chart" key={skill.code} sx={{bgcolor: 'background.default', borderRadius: 2, p: 1.5, minWidth: 0}}><Typography sx={{fontWeight: 700, mb: 1}}>{skill.label}</Typography>{!values.length ? <Typography color="text.secondary">Cần ít nhất 2 Unit để so sánh.</Typography> : <ChartViewport height={215} pointCount={values.length} minPointGap={96} label={`Thay đổi ${skill.label}`}><ResponsiveContainer width="100%" height="100%"><BarChart data={values} accessibilityLayer margin={{top: 20, right: 12, bottom: 0, left: -16}}>
-        <CartesianGrid stroke={theme.palette.divider} vertical={false}/><XAxis dataKey="label" tick={tick} tickLine={false} axisLine={false}/><YAxis domain={[-limit, limit]} ticks={[-limit, -limit / 2, 0, limit / 2, limit]} tickFormatter={n => `${n}%`} tick={tick} tickLine={false} axisLine={false}/><ReferenceLine y={0} stroke={theme.palette.text.secondary}/>
-        <Tooltip contentStyle={tooltipStyle} formatter={value => [value == null ? 'Chưa có dữ liệu' : `${Number(value) > 0 ? '+' : ''}${Number(value).toFixed(1)} điểm phần trăm (tỷ lệ Unit sau − Unit trước)`, 'Thay đổi']}/>
-        <Bar dataKey="value" shape={<Rectangle/>} maxBarSize={38} isAnimationActive={false}>{values.map((v, i) => <Cell key={i} fill={(v.value ?? 0) < 0 ? '#f16b95' : '#45c49a'}/>)}<LabelList dataKey="value" position="top" formatter={v => v == null ? '—' : `${Number(v) > 0 ? '+' : ''}${Number(v).toFixed(1)}%`} fill={theme.palette.text.primary} fontSize={12}/></Bar>
-      </BarChart></ResponsiveContainer></ChartViewport>}</Box>;
-    })}
-  </Box></>;
+  const theme = useTheme();
+  const sorted = useMemo(
+    () => [...entries].sort((a, b) => a.unitOrder - b.unitOrder),
+    [entries],
+  );
+  const choices = deltas
+    ? [...skills, { code: "total", label: "Tổng điểm", color: "" }]
+    : skills;
+  const controls = (
+    <Stack
+      direction="row"
+      useFlexGap
+      sx={{ gap: 0.5, flexWrap: "wrap", mb: 1.5 }}
+      aria-label={
+        deltas ? "Hiện hoặc ẩn biểu đồ thay đổi" : "Hiện hoặc ẩn kỹ năng"
+      }
+    >
+      {choices.map((skill) => (
+        <Button
+          key={skill.code}
+          size="small"
+          variant={hidden.includes(skill.code) ? "outlined" : "contained"}
+          aria-pressed={!hidden.includes(skill.code)}
+          aria-label={`${hidden.includes(skill.code) ? "Hiện" : "Ẩn"} ${skill.label}${deltas ? " · thay đổi" : ""}`}
+          onClick={() =>
+            setHidden((current) =>
+              current.includes(skill.code)
+                ? current.filter((item) => item !== skill.code)
+                : [...current, skill.code],
+            )
+          }
+        >
+          {skill.label}
+        </Button>
+      ))}
+      <Button onClick={() => setHidden([])}>
+        Hiện tất cả{deltas ? " biểu đồ thay đổi" : " kỹ năng"}
+      </Button>
+      <Button onClick={() => setHidden(choices.map((skill) => skill.code))}>
+        Ẩn tất cả{deltas ? " biểu đồ thay đổi" : " kỹ năng"}
+      </Button>
+    </Stack>
+  );
+  const option = useMemo<EChartsOption>(
+    () => ({
+      ...chartAxes(theme),
+      xAxis: {
+        ...chartAxes(theme).xAxis,
+        data: sorted.map((entry) => entry.unitName),
+        boundaryGap: false,
+      },
+      yAxis: {
+        ...chartAxes(theme).yAxis,
+        min: 0,
+        max: 100,
+        interval: 20,
+        axisLabel: {
+          color: theme.palette.text.secondary,
+          formatter: "{value}%",
+        },
+      },
+      tooltip: {
+        formatter: (params) => {
+          const item = Array.isArray(params) ? params[0] : params;
+          const entry = sorted[item?.dataIndex];
+          if (!entry) return "";
+          return chartTooltip(
+            entry.unitName,
+            skills
+              .filter((skill) => !hidden.includes(skill.code))
+              .map((skill) => ({
+                label: skill.label,
+                color: skill.color,
+                value: percentage(entry.skills[skill.code]),
+              })),
+          );
+        },
+      },
+      series: skills
+        .filter((skill) => !hidden.includes(skill.code))
+        .map((skill) => ({
+          ...curvedLine,
+          id: skill.code,
+          name: skill.label,
+          itemStyle: { color: skill.color },
+          data: sorted.map((entry) => entry.skills[skill.code]),
+          connectNulls: false,
+        })),
+    }),
+    [sorted, hidden, theme],
+  );
+  if (!deltas)
+    return (
+      <>
+        {controls}
+        {hidden.length === skills.length && (
+          <Alert severity="info">
+            Tất cả đường đang ẩn. Chọn kỹ năng để hiển thị lại.
+          </Alert>
+        )}
+        <Box data-testid="skills-chart" sx={{ width: "100%", minWidth: 0 }}>
+          <NativeChart
+            option={option}
+            positions={sorted.map((_, i) => i)}
+            height={330}
+            label="Tiến độ kỹ năng theo Unit"
+          />
+          <Stack
+            direction="row"
+            useFlexGap
+            sx={{ justifyContent: "center", gap: 1.5, flexWrap: "wrap", mt: 1 }}
+          >
+            {skills
+              .filter((skill) => !hidden.includes(skill.code))
+              .map((skill) => (
+                <Typography
+                  key={skill.code}
+                  variant="caption"
+                  color="text.secondary"
+                >
+                  <Box
+                    component="span"
+                    sx={{
+                      display: "inline-block",
+                      width: 8,
+                      height: 8,
+                      borderRadius: "50%",
+                      bgcolor: skill.color,
+                      mr: 0.5,
+                    }}
+                  />
+                  {skill.label}
+                </Typography>
+              ))}
+          </Stack>
+        </Box>
+      </>
+    );
+  return (
+    <>
+      {controls}
+      {hidden.length === choices.length && (
+        <Alert severity="info">
+          Tất cả biểu đồ thay đổi đang ẩn. Chọn kỹ năng để hiển thị lại.
+        </Alert>
+      )}
+      <Box
+        sx={{
+          display: "grid",
+          gridTemplateColumns: {
+            xs: "1fr",
+            sm: "1fr 1fr",
+            lg: "repeat(4,minmax(0,1fr))",
+          },
+          gap: 1.5,
+        }}
+      >
+        {[...skills, { code: "total" as const, label: "Tổng điểm", color: "" }]
+          .filter((skill) => !hidden.includes(skill.code))
+          .map((skill) => (
+            <DeltaChart
+              key={skill.code}
+              values={changes(sorted, skill.code)}
+              label={skill.label}
+            />
+          ))}
+      </Box>
+    </>
+  );
+}
+function DeltaChart({
+  values,
+  label,
+}: {
+  values: { label: string; value: number | null }[];
+  label: string;
+}) {
+  const theme = useTheme();
+  const limit = Math.max(
+    80,
+    ...values.map((v) => Math.ceil(Math.abs(v.value ?? 0) / 20) * 20),
+  );
+  const option = useMemo<EChartsOption>(
+    () => ({
+      ...chartAxes(theme),
+      xAxis: {
+        ...chartAxes(theme).xAxis,
+        data: values.map((value) => value.label),
+        axisLabel: {
+          color: theme.palette.text.secondary,
+          fontSize: 11,
+          hideOverlap: true,
+        },
+      },
+      yAxis: {
+        ...chartAxes(theme).yAxis,
+        min: -limit,
+        max: limit,
+        interval: limit / 2,
+        axisLabel: {
+          color: theme.palette.text.secondary,
+          formatter: "{value}%",
+        },
+      },
+      tooltip: {
+        formatter: (params) => {
+          const item = Array.isArray(params) ? params[0] : params;
+          const v = values[item?.dataIndex];
+          return v
+            ? chartTooltip(v.label, [
+                {
+                  label: "Thay đổi",
+                  value:
+                    v.value == null
+                      ? "Chưa có dữ liệu"
+                      : `${v.value > 0 ? "+" : ""}${v.value.toFixed(1)} điểm phần trăm (tỷ lệ Unit sau − Unit trước)`,
+                  color: (v.value ?? 0) < 0 ? "#f16b95" : "#45c49a",
+                },
+              ])
+            : "";
+        },
+      },
+      series: [
+        {
+          type: "bar",
+          id: "change",
+          barMaxWidth: 38,
+          data: values.map((v) => ({
+            value: v.value,
+            itemStyle: {
+              color: (v.value ?? 0) < 0 ? "#f16b95" : "#45c49a",
+              borderRadius: 2,
+            },
+          })),
+          label: {
+            show: true,
+            position: "outside",
+            color: theme.palette.text.primary,
+            fontSize: 12,
+            formatter: (params) =>
+              signedPercentage(values[params.dataIndex].value),
+          },
+          markLine: {
+            silent: true,
+            symbol: "none",
+            label: { show: false },
+            lineStyle: { color: theme.palette.text.secondary, type: "solid" },
+            data: [{ yAxis: 0 }],
+          },
+        },
+      ],
+    }),
+    [values, theme, limit],
+  );
+  return (
+    <Box
+      data-testid="change-chart"
+      sx={{
+        bgcolor: "background.default",
+        borderRadius: 2,
+        p: 1.5,
+        minWidth: 0,
+      }}
+    >
+      <Typography sx={{ fontWeight: 700, mb: 1 }}>{label}</Typography>
+      {!values.length ? (
+        <Typography color="text.secondary">
+          Cần ít nhất 2 Unit để so sánh.
+        </Typography>
+      ) : (
+        <NativeChart
+          option={option}
+          positions={values.map((_, i) => i)}
+          height={235}
+          gap={96}
+          label={`Thay đổi ${label}`}
+        />
+      )}
+    </Box>
+  );
 }
