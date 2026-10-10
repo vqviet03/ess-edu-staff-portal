@@ -7,7 +7,8 @@ export const PRESENCE_SIGNAL_EVENT = "portal:presence-signal";
 export const PRESENCE_CONNECTION_EVENT = "portal:presence-connection";
 let context: string | null = null;
 export function presenceContext() { return context; }
-export function setPresenceContext(classId: string | null) {
+export function setPresenceContext(classId: string | null, force=false) {
+  if(context===classId&&!force)return;
   context = classId;
   window.dispatchEvent(new Event(PRESENCE_CONTEXT_EVENT));
 }

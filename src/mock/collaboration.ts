@@ -1,3 +1,5 @@
+import {projectCalendar} from "./calendar";
+import {validateSchedule} from "@/features/rewards/models";
 import type {Database} from "./fixtures";
 import type {Teacher} from "@/types";
 import type {FetchArgs} from "@reduxjs/toolkit/query";
@@ -45,26 +47,31 @@ export function collaborationRequest(db:Database,staff:Teacher,req:FetchArgs){
    if(!manager)fail(403,"FORBIDDEN","Chỉ quản lý được sửa lịch.");
    if(Number(body.version)!==old.version)fail(409,"VERSION_CONFLICT","Lịch đã thay đổi.");
    const config=body.configuration as ScheduleConfig;
-   state.schedules[classId]={...old,version:old.version+1,effectiveFrom:String(body.effectiveFrom),configuration:config,plannedSessions:Number(body.plannedSessions??old.plannedSessions),planStartDate:String(body.planStartDate??old.planStartDate),occurrences:config.slots.filter(s=>s.date).map(s=>({date:s.date!,startTime:s.startTime,endTime:s.endTime}))};
+   if(!config||!Array.isArray(config.slots)||validateSchedule(config))fail(422,"INVALID_SCHEDULE","Cấu hình lịch không hợp lệ.");
+   state.schedules[classId]={...old,version:old.version+1,effectiveFrom:String(body.effectiveFrom),configuration:config,plannedSessions:Number(body.plannedSessions??old.plannedSessions),planStartDate:typeof body.planStartDate==="string"?body.planStartDate:old.planStartDate,occurrences:config.slots.filter(s=>s.date).map(s=>({date:s.date!,startTime:s.startTime,endTime:s.endTime}))};
   }
-  return state.schedules[classId];
+  const current=state.schedules[classId],projected=projectCalendar(current,Object.values(state.days).filter(d=>d.classId===classId));
+  return {...current,occurrences:projected.occurrences.filter(d=>(!url.searchParams.get("from")||d.date>=url.searchParams.get("from")!)&&(!url.searchParams.get("to")||d.date<=url.searchParams.get("to")!))};
  }
  const date=String(body.date??url.searchParams.get("date")??todayDate()),key=`${classId}:${date}`;
  const roster=db.students[classId]??[];
- const day=state.days[key]??{classId,today:todayDate(),date,version:0,saved:false,scheduled:state.schedules[classId]?.occurrences.some(d=>d.date===date)??false,confirmed:false,replaced:false,reasonKind:null,reason:"",replacesDate:null,startTime:null,endTime:null,updatedBy:null,updatedAt:null,plannedSessions:state.schedules[classId]?.plannedSessions??0,savedSessions:0,supplementalSessions:0,needsAttention:0,items:roster.map(s=>({studentId:s.id,publicId:s.id,name:s.name,nickname:s.nickname,status:"UNSET",stats:{present:0,absent:0,unrecorded:0,plannedSessions:0,absencePercentage:null,warning:"NO_PLAN"}})),calendar:[],changes:[]};
+ const projection=projectCalendar(state.schedules[classId],Object.values(state.days).filter(d=>d.classId===classId));
+ const day=state.days[key]??{classId,today:todayDate(),date,version:0,saved:false,scheduled:projection.occurrences.some(d=>d.date===date),confirmed:false,replaced:false,reasonKind:null,reason:"",replacesDate:null,startTime:null,endTime:null,updatedBy:null,updatedAt:null,plannedSessions:state.schedules[classId]?.plannedSessions??0,savedSessions:0,supplementalSessions:0,needsAttention:0,items:roster.map(s=>({studentId:s.id,publicId:s.id,name:s.name,nickname:s.nickname,status:"UNSET",stats:{present:0,absent:0,unrecorded:0,plannedSessions:0,absencePercentage:null,warning:"NO_PLAN"}})),calendar:[],changes:[]};
+ day.scheduled=projection.occurrences.some(d=>d.date===date);day.replaced=projection.displaced.has(date);
  if(method!=="GET"){
   if(Number(body.version)!==day.version)fail(409,"VERSION_CONFLICT","Buổi học đã thay đổi.");
   if(tail==="/calendar"||tail==="/calendar/cancel"){
    if(!canArrange)fail(403,"FORBIDDEN","Không có quyền xếp lịch.");
+   if(tail.endsWith("/cancel")&&!state.days[key])fail(404,"NOT_FOUND","Không có lịch dự kiến.");
    if(day.saved)fail(409,"ATTENDANCE_EXISTS","Buổi đã điểm danh.");
    if(!String(body.reason??"").trim())fail(422,"REASON_REQUIRED","Nhập lý do.");
    if(tail.endsWith("/cancel")){if(date<todayDate()&&!body.confirmPast)fail(422,"PAST_CONFIRMATION_REQUIRED","Xác nhận hủy buổi đã qua.");day.isCancelled=true;day.isPinned=false;day.isPlanned=false;day.isHoliday=false;day.confirmed=false;}
-   else{if(!["HOLIDAY","MAKEUP","SUPPLEMENTAL"].includes(String(body.kind)))fail(422,"INVALID_CALENDAR_DAY","Loại buổi không hợp lệ.");day.isHoliday=body.kind==="HOLIDAY";day.isPlanned=!day.isHoliday;day.isPinned=!day.isHoliday;day.isCancelled=false;day.reasonKind=body.kind==="HOLIDAY"?null:body.kind as "MAKEUP"|"SUPPLEMENTAL";day.confirmed=!day.isHoliday;}
+   else{if(body.kind==="HOLIDAY"&&!day.scheduled&&!day.isHoliday)fail(422,"NOT_SCHEDULED","Chỉ nghỉ ngày theo lịch.");if(body.kind!=="HOLIDAY"&&day.scheduled&&!day.isPlanned)fail(422,"ALREADY_SCHEDULED","Ngày này đã nằm trong lịch.");if(body.kind==="MAKEUP"&&(!day.plannedSessions||!projection.occurrences.some(d=>d.date>todayDate()&&d.date!==date&&!Object.values(state.days).some(a=>a.classId===classId&&a.date===d.date&&(a.saved||a.reasonKind)))))fail(422,"NO_REMAINING_SESSION","Không còn buổi cuối kế hoạch để học bù.");if(!["HOLIDAY","MAKEUP","SUPPLEMENTAL"].includes(String(body.kind)))fail(422,"INVALID_CALENDAR_DAY","Loại buổi không hợp lệ.");day.isHoliday=body.kind==="HOLIDAY";day.isPlanned=!day.isHoliday;day.isPinned=!day.isHoliday;day.isCancelled=false;day.reasonKind=body.kind==="HOLIDAY"?null:body.kind as "MAKEUP"|"SUPPLEMENTAL";day.confirmed=!day.isHoliday;}
    day.reason=String(body.reason);day.version++;
   }else if(tail===""&&method==="PUT"){
    if(!canEdit)fail(403,"FORBIDDEN","Chỉ giảng viên đang phụ trách được điểm danh.");
    if(date>todayDate())fail(422,"INVALID_ATTENDANCE_DATE","Chưa được điểm danh tương lai.");
-   if(day.isHoliday||day.isCancelled||!day.scheduled&&!day.confirmed)fail(422,"OFF_SCHEDULE_UNCONFIRMED","Xếp ngày học trước khi điểm danh.");
+   if(day.isHoliday||day.replaced||day.isCancelled&&!day.scheduled||!day.scheduled&&!day.confirmed)fail(422,"OFF_SCHEDULE_UNCONFIRMED","Xếp ngày học trước khi điểm danh.");
    if(!Array.isArray(body.rows))fail(422,"INVALID_ATTENDANCE","Thiếu danh sách.");
    const rows=body.rows as {studentId:string;status:"PRESENT"|"ABSENT"}[];
    day.items=day.items.map(s=>{const r=rows.find(r=>r.studentId===s.studentId);if(!r||!["PRESENT","ABSENT"].includes(r.status))throw new ManagementError(422,"INVALID_ATTENDANCE","Trạng thái không hợp lệ.");return {...s,status:r.status,stats:{...s.stats,present:Number(r.status==="PRESENT"),absent:Number(r.status==="ABSENT"),...{absencePercentage:absenceWarning(Number(r.status==="ABSENT"),day.plannedSessions).percentage,warning:absenceWarning(Number(r.status==="ABSENT"),day.plannedSessions).warning}}};});
@@ -73,6 +80,10 @@ export function collaborationRequest(db:Database,staff:Teacher,req:FetchArgs){
   state.days[key]=day;
   day.updatedBy=staff.name;day.updatedAt=new Date().toISOString();
  }
- const calendar=Object.values(state.days).filter(d=>d.classId===classId).map(d=>({date:d.date,status:d.isHoliday?"HOLIDAY":d.isCancelled?"CANCELLED":d.isPlanned?"PLANNED":d.saved?"SAVED":"UNSET",scheduled:d.scheduled,confirmed:d.confirmed,reasonKind:d.reasonKind,reason:d.reason,replacesDate:d.replacesDate,replaced:d.replaced,startTime:d.startTime,endTime:d.endTime,isHoliday:d.isHoliday,isPlanned:d.isPlanned,isPinned:d.isPinned,isCancelled:d.isCancelled}));
- return {...day,calendar};
+ const allDays=Object.values(state.days).filter(d=>d.classId===classId),plan=projectCalendar(state.schedules[classId],allDays),month=url.searchParams.get("month")??date.slice(0,7);
+ const calendar=[...new Set([...plan.occurrences.map(d=>d.date),...allDays.map(d=>d.date),...plan.displaced])].filter(d=>d.startsWith(month)).sort().map(date=>{
+  const stored=allDays.find(d=>d.date===date),slot=plan.occurrences.find(d=>d.date===date),replaced=plan.displaced.has(date),cancelled=!!stored?.isCancelled&&!slot;
+  return {date,status:stored?.isHoliday?"HOLIDAY":cancelled?"CANCELLED":replaced?"REPLACED":stored?.isPlanned?"PLANNED":stored?.saved?"SAVED":"UNSET",scheduled:!!slot,confirmed:!!stored&&!cancelled&&!stored.isHoliday,reasonKind:stored?.reasonKind??null,reason:stored?.reason??"",replacesDate:stored?.replacesDate??null,replaced,startTime:slot?.startTime??stored?.startTime??null,endTime:slot?.endTime??stored?.endTime??null,isHoliday:stored?.isHoliday,isPlanned:stored?.isPlanned,isPinned:stored?.isPinned,isCancelled:cancelled};
+ });
+ return {...day,scheduled:plan.occurrences.some(d=>d.date===date),replaced:plan.displaced.has(date),isCancelled:!!day.isCancelled&&!plan.occurrences.some(d=>d.date===date),calendar};
 }

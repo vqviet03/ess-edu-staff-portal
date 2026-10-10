@@ -22,9 +22,9 @@ export function ClassPresenceContext({classId}:{classId:string}) {
 export function ClassMembers({classId}:{classId:string}) {
  const query=useClassMembersQuery(classId);
  const live=useLivePresenceQuery(query.currentData?.classId??"",{skip:!query.currentData});
- useEffect(()=>{if(query.currentData)setPresenceContext(query.currentData.classId);},[query.currentData]);
+ useEffect(()=>{if(query.currentData)setPresenceContext(query.currentData.classId,true);},[query.currentData]);
  return <Stack spacing={1.5}>
-  <Stack direction="row" sx={{alignItems:"center",justifyContent:"space-between"}}><Typography variant="h6">Thành viên lớp</Typography><Tooltip title="Tải lại thành viên"><IconButton aria-label="Tải lại thành viên" onClick={()=>void query.refetch()}><Refresh/></IconButton></Tooltip></Stack>
+  <Stack direction="row" sx={{alignItems:"center",justifyContent:"space-between"}}><Typography variant="h6">Thành viên lớp</Typography><Tooltip title="Tải lại thành viên"><IconButton aria-label="Tải lại thành viên" onClick={()=>{if(query.currentData)setPresenceContext(query.currentData.classId,true);void query.refetch();}}><Refresh/></IconButton></Tooltip></Stack>
   <Feedback loading={query.isLoading} error={query.error} retry={()=>void query.refetch()}/>
   {query.currentData?.items.length===0&&<Typography color="text.secondary">Lớp chưa có thành viên.</Typography>}
   <Box sx={{display:"grid",gridTemplateColumns:{xs:"1fr",md:"repeat(2,minmax(0,1fr))"},gap:1}}>

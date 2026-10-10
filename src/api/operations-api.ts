@@ -33,7 +33,7 @@ export const operationsApi = api.injectEndpoints({ endpoints: (b) => ({
         presenceConnection(false);
         updateCachedData((state) => { state.online = false; });
       };
-      const sendContext=()=>{if(socket?.readyState===WebSocket.OPEN){presenceConnection(true);socket.send(JSON.stringify({type:"PRESENCE",classId:presenceContext()}));}};
+      const sendContext=()=>{if(socket?.readyState===WebSocket.OPEN){presenceConnection(false);presenceConnection(true);socket.send(JSON.stringify({type:"PRESENCE",classId:presenceContext()}));}};
       const connect = () => {
         const session = (getState() as unknown as { auth: AuthState }).auth.session;
         if (!allowed() || !session || session.teacher.id !== userId || socket?.readyState === WebSocket.OPEN || socket?.readyState === WebSocket.CONNECTING) return;
@@ -43,6 +43,7 @@ export const operationsApi = api.injectEndpoints({ endpoints: (b) => ({
         socket.onmessage = (message) => {
           try {
             const frame = JSON.parse(String(message.data)) as { type: string; data?: ChangeNotification | Operation | Notification | CursorPage<Notification>; cursor?: string; id?: string };
+            if(frame.type==="PRESENCE_RESET"){presenceConnection(false);}
             if(frame.type==="PRESENCE"){receivePresence((frame as unknown as {data:PresenceSignal}).data);}
             if (frame.type === "READY") {
               sendContext();

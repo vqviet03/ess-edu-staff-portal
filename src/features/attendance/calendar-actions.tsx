@@ -29,7 +29,7 @@ export function CalendarActions({data,classId,editable}:{data:ClassAttendance;cl
  return <Stack spacing={1}>
   {data.isHoliday&&<Alert severity="warning">Nghỉ học · {data.reason}. Kế hoạch được nối thêm buổi phía sau.</Alert>}
   {data.isPlanned&&<Alert severity="info" icon={<PushPin/>}>{data.reasonKind==="MAKEUP"?"Học bù":"Học thêm"} dự kiến · {data.reason}. {data.date>data.today?"Đến ngày học mới được điểm danh.":"Có thể điểm danh buổi này."}</Alert>}
-  <Stack direction="row" spacing={1}><IconAction label={data.scheduled&&!data.isPlanned?"Đánh dấu ngày nghỉ":"Ghim lịch học bù / học thêm"} icon={data.scheduled&&!data.isPlanned?<EventBusy sx={{color:"warning.main"}}/>:<PushPin/>} onClick={()=>{setCancel(false);setReason(data.reason);setOpen(true);}}/>
+  <Stack direction="row" spacing={1}><IconAction label={data.scheduled&&!data.isPlanned?"Đánh dấu ngày nghỉ":"Ghim lịch học bù / học thêm"} icon={data.scheduled&&!data.isPlanned?<EventBusy sx={{color:"warning.main"}}/>:<PushPin/>} onClick={()=>{setCancel(false);setKind((data.scheduled&&!data.isPlanned)||data.isHoliday?"HOLIDAY":data.reasonKind==="MAKEUP"?"MAKEUP":"SUPPLEMENTAL");setReason(data.reason);setStartTime(data.startTime??"");setEndTime(data.endTime??"");setError(undefined);setOpen(true);}}/>
    {(data.isPinned||data.isHoliday)&&<IconAction label="Hủy lịch đã xếp" icon={<Close/>} onClick={()=>{setCancel(true);setReason("");setConfirmed(false);setOpen(true);}}/>}
   </Stack>
   <Dialog open={open} onClose={()=>{if(!busy)setOpen(false);}} fullWidth maxWidth="sm"><DialogTitle>{cancel?"Hủy lịch đã xếp":"Xếp lịch"} · {dateLabel(data.date)}</DialogTitle><DialogContent><Stack spacing={1.5} sx={{pt:1}}>

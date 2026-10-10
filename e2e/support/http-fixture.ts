@@ -8,6 +8,7 @@ import type { BaseQueryApi } from '@reduxjs/toolkit/query';
 
 // Only tests intercept HTTP. The production browser executes real fetchBaseQuery.
 export async function installHttpFixture(page: Page, shared?: { get: () => string; set: (value: string) => void }) {
+  page.on("pageerror",e=>console.error("BROWSER_ERROR",e.message));
   const config = resolveApiConfiguration('false', process.env.NEXT_PUBLIC_API_BASE_URL);
   if (config.error) throw new Error(config.error);
   const prefix = new URL(config.baseUrl).pathname;
