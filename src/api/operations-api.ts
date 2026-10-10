@@ -1,5 +1,4 @@
 import {presenceContext,PRESENCE_CONTEXT_EVENT,receivePresence,presenceConnection,type PresenceSignal} from "@/features/presence/state";
-import {notificationResourceTags} from "@/features/notifications/resource-tags";
 import {showNoticeToast} from "@/features/notifications/events";
 import type { CursorPage, Notification } from "@/features/materials/models";
 import { libraryNoticeReceived, librarySnapshotReceived } from "@/features/materials/notification-state";
@@ -33,7 +32,7 @@ export const operationsApi = api.injectEndpoints({ endpoints: (b) => ({
         presenceConnection(false);
         updateCachedData((state) => { state.online = false; });
       };
-      const sendContext=()=>{if(socket?.readyState===WebSocket.OPEN){presenceConnection(false);presenceConnection(true);socket.send(JSON.stringify({type:"PRESENCE",classId:presenceContext()}));}};
+      const sendContext=()=>{if(socket?.readyState===WebSocket.OPEN){presenceConnection(false);presenceConnection(true);socket.send(JSON.stringify({type:"PRESENCE",classId:presenceContext()}));}else if(allowed()&&!socket)connect();};
       const connect = () => {
         const session = (getState() as unknown as { auth: AuthState }).auth.session;
         if (!allowed() || !session || session.teacher.id !== userId || socket?.readyState === WebSocket.OPEN || socket?.readyState === WebSocket.CONNECTING) return;
@@ -63,7 +62,7 @@ export const operationsApi = api.injectEndpoints({ endpoints: (b) => ({
               dispatch(api.util.invalidateTags(["Audit"]));
             }
             if (frame.type === "NOTIFICATION" && frame.data && "isRead" in frame.data) {
-              dispatch(libraryNoticeReceived({ notice: frame.data }));showNoticeToast(frame.data);dispatch(api.util.invalidateTags(notificationResourceTags(frame.data.type,frame.data.classId)));
+              dispatch(libraryNoticeReceived({ notice: frame.data }));showNoticeToast(frame.data);
             }
             if (frame.type === "NOTIFICATIONS" && frame.data && "items" in frame.data) {
               dispatch(librarySnapshotReceived(frame.data));

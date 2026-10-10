@@ -12,3 +12,10 @@ test("offline age is calculated on render, without an interval",()=>{
  assert.equal(offlineLabel("2026-10-10T10:00:00Z",Date.parse("2026-10-10T10:04:00Z")),"Offline 4 phút");
  assert.equal(offlineLabel(null),"Chưa có hoạt động gần đây");
 });
+
+test("notice signal refreshes only changed resources; schedule includes attendance and social excludes auth/scores",async()=>{
+ const {notificationResourceTags}=await import("../src/features/notifications/resource-tags");
+ assert.deepEqual(notificationResourceTags("SCHEDULE","c"),[{type:"Attendance",id:"c"},{type:"Schedule",id:"c"},{type:"Rewards",id:"c"}]);
+ assert.deepEqual(notificationResourceTags("REPLY","c"),["Posts","Comments"]);
+ assert.deepEqual(notificationResourceTags("UNKNOWN","c"),[]);
+});

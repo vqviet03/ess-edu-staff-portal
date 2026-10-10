@@ -22,6 +22,8 @@ test("backend ID suggestions, custom check and websocket refresh another manager
   await dialog.getByLabel("ID", { exact: true }).fill("HV1001"); await dialog.getByRole("button", { name: "Kiểm tra trùng" }).click(); await expect(dialog.getByText(/ID đã dùng/)).toBeVisible();
   await dialog.getByLabel("ID", { exact: true }).fill("custom.viet"); await dialog.getByLabel("Họ tên", { exact: true }).fill("Vũ Quốc Việt realtime"); await dialog.getByRole("button", { name: "Kiểm tra trùng" }).click(); await expect(dialog.getByText(/ID có thể sử dụng/)).toBeVisible(); await expect(dialog.getByLabel("ID", { exact: true })).toHaveValue("custom.viet");
   await save(page);
+  // Foreground-only sockets reconnect and replay after a hidden tab returns.
+  await other.bringToFront();
   await expect(other.getByText("custom.viet", { exact: true })).toBeVisible(); await expect(other.getByText(/Tác vụ đã hoàn tất/)).toBeVisible();
   await other.close();
 });

@@ -6,6 +6,8 @@ export function notificationResourceTags(type:string,classId?:string|null):Param
  if(type==="REWARD")return [{type:"Rewards",...id}];
  if(type==="SCORE")return ["Reports","Assessments"];
  if(type==="SOCIAL"||type==="REPLY")return ["Posts","Comments"];
- if(type==="MATERIAL")return ["Posts","Materials"];
+ if(type==="MATERIAL")return classId?["Posts","Materials"]:["Materials","Folders","Storages","DeletionRequests"];
+ if(type==="APPROVAL"||type==="CONSENT")return ["DeletionRequests"];
+ if(type==="STORAGE")return ["Storages"];
  return [];
 }

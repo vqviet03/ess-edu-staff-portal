@@ -1119,6 +1119,7 @@ test("pinned comments survive collapse; paging, likes, reply target and pin muta
   });
   await page.route(`${api}/comments/interaction-0/**`, async (r) => {
     const action = new URL(r.request().url()).pathname.split("/").at(-1);
+    if (action !== "like" && action !== "pin") { await r.fallback(); return; }
     if (action === "like") {
       likes++;
       if (failLike) {
