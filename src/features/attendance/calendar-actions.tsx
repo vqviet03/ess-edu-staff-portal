@@ -23,7 +23,7 @@ import type {ClassAttendance} from "./models";
 import {dateLabel} from "./models";
 export function CalendarActions({data,classId,editable}:{data:ClassAttendance;classId:string;editable:boolean}){
  const {staff}=useWorkspace(),canArrange=!!staff?.roles?.includes("MANAGER")||editable;
- const [open,setOpen]=useState(false),[cancel,setCancel]=useState(false),[kind,setKind]=useState<"HOLIDAY"|"MAKEUP"|"SUPPLEMENTAL">(data.scheduled&&!data.isPlanned?"HOLIDAY":"SUPPLEMENTAL"),[reason,setReason]=useState(""),[confirmed,setConfirmed]=useState(false),[startTime,setStartTime]=useState(""),[endTime,setEndTime]=useState(""),[error,setError]=useState<unknown>();
+ const [open,setOpen]=useState(false),[cancel,setCancel]=useState(false),[kind,setKind]=useState<"HOLIDAY"|"MAKEUP"|"SUPPLEMENTAL">((data.scheduled&&!data.isPlanned)||data.isHoliday?"HOLIDAY":"SUPPLEMENTAL"),[reason,setReason]=useState(""),[confirmed,setConfirmed]=useState(false),[startTime,setStartTime]=useState(""),[endTime,setEndTime]=useState(""),[error,setError]=useState<unknown>();
  const [save,saving]=useArrangeCalendarDayMutation(),[remove,removing]=useCancelCalendarDayMutation(),busy=saving.isLoading||removing.isLoading;
  if(!canArrange||data.saved)return data.isHoliday?<Alert severity="warning">Nghỉ học · {data.reason}. Kế hoạch được nối thêm buổi phía sau.</Alert>:null;
  return <Stack spacing={1}>
