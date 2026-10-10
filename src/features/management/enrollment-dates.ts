@@ -20,7 +20,6 @@ export interface EnrollmentDatesRequest {
 export function validateEnrollmentDates(
   periods: EnrollmentPeriodDates[],
   history: EnrollmentDates["history"],
-  _today?: string,
 ): string[] {
   const errors: string[] = [];
   const validDay = (day: string) => /^\d{4}-\d{2}-\d{2}$/.test(day) &&
