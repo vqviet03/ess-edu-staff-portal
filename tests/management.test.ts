@@ -13,7 +13,6 @@ import {
 import type { Teacher, Envelope, AuthSession } from "../src/types";
 import type {
   BulkPreview,
-  Enrollment,
   Entity,
   ManagedList,
   Impact,
@@ -835,18 +834,15 @@ test("ngày tham gia: preview/commit cập nhật giai đoạn hiện tại, gi�
   assert.equal(updated.history.at(-1)!.startAt, "2025-12-31T17:00:00.000Z");
   const stale = await h.request("/manager/enrollments/preview", "POST", body);
   assert(stale.error);
-  const invalid = await h.request("/manager/enrollments/preview", "POST", {
-    ...body,
-    version: updated.version,
-    joinedOn: "2099-01-01",
-  });
-  assert(invalid.error);
-  assert.equal(
-    (
-      h
-        .db()
-        .management!.enrollments.find((e) => e.id === original.id) as Enrollment
-    ).joinedOn,
-    joinedOn,
-  );
+  for (const day of ["1990-01-01", "2099-01-01"]) {
+    const current = h.db().management!.enrollments.find((e) => e.id === original.id)!;
+    const next = await h.data<BulkPreview>("/manager/enrollments/preview", "POST", {
+      ...body, version: current.version, joinedOn: day,
+    });
+    await h.commit(next);
+    const saved = h.db().management!.enrollments.find((e) => e.id === original.id)!;
+    assert.equal(saved.joinedOn, day);
+    assert.equal(saved.history.length, original.history.length);
+    assert.equal(saved.status, original.status);
+  }
 });

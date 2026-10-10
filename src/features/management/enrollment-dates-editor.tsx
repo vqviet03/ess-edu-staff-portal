@@ -13,7 +13,6 @@ import { useEnrollmentDatesQuery, usePreviewEnrollmentDatesMutation } from "@/ap
 import { errorMessage } from "@/api/base-query";
 import { Feedback } from "@/shared/ui";
 import { confirmLeave, useUnsaved } from "@/shared/unsaved";
-import { vietnamToday } from "@/features/rewards/models";
 import { PreviewPanel, showValue } from "./shared";
 import type { BulkPreview } from "./models";
 import { validateEnrollmentDates, type EnrollmentDates } from "./enrollment-dates";
@@ -27,8 +26,7 @@ function DatesForm({data, close, reload}: {
   const [submit, state] = usePreviewEnrollmentDatesMutation();
   const dirty = JSON.stringify(periods) !== JSON.stringify(data.history.map(({id, joinedOn, endedOn}) => ({id, joinedOn, endedOn})));
   useUnsaved(dirty && !preview);
-  const today = vietnamToday();
-  const errors = validateEnrollmentDates(periods, data.history, today);
+  const errors = validateEnrollmentDates(periods, data.history);
   if (preview) return (
     <Stack spacing={2}>
       <Typography variant="body2">Đối chiếu các đợt trước khi xác nhận. Điểm, báo cáo và lịch sử gốc được giữ nguyên.</Typography>
@@ -53,12 +51,12 @@ function DatesForm({data, close, reload}: {
           <Typography sx={{fontWeight: 700, mb: 1}}>Đợt {i + 1} · {showValue(data.history[i].status)}</Typography>
           <Stack direction={{xs: "column", sm: "row"}} spacing={2}>
             <TextField fullWidth type="date" label={periods.length === 1 ? "Ngày tham gia lớp" : `Ngày tham gia · đợt ${i + 1}`} value={p.joinedOn}
-              slotProps={{inputLabel: {shrink: true}, htmlInput: {max: today, min: `${Number(today.slice(0, 4)) - 10}${today.slice(4)}`}}}
+              slotProps={{inputLabel: {shrink: true}}}
               onChange={e => setPeriods(old => old.map((v, index) => index === i ? {...v, joinedOn: e.target.value} : v))}/>
             <TextField fullWidth type="date" label={`Ngày nghỉ học · đợt ${i + 1}`} value={p.endedOn ?? ""}
               disabled={data.history[i].status === "ACTIVE"}
               helperText={data.history[i].status === "ACTIVE" ? "Đợt đang học chưa có ngày nghỉ. Đổi trạng thái ở phần ghi danh." : "Bao gồm toàn bộ ngày nghỉ học."}
-              slotProps={{inputLabel: {shrink: true}, htmlInput: {max: today, min: p.joinedOn}}}
+              slotProps={{inputLabel: {shrink: true}}}
               onChange={e => setPeriods(old => old.map((v, index) => index === i ? {...v, endedOn: e.target.value || null} : v))}/>
           </Stack>
         </Paper>
