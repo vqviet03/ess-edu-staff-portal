@@ -15,9 +15,8 @@ test("backend ID suggestions, custom check and websocket refresh another manager
   test.skip(process.env.NEXT_PUBLIC_USE_MOCK === "true", "This scenario validates the HTTP + websocket API contract.");
   let value = JSON.stringify(seed()); const shared = { get: () => value, set: (next: string) => { value = next; } };
   const other = await context.newPage();
-  other.on("pageerror",e=>console.log("PeerPageError",e.message));
-  other.on("console",m=>{if(m.type()==="error")console.log("PeerConsoleError",m.text());});
-  other.on("response",async r=>{if(r.request().method()==="GET"&&new URL(r.url()).pathname.endsWith("/manager/students")){const d=await r.json().catch(()=>null);console.log("PeerStudentResponse",r.status(),new URL(r.url()).search,d?.data?.items?.map((x:{id:string})=>x.id));}}); await installHttpFixture(page, shared); const otherFixture=await installHttpFixture(other, shared);
+  const pageErrors:string[]=[]; other.on("pageerror",e=>pageErrors.push(e.message));
+  await installHttpFixture(page, shared); const otherFixture=await installHttpFixture(other, shared);
   await login(page); await login(other, "BOTH0001");
   await go(other, "/manage/list/?entity=students"); await other.getByLabel("Tên / ID / số liên hệ").fill("custom.viet"); await expect(other.getByText("custom.viet", { exact: true })).toHaveCount(0);
   await other.bringToFront();await expect.poll(()=>otherFixture.connectionCounts().active).toBe(1);
@@ -30,6 +29,7 @@ test("backend ID suggestions, custom check and websocket refresh another manager
   await other.bringToFront();
   await expect.poll(()=>otherFixture.connectionCounts().changes).toBeGreaterThan(0);
   await expect(other.getByText(/Tác vụ đã hoàn tất/)).toBeVisible(); await expect(other.getByText("custom.viet", { exact: true })).toBeVisible();
+  expect(pageErrors).toEqual([]);
   await other.close();
 });
 test("class ID suggestion is editable and changing name keeps class ID", async ({ page }) => {
