@@ -1,3 +1,4 @@
+import type { EnrollmentDates, EnrollmentDatesRequest } from "@/features/management/enrollment-dates";
 import { api } from "./api";
 import type { Envelope } from "@/types";
 import type {
@@ -159,6 +160,15 @@ export const managementApi = api.injectEndpoints({
       }),
       transformResponse: unwrap<BulkPreview>,
     }),
+    enrollmentDates: b.query<EnrollmentDates, {classId: string; studentId: string}>({
+      query: (p) => "/manager/enrollments/dates?" + query(p),
+      transformResponse: unwrap<EnrollmentDates>,
+      providesTags: (_, __, p) => [{type: "Management", id: `enrollment:${p.classId}:${p.studentId}`}],
+    }),
+    previewEnrollmentDates: b.mutation<BulkPreview, EnrollmentDatesRequest>({
+      query: (body) => ({url: "/manager/enrollments/dates/preview", method: "POST", body}),
+      transformResponse: unwrap<BulkPreview>,
+    }),
     previewEnrollment: b.mutation<
       BulkPreview,
       {
@@ -270,6 +280,8 @@ export const {
   useAssignmentsQuery,
   usePreviewAssignmentMutation,
   usePreviewEnrollmentMutation,
+  useEnrollmentDatesQuery,
+  usePreviewEnrollmentDatesMutation,
   useWarningsQuery,
   useAuditQuery,
   useActivationMutation,

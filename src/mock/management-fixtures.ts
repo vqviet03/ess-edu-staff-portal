@@ -24,7 +24,7 @@ export interface ManagementDatabase {
       revision: number;
       actorId: string;
       extra?: {
-        kind: "assignment" | "enrollment";
+        kind: "assignment" | "enrollment" | "enrollmentDates";
         id: string;
         data: Record<string, unknown>;
       };
