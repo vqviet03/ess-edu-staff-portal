@@ -5,14 +5,16 @@ import {managementRequest, management, actor} from "../src/mock/management-engin
 import {seed} from "../src/mock/fixtures";
 import type {BulkPreview} from "../src/features/management/models";
 
-test("actual dates can precede system entry, correct an old phase and preserve rejoin; overlap/invalid dates rejected", () => {
+test("admission dates allow old, future, overlapping and after-departure dates; malformed dates rejected", () => {
   const history: EnrollmentDates["history"] = [
     {id:"old", joinedOn:"2026-10-06", endedOn:"2026-10-09", startAt:"2026-10-06T16:00:00Z", endAt:"2026-10-09T02:00:00Z", status:"ENDED", reason:""},
     {id:"current", joinedOn:"2026-10-09", endedOn:null, startAt:"2026-10-09T14:00:00Z", endAt:null, status:"ACTIVE", reason:""},
   ];
   const periods = [{id:"old",joinedOn:"2026-09-18",endedOn:"2026-10-06"}, {id:"current",joinedOn:"2026-10-09",endedOn:null}];
   assert.deepEqual(validateEnrollmentDates(periods, history, "2026-10-10"), []);
-  assert.ok(validateEnrollmentDates([periods[0], {...periods[1], joinedOn:"2026-10-05"}], history, "2026-10-10").some(e => e.includes("chồng")));
+  for (const [index, joinedOn] of [[1,"2026-10-05"],[0,"1990-01-01"],[1,"2035-05-01"],[0,"2026-11-01"]] as const) {
+    assert.deepEqual(validateEnrollmentDates(periods.map((p,i)=>i===index?{...p,joinedOn}:p), history, "2026-10-10"), []);
+  }
   assert.ok(validateEnrollmentDates([{...periods[0],endedOn:null},periods[1]],history,"2026-10-10").length);
   assert.ok(validateEnrollmentDates([{...periods[0],joinedOn:"2026-02-30"},periods[1]],history,"2026-10-10").length);
   assert.ok(validateEnrollmentDates([periods[0]],history,"2026-10-10").length);

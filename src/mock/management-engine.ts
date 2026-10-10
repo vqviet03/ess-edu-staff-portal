@@ -1130,37 +1130,18 @@ function relationshipPreview(
     if (existing && data.version !== existing.version)
       reject(409, "VERSION_CONFLICT", "Ghi danh đã thay đổi.");
     if (data.joinedOn !== undefined) {
-      const day = String(data.joinedOn),
-        today = new Intl.DateTimeFormat("en-CA", {
-          timeZone: "Asia/Ho_Chi_Minh",
-        }).format(new Date());
+      const day = String(data.joinedOn);
       if (
         !/^\d{4}-\d{2}-\d{2}$/.test(day) ||
         Number.isNaN(Date.parse(day)) ||
-        new Date(day).toISOString().slice(0, 10) !== day ||
-        day > today ||
-        day < `${Number(today.slice(0, 4)) - 10}${today.slice(4)}`
+        new Date(day).toISOString().slice(0, 10) !== day
       )
         reject(
           422,
           "INVALID_JOINED_DATE",
-          "Ngày tham gia phải là hôm nay hoặc quá khứ, tối đa 10 năm.",
+          "Ngày tham gia phải đúng định dạng và tồn tại trên lịch.",
         );
-      const previous = existing?.history.at(
-        data.status === "ACTIVE" && existing.status !== "ACTIVE" ? -1 : -2,
-      );
-      if (
-        previous?.endAt &&
-        day <
-          new Intl.DateTimeFormat("en-CA", {
-            timeZone: "Asia/Ho_Chi_Minh",
-          }).format(new Date(previous.endAt))
-      )
-        reject(
-          409,
-          "ENROLLMENT_OVERLAP",
-          "Ngày tham gia chồng lên giai đoạn học trước đó.",
-        );
+
     }
     if (
       data.status === "ACTIVE" &&
@@ -1331,8 +1312,7 @@ function checkEnrollmentDates(db: Database, input: unknown) {
   if (before.version !== request.version) reject(409, "VERSION_CONFLICT", "Ghi danh đã thay đổi. Xem trước lại.");
   if (!Array.isArray(request.periods) || request.periods.some(p => !p || typeof p.id !== "string" || typeof p.joinedOn !== "string" || !(p.endedOn === null || typeof p.endedOn === "string")))
     reject(422, "INVALID_ENROLLMENT_PERIODS", "Các đợt ghi danh không hợp lệ.");
-  const today = new Intl.DateTimeFormat("en-CA", {timeZone: "Asia/Ho_Chi_Minh"}).format(new Date());
-  const errors = validateEnrollmentDates(request.periods, before.history, today);
+  const errors = validateEnrollmentDates(request.periods, before.history);
   if (errors.length) reject(422, "INVALID_ENROLLMENT_PERIODS", errors.join(" "));
   return {request, before};
 }
@@ -1341,9 +1321,7 @@ function applyEnrollmentDates(db: Database, input: Record<string, unknown>, reas
   const e = management(db).enrollments.find(e => e.id === before.id)!;
   e.history = before.history.map((h, i) => {
     const p = request.periods[i];
-    const start = i > 0 && request.periods[i - 1].endedOn === p.joinedOn
-      ? new Date(Date.parse(`${p.joinedOn}T00:00:00+07:00`) + 86400000 - 1).toISOString()
-      : new Date(`${p.joinedOn}T00:00:00+07:00`).toISOString();
+    const start = new Date(`${p.joinedOn}T00:00:00+07:00`).toISOString();
     return {...h, ...p, startAt: start,
       endAt: p.endedOn ? new Date(Date.parse(`${p.endedOn}T00:00:00+07:00`) + 86400000 - 1).toISOString() : null,
       reason};

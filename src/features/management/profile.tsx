@@ -222,7 +222,7 @@ function RelationshipEditor({
                 label="Ngày tham gia lớp"
                 value={joinedOn}
                 onChange={(e) => setJoinedOn(e.target.value)}
-                slotProps={{ inputLabel: { shrink: true }, htmlInput: { max: vietnamToday() } }}
+                slotProps={{ inputLabel: { shrink: true } }}
                 helperText="Được nhập ngày quá khứ. Giữ lịch sử các giai đoạn trước; kiểm tra ảnh hưởng trước khi lưu."
               />
             )}
