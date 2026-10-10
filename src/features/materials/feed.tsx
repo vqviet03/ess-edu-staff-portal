@@ -1,4 +1,6 @@
 "use client";
+import {NotificationActionPriority} from "@/features/notifications/action-priority";
+import {NotificationPrioritySelect} from "@/features/notifications/priority";
 import { Comments } from "./comments";
 import { IconAction } from "@/shared/icon-action";
 import FirstPage from "@mui/icons-material/FirstPage";
@@ -55,6 +57,7 @@ function PostCard({
   edit: (post: Post) => void;
 }) {
   const me = useAppSelector((s) => s.auth.session?.teacher),
+    [actionPriority,setActionPriority]=useState<"NORMAL"|"IMPORTANT"|undefined>(),
     [showComments, setShowComments] = useState(false),
     [preview, setPreview] = useState<MaterialFile | null>(null),
     [reaction, state] = useReactionMutation(),
@@ -68,6 +71,7 @@ function PostCard({
     <>
       <PostSurface
         post={post}
+        headerActions={<NotificationActionPriority classId={post.classId} feature="SOCIAL" value={actionPriority} onChange={setActionPriority}/>}
         commentOpen={showComments}
         openComments={() => setShowComments((s) => !s)}
         preview={setPreview}
@@ -81,6 +85,7 @@ function PostCard({
               classId: post.classId,
               cursor,
               reaction: post.myReaction === value ? null : value,
+              notificationPriority:actionPriority,
             }).unwrap();
           } catch (e) {
             setError(e);
@@ -98,6 +103,7 @@ function PostCard({
                     id: post.id,
                     version: post.version,
                     reason,
+                    notificationPriority:actionPriority,
                   }).unwrap();
                 } catch (e) {
                   setError(e);
@@ -347,6 +353,7 @@ export function SessionFeed({
                 <MenuItem value="DRAFT">Nháp</MenuItem>
               </TextField>
             </Stack>
+            <NotificationPrioritySelect classId={classId??""} feature="MATERIAL" value={draft.notificationPriority} onChange={v=>{setDraft(d=>({...d,notificationPriority:v}));setDirty(true);}}/>
             {!sessionId && draft.postType === "SESSION_MATERIAL" && (
               <>
                 <Autocomplete

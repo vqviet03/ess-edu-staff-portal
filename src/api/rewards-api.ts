@@ -93,6 +93,7 @@ export const rewardsApi = api.injectEndpoints({
         note?: string;
         date?: string;
         key: string;
+        notificationPriority?: "NORMAL"|"IMPORTANT";
       }
     >({
       query: ({ classId, studentId, key, ...body }) => ({
@@ -114,6 +115,7 @@ export const rewardsApi = api.injectEndpoints({
         note: string;
         reason: string;
         key: string;
+        notificationPriority?: "NORMAL"|"IMPORTANT";
       }
     >({
       query: ({ classId, studentId, entryId, key, ...body }) => ({
@@ -133,13 +135,14 @@ export const rewardsApi = api.injectEndpoints({
         entryId: string;
         note: string;
         key: string;
+        notificationPriority?: "NORMAL"|"IMPORTANT";
       }
     >({
-      query: ({ classId, studentId, entryId, note, key }) => ({
+      query: ({ classId, studentId, entryId, note, key, notificationPriority }) => ({
         url: `${rewardPath({ classId, studentId })}/${encodeURIComponent(entryId)}/reverse`,
         method: "POST",
         headers: { "Idempotency-Key": key },
-        body: { note },
+        body: { note, notificationPriority },
       }),
       transformResponse: unwrap<RewardEntry>,
       invalidatesTags: (_, e, q) => (e ? [] : tags(q.classId)),

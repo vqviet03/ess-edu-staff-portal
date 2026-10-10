@@ -1,4 +1,5 @@
 "use client";
+import {NotificationContent} from "@/features/notifications/content";
 import { useState } from "react";
 import Stack from "@mui/material/Stack";
 import Paper from "@mui/material/Paper";
@@ -154,6 +155,7 @@ export const notificationTypes: Record<string, string> = {
   SOCIAL: "Bình luận / tương tác",
   REPLY: "Trả lời bình luận",
   SCORE: "Công bố điểm",
+  ATTENDANCE: "Điểm danh",
   REWARD: "Điểm động viên",
   SCHEDULE: "Lịch học",
   APPROVAL: "Yêu cầu xóa / phê duyệt",
@@ -246,7 +248,7 @@ export function NotificationsPage() {
         >
           <Stack spacing={1}>
             <Typography sx={{ fontWeight: n.isRead ? 400 : 700 }}>
-              {n.title}
+              <NotificationContent notice={n}/>
             </Typography>
             <Typography variant="caption">
               {notificationTypes[n.type]} ·{" "}
@@ -275,7 +277,7 @@ export function NotificationsPage() {
                 {n.isRead ? "Đánh dấu chưa đọc" : "Đánh dấu đã đọc"}
               </Button>
               <Button
-                disabled={!n.isRead && (["APPROVAL", "CONSENT"].includes(n.type) || n.type === "SYSTEM" && n.title === "Đề xuất đổi tên ứng dụng / tiền tố lớp cần bạn đồng ý")}
+                disabled={!n.isRead && (n.priority==="IMPORTANT" || ["APPROVAL", "CONSENT"].includes(n.type) || n.type === "SYSTEM" && n.title === "Đề xuất đổi tên ứng dụng / tiền tố lớp cần bạn đồng ý")}
                 onClick={async () => {
                   try {
                     await change({

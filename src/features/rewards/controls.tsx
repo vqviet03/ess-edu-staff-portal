@@ -1,6 +1,10 @@
 "use client";
 import type { ReactNode } from "react";
-import Box from "@mui/material/Box";
+import SaveOutlined from "@mui/icons-material/SaveOutlined";
+import NoteAddOutlined from "@mui/icons-material/NoteAddOutlined";
+import HistoryOutlined from "@mui/icons-material/HistoryOutlined";
+import DeleteOutlined from "@mui/icons-material/DeleteOutlined";
+import EmojiEvents from "@mui/icons-material/EmojiEvents";
 import IconButton from "@mui/material/IconButton";
 import Rating, { type RatingProps } from "@mui/material/Rating";
 import Tooltip from "@mui/material/Tooltip";
@@ -11,20 +15,8 @@ export function RewardIcon({
 }: {
   name: "save" | "note" | "detail" | "trash";
 }) {
-  const url = `${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/rewards/${name}.svg`;
-  return (
-    <Box
-      component="span"
-      aria-hidden
-      sx={{
-        width: 20,
-        height: 20,
-        display: "block",
-        bgcolor: "currentColor",
-        mask: `url(${url}) center / contain no-repeat`,
-      }}
-    />
-  );
+  const Icon = {save:SaveOutlined,note:NoteAddOutlined,detail:HistoryOutlined,trash:DeleteOutlined}[name];
+  return <Icon fontSize="small"/>;
 }
 export function RewardIconAction({
   label,
@@ -66,9 +58,7 @@ export function RewardIconAction({
 }
 export function TrophyRating(props: RatingProps) {
   const trophy = (
-    <Box component="span" aria-hidden sx={{ fontSize: 24, lineHeight: 1.45 }}>
-      🏆
-    </Box>
+    <EmojiEvents sx={{fontSize:24}}/>
   );
   return (
     <Rating

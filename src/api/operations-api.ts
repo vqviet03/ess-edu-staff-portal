@@ -1,3 +1,5 @@
+import {presenceContext,PRESENCE_CONTEXT_EVENT,receivePresence,presenceConnection,type PresenceSignal} from "@/features/presence/state";
+import {showNoticeToast} from "@/features/notifications/events";
 import type { CursorPage, Notification } from "@/features/materials/models";
 import { libraryNoticeReceived, librarySnapshotReceived } from "@/features/materials/notification-state";
 import { api } from "./api";
@@ -15,7 +17,7 @@ export const operationsApi = api.injectEndpoints({ endpoints: (b) => ({
     keepUnusedDataFor: 0,
     async onCacheEntryAdded(userId, { getState, dispatch, updateCachedData, cacheDataLoaded, cacheEntryRemoved }) {
       if (apiConfiguration.mock || typeof window === "undefined") return;
-      let socket: WebSocket | undefined, reconnect: ReturnType<typeof setTimeout> | undefined, stopped = false, attempts = 0;
+      let socket: WebSocket | undefined, reconnect: ReturnType<typeof setTimeout> | undefined, stopped = false;
       let disconnect: (() => void) | undefined;
       const key = `ess.events.${userId}`;
       let cursor = "0", hasCursor = false;
@@ -27,8 +29,10 @@ export const operationsApi = api.injectEndpoints({ endpoints: (b) => ({
         clearTimeout(reconnect); disconnect?.(); disconnect = undefined;
         const previous = socket; socket = undefined;
         if (previous) { previous.onclose = null; previous.onmessage = null; previous.onopen = null; previous.close(1000, "BACKGROUND"); }
+        presenceConnection(false);
         updateCachedData((state) => { state.online = false; });
       };
+      const sendContext=()=>{if(socket?.readyState===WebSocket.OPEN){presenceConnection(false);presenceConnection(true);socket.send(JSON.stringify({type:"PRESENCE",classId:presenceContext()}));}else if(allowed()&&!socket)connect();};
       const connect = () => {
         const session = (getState() as unknown as { auth: AuthState }).auth.session;
         if (!allowed() || !session || session.teacher.id !== userId || socket?.readyState === WebSocket.OPEN || socket?.readyState === WebSocket.CONNECTING) return;
@@ -38,10 +42,13 @@ export const operationsApi = api.injectEndpoints({ endpoints: (b) => ({
         socket.onmessage = (message) => {
           try {
             const frame = JSON.parse(String(message.data)) as { type: string; data?: ChangeNotification | Operation | Notification | CursorPage<Notification>; cursor?: string; id?: string };
+            if(frame.type==="PRESENCE_RESET"){presenceConnection(false);}
+            if(frame.type==="PRESENCE"){receivePresence((frame as unknown as {data:PresenceSignal}).data);}
             if (frame.type === "READY") {
+              sendContext();
               updateCachedData((state) => { state.online = true; });
               if (frame.cursor) cursor = frame.cursor;
-              hasCursor = true; attempts = 0; persist(); disconnect?.();
+              hasCursor = true; persist(); disconnect?.();
               disconnect = connectOperationChannel(session.accessToken, (operationId) => {
                 if (socket?.readyState === WebSocket.OPEN) socket.send(JSON.stringify({ type: "WATCH", operationId }));
               });
@@ -55,7 +62,7 @@ export const operationsApi = api.injectEndpoints({ endpoints: (b) => ({
               dispatch(api.util.invalidateTags(["Audit"]));
             }
             if (frame.type === "NOTIFICATION" && frame.data && "isRead" in frame.data) {
-              dispatch(libraryNoticeReceived({ notice: frame.data }));
+              dispatch(libraryNoticeReceived({ notice: frame.data }));showNoticeToast(frame.data);
             }
             if (frame.type === "NOTIFICATIONS" && frame.data && "items" in frame.data) {
               dispatch(librarySnapshotReceived(frame.data));
@@ -71,12 +78,13 @@ export const operationsApi = api.injectEndpoints({ endpoints: (b) => ({
           disconnect?.(); disconnect = undefined;
           updateCachedData((state) => { state.online = false; });
           if (event.code === 1008 && event.reason === "UNAUTHORIZED") { dispatch(signedOut("Phiên đăng nhập đã hết hạn.")); dispatch(api.util.resetApiState()); return; }
-          if (allowed()) reconnect = setTimeout(connect, Math.min(60000, 3000 * 2 ** attempts++));
+          presenceConnection(false);
         };
       };
       const resume = () => { if (allowed()) { clearTimeout(reconnect); connect(); } else pause(); };
       try {
         await cacheDataLoaded;
+        window.addEventListener(PRESENCE_CONTEXT_EVENT,sendContext);
         document.addEventListener("visibilitychange", resume);
         window.addEventListener("offline", pause);
         window.addEventListener("online", resume);
@@ -87,6 +95,7 @@ export const operationsApi = api.injectEndpoints({ endpoints: (b) => ({
       catch { /* Cache may be removed during logout before initialization. */ }
       finally {
         stopped = true;
+        window.removeEventListener(PRESENCE_CONTEXT_EVENT,sendContext);
         document.removeEventListener("visibilitychange", resume);
         window.removeEventListener("offline", pause);
         window.removeEventListener("online", resume);
