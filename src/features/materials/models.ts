@@ -149,6 +149,7 @@ export interface DeletionItem {
   usages: { id: string; title: string; sessionId: string; classId: string }[];
 }
 export interface Notification {
+  actorAvatar?: import("@/features/profile/models").AvatarChoice;
   priority?: "NORMAL" | "IMPORTANT";
   actorName?: string; actorPublicId?: string; actorRole?: string; subject?: string; message?: string;
   classId?: string | null;

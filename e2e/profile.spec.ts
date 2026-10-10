@@ -7,7 +7,7 @@ test("hồ sơ cá nhân: avatar, đổi ID có mật khẩu, lưu và reload",a
  const writes:Record<string,unknown>[]=[];
  await page.route("**/v1/profile",async route=>{
   if(route.request().method()==="PATCH"){
-   const body=route.request().postDataJSON() as PersonalProfile&{currentPassword?:string};writes.push(body);
+   const body=route.request().postDataJSON() as PersonalProfile&{currentPassword?:string};writes.push({...body});
    profile={...body,version:profile.version+1};
   }
   await route.fulfill({json:{data:profile}});

@@ -169,7 +169,7 @@ export function UploadDialog({
       maxWidth="md"
     >
       <DialogTitle>
-        Upload {postId ? "đính kèm bình luận" : sessionId ? "vào phiên học" : "vào kho"}
+        Upload {source === "avatar" ? "ảnh đại diện" : postId ? "đính kèm bình luận" : sessionId ? "vào phiên học" : "vào kho"}
       </DialogTitle>
       <DialogContent>
         <Feedback
@@ -188,7 +188,7 @@ export function UploadDialog({
                 <input
                   type="file"
                 accept={source === "avatar" ? "image/jpeg,image/png,image/webp" : undefined}
-                  multiple
+                  multiple={source !== "avatar"}
                   hidden
                   onChange={(e) => {
                     const chosen = Array.from(e.target.files ?? []).map(
@@ -222,7 +222,7 @@ export function UploadDialog({
                   File lớn, thời gian tải có thể lâu.
                 </Alert>
               )}
-              {!postId && <TextField
+              {!postId && source !== "avatar" && <TextField
                 select
                 label="Nhóm storage"
                 value={row.area}
