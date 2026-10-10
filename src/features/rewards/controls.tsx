@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import SaveOutlined from "@mui/icons-material/SaveOutlined";
 import NoteAddOutlined from "@mui/icons-material/NoteAddOutlined";
 import HistoryOutlined from "@mui/icons-material/HistoryOutlined";
-import DeleteOutline from "@mui/icons-material/DeleteOutline";
+import DeleteOutlined from "@mui/icons-material/DeleteOutlined";
 import EmojiEvents from "@mui/icons-material/EmojiEvents";
 import IconButton from "@mui/material/IconButton";
 import Rating, { type RatingProps } from "@mui/material/Rating";
@@ -15,7 +15,7 @@ export function RewardIcon({
 }: {
   name: "save" | "note" | "detail" | "trash";
 }) {
-  const Icon = {save:SaveOutlined,note:NoteAddOutlined,detail:HistoryOutlined,trash:DeleteOutline}[name];
+  const Icon = {save:SaveOutlined,note:NoteAddOutlined,detail:HistoryOutlined,trash:DeleteOutlined}[name];
   return <Icon fontSize="small"/>;
 }
 export function RewardIconAction({

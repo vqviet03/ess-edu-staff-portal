@@ -51,7 +51,7 @@ export function collaborationRequest(db:Database,staff:Teacher,req:FetchArgs){
  }
  const date=String(body.date??url.searchParams.get("date")??todayDate()),key=`${classId}:${date}`;
  const roster=db.students[classId]??[];
- const day=state.days[key]??{classId,today:todayDate(),date,version:0,saved:false,scheduled:state.schedules[classId]?.occurrences.some(d=>d.date===date)??false,confirmed:false,replaced:false,reasonKind:null,reason:"",replacesDate:null,startTime:null,endTime:null,updatedBy:null,updatedAt:null,plannedSessions:state.schedules[classId]?.plannedSessions??0,savedSessions:0,supplementalSessions:0,needsAttention:0,items:roster.map(s=>({studentId:s.id,publicId:s.id,name:s.fullName,nickname:s.nickname,status:"UNSET",stats:{present:0,absent:0,unrecorded:0,plannedSessions:0,absencePercentage:null,warning:"NO_PLAN"}})),calendar:[],changes:[]};
+ const day=state.days[key]??{classId,today:todayDate(),date,version:0,saved:false,scheduled:state.schedules[classId]?.occurrences.some(d=>d.date===date)??false,confirmed:false,replaced:false,reasonKind:null,reason:"",replacesDate:null,startTime:null,endTime:null,updatedBy:null,updatedAt:null,plannedSessions:state.schedules[classId]?.plannedSessions??0,savedSessions:0,supplementalSessions:0,needsAttention:0,items:roster.map(s=>({studentId:s.id,publicId:s.id,name:s.name,nickname:s.nickname,status:"UNSET",stats:{present:0,absent:0,unrecorded:0,plannedSessions:0,absencePercentage:null,warning:"NO_PLAN"}})),calendar:[],changes:[]};
  if(method!=="GET"){
   if(Number(body.version)!==day.version)fail(409,"VERSION_CONFLICT","Buổi học đã thay đổi.");
   if(tail==="/calendar"||tail==="/calendar/cancel"){
@@ -67,7 +67,7 @@ export function collaborationRequest(db:Database,staff:Teacher,req:FetchArgs){
    if(day.isHoliday||day.isCancelled||!day.scheduled&&!day.confirmed)fail(422,"OFF_SCHEDULE_UNCONFIRMED","Xếp ngày học trước khi điểm danh.");
    if(!Array.isArray(body.rows))fail(422,"INVALID_ATTENDANCE","Thiếu danh sách.");
    const rows=body.rows as {studentId:string;status:"PRESENT"|"ABSENT"}[];
-   day.items=day.items.map(s=>{const r=rows.find(r=>r.studentId===s.studentId);if(!r||!["PRESENT","ABSENT"].includes(r.status))fail(422,"INVALID_ATTENDANCE","Trạng thái không hợp lệ.");return {...s,status:r.status,stats:{...s.stats,present:Number(r.status==="PRESENT"),absent:Number(r.status==="ABSENT"),...{absencePercentage:absenceWarning(Number(r.status==="ABSENT"),day.plannedSessions).percentage,warning:absenceWarning(Number(r.status==="ABSENT"),day.plannedSessions).warning}}};});
+   day.items=day.items.map(s=>{const r=rows.find(r=>r.studentId===s.studentId);if(!r||!["PRESENT","ABSENT"].includes(r.status))throw new ManagementError(422,"INVALID_ATTENDANCE","Trạng thái không hợp lệ.");return {...s,status:r.status,stats:{...s.stats,present:Number(r.status==="PRESENT"),absent:Number(r.status==="ABSENT"),...{absencePercentage:absenceWarning(Number(r.status==="ABSENT"),day.plannedSessions).percentage,warning:absenceWarning(Number(r.status==="ABSENT"),day.plannedSessions).warning}}};});
    day.saved=true;day.isPinned=false;day.isPlanned=false;day.version++;
   }else return;
   state.days[key]=day;

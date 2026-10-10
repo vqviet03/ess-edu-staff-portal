@@ -30,7 +30,7 @@ export function ClassMembers({classId}:{classId:string}) {
   <Box sx={{display:"grid",gridTemplateColumns:{xs:"1fr",md:"repeat(2,minmax(0,1fr))"},gap:1}}>
    {query.currentData?.items.map(m=>{const online=memberOnline(live.currentData,m.userId);return <Paper key={m.userId} sx={{p:1.5,display:"flex",gap:1.5,alignItems:"center"}}>
     <Avatar sx={{bgcolor:"action.selected",color:"primary.main"}}>{m.name.split(/\s+/).map(p=>p[0]).slice(-2).join("")}</Avatar>
-    <Box sx={{minWidth:0,flex:1}}><Typography fontWeight={600}>{m.name}{m.nickname?` (${m.nickname})`:""}</Typography><Typography variant="caption" color="text.secondary">{m.publicId} · {m.role}</Typography><Stack direction="row" spacing={0.75} sx={{alignItems:"center"}}><Box sx={{width:8,height:8,borderRadius:"50%",bgcolor:online?"success.main":"text.disabled"}}/><Typography variant="caption" color={online?"success.main":"text.secondary"}>{online?"Đang online":live.currentData?.connected?offlineLabel(live.currentData.lastSeen[m.userId]??m.lastSeenAt):"Chưa kết nối trạng thái"}</Typography></Stack></Box>
+    <Box sx={{minWidth:0,flex:1}}><Typography sx={{fontWeight:600}}>{m.name}{m.nickname?` (${m.nickname})`:""}</Typography><Typography variant="caption" color="text.secondary">{m.publicId} · {m.role}</Typography><Stack direction="row" spacing={0.75} sx={{alignItems:"center"}}><Box sx={{width:8,height:8,borderRadius:"50%",bgcolor:online?"success.main":"text.disabled"}}/><Typography variant="caption" color={online?"success.main":"text.secondary"}>{online?"Đang online":live.currentData?.connected?offlineLabel(live.currentData.lastSeen[m.userId]??m.lastSeenAt):"Chưa kết nối trạng thái"}</Typography></Stack></Box>
    </Paper>;})}
   </Box>
  </Stack>;

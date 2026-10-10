@@ -4,7 +4,7 @@ import Stack from "@mui/material/Stack";
 import Avatar from "@mui/material/Avatar";
 import Typography from "@mui/material/Typography";
 import Chip from "@mui/material/Chip";
-import ChatBubbleOutline from "@mui/icons-material/ChatBubbleOutline";
+import ChatBubble from "@mui/icons-material/ChatBubble";
 import EventAvailable from "@mui/icons-material/EventAvailable";
 import SchoolOutlined from "@mui/icons-material/SchoolOutlined";
 import EmojiEvents from "@mui/icons-material/EmojiEvents";
@@ -15,7 +15,7 @@ import SettingsOutlined from "@mui/icons-material/SettingsOutlined";
 import type {Notification} from "@/features/materials/models";
 export function notificationStyle(type:string) {
  switch(type){
- case "SOCIAL":case "REPLY":return {icon:ChatBubbleOutline,color:"#6b86b9",tint:"#e9effa"};
+ case "SOCIAL":case "REPLY":return {icon:ChatBubble,color:"#6b86b9",tint:"#e9effa"};
  case "ATTENDANCE":return {icon:EventAvailable,color:"#54876d",tint:"#e6f3ec"};
  case "SCHEDULE":return {icon:EventAvailable,color:"#a47c27",tint:"#fff2c9"};
  case "SCORE":return {icon:SchoolOutlined,color:"#8d78ae",tint:"#eee9f7"};
