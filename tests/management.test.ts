@@ -13,7 +13,6 @@ import {
 import type { Teacher, Envelope, AuthSession } from "../src/types";
 import type {
   BulkPreview,
-  Enrollment,
   Entity,
   ManagedList,
   Impact,
