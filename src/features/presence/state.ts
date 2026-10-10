@@ -1,4 +1,5 @@
-export interface Member { userId: string; publicId: string; name: string; nickname: string | null; role: string; lastSeenAt: string | null }
+import type {AvatarChoice} from "@/features/profile/models";
+export interface Member {avatar?:AvatarChoice; userId: string; publicId: string; name: string; nickname: string | null; role: string; lastSeenAt: string | null }
 export interface Members { classId: string; items: Member[] }
 export interface PresenceSignal { classId: string; userId: string; connectionId: string; online: boolean; seenAt: string }
 export interface PresenceState { connections: Record<string, PresenceSignal>; lastSeen: Record<string,string>; connected: boolean }

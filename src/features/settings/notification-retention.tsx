@@ -6,17 +6,9 @@ import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import MenuItem from "@mui/material/MenuItem";
 import Typography from "@mui/material/Typography";
-import {api,unwrap} from "@/api/api";
+import {retentionApi,type Retention} from "@/api/notification-settings-api";
 import {Card,Feedback} from "@/shared/ui";
 import {useUnsaved} from "@/shared/unsaved";
-interface Retention {limit:number;deleteMode:"SOFT"|"HARD";version:number}
-const retentionApi=api.enhanceEndpoints({addTagTypes:["NotificationRetention"]}).injectEndpoints({endpoints:b=>({
- notificationRetention:b.query<Retention,void>({query:()=>"/manager/notification-settings",transformResponse:unwrap<Retention>,providesTags:["NotificationRetention"]}),
- saveNotificationRetention:b.mutation<Retention,Retention>({query:body=>({url:"/manager/notification-settings",method:"PATCH",body}),transformResponse:unwrap<Retention>,
- async onQueryStarted(_,{dispatch,queryFulfilled}){try{const {data}=await queryFulfilled;dispatch(retentionApi.util.upsertQueryData("notificationRetention",undefined,data));}catch{}},
- invalidatesTags:(_,e)=>e?[]:["Audit"]
- })
-})});
 export function NotificationRetentionSettings(){
  const q=retentionApi.useNotificationRetentionQuery();
  const [message,setMessage]=useState("");
@@ -36,7 +28,7 @@ function RetentionForm({initial,saved}:{initial:Retention;saved:()=>void}){
  }}>
  <TextField size="small" type="number" label="Số thông báo giữ lại mỗi tài khoản" value={limit} onChange={e=>setLimit(Number(e.target.value))} slotProps={{htmlInput:{min:1,max:1000,step:1}}}/>
  <TextField size="small" select label="Chế độ xóa" value={mode} onChange={e=>setMode(e.target.value as Retention["deleteMode"])}><MenuItem value="SOFT">Xóa mềm</MenuItem><MenuItem value="HARD">Xóa thật</MenuItem></TextField>
- <Typography variant="body2">Áp dụng khi nhận thông báo mới. Thông báo quan trọng chưa đọc luôn được giữ, kể cả vượt giới hạn. Xóa thật vẫn giữ dấu giao nhận để chống gửi lặp.</Typography>
+ <Typography variant="body2">Áp dụng khi nhận thông báo mới. Thông báo quan trọng chưa đọc luôn được giữ, kể cả vượt giới hạn.</Typography>
  <Feedback error={state.error}/><Button type="submit" size="small" variant="contained" loading={state.isLoading} disabled={!dirty||!Number.isInteger(limit)||limit<1||limit>1000}>Lưu cài đặt</Button>
  </Stack></Card>;
 }

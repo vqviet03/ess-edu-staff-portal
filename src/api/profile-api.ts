@@ -18,7 +18,7 @@ export const profileApi = api.enhanceEndpoints({ addTagTypes: ["PersonalProfile"
           dispatch(profileApi.util.upsertQueryData("personalProfile", undefined, data));
         } catch { /* Keep the draft on validation/conflict. */ }
       },
-      invalidatesTags: (_, e) => e ? [] : ["Posts", "Comments", "Students", "Management"],
+      invalidatesTags: (_, e) => e ? [] : ["Posts", "Comments", "Students", "Management", "Members"],
     }),
   }),
 });

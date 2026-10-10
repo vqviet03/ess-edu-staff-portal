@@ -197,7 +197,7 @@ export interface StoragePageData extends CursorPage<Storage> {
   configurationEnabled?: boolean;
 }
 export interface UploadRoute {
-  source: "comment" | "session" | "library";
+  source: "comment" | "session" | "library" | "avatar" | "post";
   fileType: string;
   storageId: string;
   version: number;
