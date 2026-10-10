@@ -18,7 +18,7 @@ export async function installHttpFixture(page: Page, shared?: { get: () => strin
   let queue = Promise.resolve();
   const sockets = new Set<WebSocketRoute>();
   const persistedNotices = new Map<string, Notification>();
-  let connections = 0, closes = 0;
+  let connections = 0, closes = 0, changes = 0;
   await page.route(`${config.baseUrl}/**`, route => {
     queue = queue.then(async () => {
       const request = route.request();
@@ -82,13 +82,13 @@ export async function installHttpFixture(page: Page, shared?: { get: () => strin
           const current = JSON.parse(database.get()) as Database;
           const me = current.tokens[token]?.teacher;
           if (!me || Date.parse(current.tokens[token].expiresAt) <= Date.now()) { clearInterval(timer); socket.close({code:1008, reason:'UNAUTHORIZED'}); return; }
-          for (const event of current.operationEvents ?? []) if (BigInt(event.eventId) > BigInt(cursor) && (me?.roles?.includes('MANAGER') || event.actorId === me?.id)) {socket.send(JSON.stringify({type:'CHANGE', data:event}));cursor=event.eventId;}
+          for (const event of current.operationEvents ?? []) if (BigInt(event.eventId) > BigInt(cursor) && (me?.roles?.includes('MANAGER') || event.actorId === me?.id)) {socket.send(JSON.stringify({type:'CHANGE', data:event}));changes++;cursor=event.eventId;}
         }, 50);
       } catch {socket.close({code:1008, reason:'UNAUTHORIZED'});}
     });
     socket.onClose(() => { closes++; clearInterval(timer); sockets.delete(socket); });
   });
-  return { connectionCounts: () => ({connections, closes, active:sockets.size}), pushNotice: (notice: Notification) => {
+  return { connectionCounts: () => ({connections, closes, active:sockets.size,changes}), pushNotice: (notice: Notification) => {
     persistedNotices.set(notice.id, notice);
     for (const socket of sockets) socket.send(JSON.stringify({type:'NOTIFICATION', data:notice}));
   }};

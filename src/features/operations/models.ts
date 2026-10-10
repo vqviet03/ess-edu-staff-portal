@@ -26,7 +26,14 @@ export function operationEnvelope(value: unknown): Operation | null {
 }
 export function businessMutation(url: string, method = "GET") {
   if (!["POST", "PATCH", "PUT"].includes(method)) return false;
-  return /^\/manager\/settings\/proposals(?:\/[^/]+\/decision)?$/.test(url) || url === "/manager/changes/commit" || /^\/manager\/accounts\/[^/]+\/(session-policy|sessions\/revoke)$/.test(url) || (/^\/(classes|sessions|assessments)\//.test(url) && !url.endsWith("/preview"));
+  // Match only actions supported by the backend AsyncOperationFilter.
+  // Calendar/settings/rewards are synchronous mutations with durable outbox delivery.
+  return /^\/manager\/settings\/proposals(?:\/[^/]+\/decision)?$/.test(url)
+    || url === "/manager/changes/commit"
+    || /^\/manager\/accounts\/[^/]+\/(session-policy|sessions\/revoke)$/.test(url)
+    || /^\/classes\/[^/]+\/(sessions|students\/[^/]+(?:\/units\/[^/]+\/report\/comments)?)$/.test(url)
+    || /^\/sessions\/[^/]+(?:\/assessments)?$/.test(url)
+    || /^\/assessments\/[^/]+(?:\/results\/(?:batch|[^/]+)|\/import\/commit|\/(?:publish|unpublish))?$/.test(url);
 }
 export function relatedTags(entities: string[]) {
   const tags = new Set<"Auth" | "Management" | "Dashboard" | "Assignments" | "Warnings" | "Audit" | "Classes" | "Class" | "Students" | "Sessions" | "Assessments" | "Results" | "Reports" | "ClassAccess" | "Operations" | "ApplicationSettings" | "SettingsProposals" | "Attendance" | "Rewards">(["Operations", "Audit"]);
