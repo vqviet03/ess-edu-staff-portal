@@ -7,7 +7,7 @@ import type { Envelope } from "@/types";
 import type { Operation, ChangeNotification } from "@/features/operations/models";
 import { apiConfiguration } from "./config";
 import type { AuthState } from "@/store/auth";
-import { signedOut } from "@/store/auth";
+import { createSocketSessionCheck } from "@/features/auth/socket-session";
 import { notificationReceived, operationReceived } from "@/store/operations";
 import { connectOperationChannel, receiveOperation } from "@/features/operations/channel";
 import { foregroundSocketAllowed } from "@/features/operations/foreground";
@@ -17,7 +17,11 @@ export const operationsApi = api.injectEndpoints({ endpoints: (b) => ({
     keepUnusedDataFor: 0,
     async onCacheEntryAdded(userId, { getState, dispatch, updateCachedData, cacheDataLoaded, cacheEntryRemoved }) {
       if (apiConfiguration.mock || typeof window === "undefined") return;
-      let socket: WebSocket | undefined, reconnect: ReturnType<typeof setTimeout> | undefined, stopped = false;
+      let socket: WebSocket | undefined, stopped = false, authBlocked = false;
+      const verifySession = createSocketSessionCheck(
+        () => stopped ? null : (getState() as unknown as { auth: AuthState }).auth.session?.accessToken,
+        () => dispatch(api.endpoints.me.initiate(undefined, { forceRefetch: true, subscribe: false })),
+      );
       let disconnect: (() => void) | undefined;
       const key = `ess.events.${userId}`;
       let cursor = "0", hasCursor = false;
@@ -26,7 +30,7 @@ export const operationsApi = api.injectEndpoints({ endpoints: (b) => ({
       const auditSignals = new Set<string>();
       const allowed = () => foregroundSocketAllowed(document.hidden, navigator.onLine, stopped);
       const pause = () => {
-        clearTimeout(reconnect); disconnect?.(); disconnect = undefined;
+        disconnect?.(); disconnect = undefined;
         const previous = socket; socket = undefined;
         if (previous) { previous.onclose = null; previous.onmessage = null; previous.onopen = null; previous.close(1000, "BACKGROUND"); }
         presenceConnection(false);
@@ -35,11 +39,12 @@ export const operationsApi = api.injectEndpoints({ endpoints: (b) => ({
       const sendContext=()=>{if(socket?.readyState===WebSocket.OPEN){presenceConnection(false);presenceConnection(true);socket.send(JSON.stringify({type:"PRESENCE",classId:presenceContext()}));}else if(allowed()&&!socket)connect();};
       const connect = () => {
         const session = (getState() as unknown as { auth: AuthState }).auth.session;
-        if (!allowed() || !session || session.teacher.id !== userId || socket?.readyState === WebSocket.OPEN || socket?.readyState === WebSocket.CONNECTING) return;
+        if (authBlocked || !allowed() || !session || session.teacher.id !== userId || socket?.readyState === WebSocket.OPEN || socket?.readyState === WebSocket.CONNECTING) return;
         const url = new URL(apiConfiguration.baseUrl + "/events/ws"); url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
-        socket = new WebSocket(url);
-        socket.onopen = () => socket?.send(JSON.stringify({ type: "AUTH", accessToken: session.accessToken, ...(hasCursor ? { cursor } : {}) }));
-        socket.onmessage = (message) => {
+        const current = new WebSocket(url);
+        socket = current;
+        current.onopen = () => current.send(JSON.stringify({ type: "AUTH", accessToken: session.accessToken, ...(hasCursor ? { cursor } : {}) }));
+        current.onmessage = (message) => {
           try {
             const frame = JSON.parse(String(message.data)) as { type: string; data?: ChangeNotification | Operation | Notification | CursorPage<Notification>; cursor?: string; id?: string };
             if(frame.type==="PRESENCE_RESET"){presenceConnection(false);}
@@ -72,16 +77,19 @@ export const operationsApi = api.injectEndpoints({ endpoints: (b) => ({
             }
           } catch {}
         };
-        socket.onclose = (event) => {
-          if (stopped) return;
+        current.onclose = (event) => {
+          if (stopped || socket !== current) return;
           socket = undefined;
           disconnect?.(); disconnect = undefined;
           updateCachedData((state) => { state.online = false; });
-          if (event.code === 1008 && event.reason === "UNAUTHORIZED") { dispatch(signedOut("Phiên đăng nhập đã hết hạn.")); dispatch(api.util.resetApiState()); return; }
           presenceConnection(false);
+          if (event.code === 1008 && event.reason === "UNAUTHORIZED") {
+            authBlocked = true;
+            void verifySession(session.accessToken).then(valid => { if (valid) { authBlocked = false; connect(); } });
+          }
         };
       };
-      const resume = () => { if (allowed()) { clearTimeout(reconnect); connect(); } else pause(); };
+      const resume = () => { if (allowed()) connect(); else pause(); };
       try {
         await cacheDataLoaded;
         window.addEventListener(PRESENCE_CONTEXT_EVENT,sendContext);

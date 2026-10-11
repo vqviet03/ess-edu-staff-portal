@@ -212,3 +212,6 @@ Xem [hướng dẫn chức năng và API](docs/calendar-notifications-presence.m
 ## Hồ sơ, avatar và thông báo
 
 Trang `/profile/` sửa thông tin cá nhân, đổi ID đăng nhập yêu cầu mật khẩu hiện tại; email/số điện thoại cá nhân là alias đăng nhập. Avatar dùng MUI và màu pastel hoặc upload ảnh qua API có xác thực. Xem [hướng dẫn và API](docs/personal-profile-notifications.md). Yêu cầu backend đã áp dụng migration Core 020, Materials 009, Notifications 004. Không thêm dependency hoặc polling.
+
+### Xác minh phiên khi socket lỗi
+Socket đóng `1008/UNAUTHORIZED` không tự đăng xuất. Client gọi `/auth/me` qua RTK Query một lần, dùng chung request đang chạy. Chỉ HTTP 401 mới xóa phiên/cache; 403, lỗi mạng và 5xx giữ phiên. Nếu xác minh thành công, nối lại socket tối đa một lần trong vòng đời phiên/socket. Không polling, không retry timer; socket cũ không ảnh hưởng phiên mới.
