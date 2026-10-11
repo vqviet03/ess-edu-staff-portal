@@ -197,12 +197,12 @@ export const createStaffApi = (query = baseQuery) =>
       }),
       publishAssessment: b.mutation<
         { published: boolean },
-        { id: string; version: number; publish: boolean;notificationPriority?:"NORMAL"|"IMPORTANT" }
+        { id: string; version: number; publish: boolean;notifyStudents?:boolean; notificationPriority?:"NORMAL"|"IMPORTANT" }
       >({
-        query: ({ id, version, publish, notificationPriority }) => ({
+        query: ({ id, version, publish, notificationPriority, notifyStudents }) => ({
           url: `/assessments/${encodeURIComponent(id)}/${publish ? "publish" : "unpublish"}`,
           method: "POST",
-          body: { version,notificationPriority },
+          body: { version,notificationPriority,notifyStudents },
         }),
         transformResponse: unwrap<{ published: boolean }>,
         invalidatesTags: (_, error) =>

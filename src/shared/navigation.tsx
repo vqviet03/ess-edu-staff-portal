@@ -31,6 +31,7 @@ import Stack from "@mui/material/Stack";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 const items: { label: string; href: string; icon: SvgIconComponent; entity?: string; manager?: boolean }[] = [
+  { label: "Hồ sơ cá nhân", href: "/profile/", icon: Account },
   { label: "Tổng quan", href: "/home/", icon: Dashboard },
   { label: "Học sinh", href: "/manage/list/?entity=students", icon: School, entity: "students", manager: true },
   { label: "Giảng viên", href: "/manage/list/?entity=teachers", icon: People, entity: "teachers", manager: true },

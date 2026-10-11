@@ -180,6 +180,7 @@ function DayEditor({
         data.items.map((r) => [r.studentId, r.status === "PRESENT"]),
       ),
     ),
+    [notifyStudents,setNotifyStudents]=useState<boolean|undefined>(),
     [priority,setPriority]=useState<"NORMAL"|"IMPORTANT"|undefined>(),
     [reason, setReason] = useState(""),
     [dirty, setDirty] = useState(false),
@@ -226,7 +227,7 @@ function DayEditor({
           slotProps={{ htmlInput: { maxLength: 2000 } }}
         />
       )}
-      <NotificationPrioritySelect classId={classId} feature="ATTENDANCE" value={priority} onChange={setPriority}/>
+      <NotificationPrioritySelect notifyStudents={notifyStudents} onNotifyStudentsChange={setNotifyStudents} classId={classId} feature="ATTENDANCE" value={priority} onChange={setPriority}/>
       <Feedback error={error} />
       <Stack direction="row" spacing={1}>
         <Button
@@ -330,7 +331,7 @@ function DayEditor({
                   date: initial.date,
                   version: initial.version,
                   reason,
-                  notificationPriority:priority,
+                  notifyStudents,notificationPriority:priority,
                   rows: initial.items.map((r) => ({
                     studentId: r.studentId,
                     status: checked[r.studentId] ? "PRESENT" : "ABSENT",

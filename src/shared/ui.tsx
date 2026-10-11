@@ -16,6 +16,7 @@ import Typography from "@mui/material/Typography";
 import IconButton from "@mui/material/IconButton";
 import Tooltip from "@mui/material/Tooltip";
 import LogoutIcon from "@mui/icons-material/Logout";
+import { ProfileAvatar } from "@/features/profile/avatar";
 import { Sidebar, BackButton } from "./navigation";
 import { PreferencesMenu } from "./preferences-menu";
 import { useApplicationSettings } from "@/features/settings/hooks";
@@ -269,6 +270,7 @@ export function Shell({ children }: { children: ReactNode }) {
                       : "Giảng viên"}{" "}
                     · {auth.session?.teacher.name}
                   </Typography>
+<Tooltip title="Hồ sơ cá nhân"><IconButton component={Link} href="/profile/" aria-label="Hồ sơ cá nhân"><ProfileAvatar name={auth.session?.teacher.name??"Bạn"} value={auth.session?.teacher.avatar} size={30}/></IconButton></Tooltip>
 <Tooltip title="Đăng xuất"><IconButton aria-label="Đăng xuất" disabled={logoutState.isLoading} onClick={signOut}><LogoutIcon /></IconButton></Tooltip>
                 </>
               )}

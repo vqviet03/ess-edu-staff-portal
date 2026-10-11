@@ -51,6 +51,7 @@ export function RewardMutationDialog({
   onClose: () => void;
   onSaved: () => void;
 }) {
+  const [notifyStudents,setNotifyStudents]=useState<boolean|undefined>();
   const [notificationPriority,setNotificationPriority]=useState<"NORMAL"|"IMPORTANT"|undefined>();
   const [amount, setAmount] = useState(edit?.amount ?? initialAmount),
     [note, setNote] = useState(edit?.note ?? ""),
@@ -92,6 +93,7 @@ export function RewardMutationDialog({
       date,
       reason,
       kind,
+      notifyStudents,
       notificationPriority,
       classId,
       studentId,
@@ -108,7 +110,8 @@ export function RewardMutationDialog({
           note: note.trim(),
           reason: reason.trim(),
           key: request.current.key,
-          notificationPriority,
+          notifyStudents,
+      notificationPriority,
         }).unwrap();
       else if (reverse)
         await undo({
@@ -117,7 +120,8 @@ export function RewardMutationDialog({
           entryId: reverse.id,
           note: note.trim(),
           key: request.current.key,
-          notificationPriority,
+          notifyStudents,
+      notificationPriority,
         }).unwrap();
       else
         await add({
@@ -128,7 +132,8 @@ export function RewardMutationDialog({
           date,
           note: note.trim(),
           key: request.current.key,
-          notificationPriority,
+          notifyStudents,
+      notificationPriority,
         }).unwrap();
       setChanged(false);
       onSaved();
@@ -252,7 +257,7 @@ export function RewardMutationDialog({
             error={note.length > 2000}
             slotProps={{ htmlInput: { maxLength: 2000 } }}
           />
-          <NotificationPrioritySelect classId={classId} feature="REWARD" value={notificationPriority} onChange={v=>{setNotificationPriority(v);setChanged(true);}}/>
+          <NotificationPrioritySelect notifyStudents={notifyStudents} onNotifyStudentsChange={setNotifyStudents} classId={classId} feature="REWARD" value={notificationPriority} onChange={v=>{setNotificationPriority(v);setChanged(true);}}/>
           <Feedback error={error} />
           {edit && (
             <TextField

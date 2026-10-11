@@ -1,4 +1,5 @@
 "use client";
+import {ProfileAvatar} from "@/features/profile/avatar";
 import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
 import Avatar from "@mui/material/Avatar";
@@ -29,7 +30,7 @@ export function notificationStyle(type:string) {
 export function NotificationContent({notice:n}:{notice:Notification}){
  const style=notificationStyle(n.type),Icon=style.icon,social=["SOCIAL","REPLY","MATERIAL"].includes(n.type)&&!!n.actorName&&!!n.subject;
  return <Stack direction="row" spacing={1.25} sx={{alignItems:"flex-start",minWidth:0}}>
-  <Avatar sx={{width:36,height:36,bgcolor:style.tint,color:style.color,fontSize:12}}>{social?n.actorName!.trim().split(/\s+/).map(p=>p[0]).slice(-2).join(""):<Icon fontSize="small"/>}</Avatar>
+  {social?<ProfileAvatar name={n.actorName!} value={n.actorAvatar}/>:<Avatar sx={{width:36,height:36,bgcolor:style.tint,color:style.color}}><Icon fontSize="small"/></Avatar>}
   <Box sx={{minWidth:0,flex:1}}><Typography sx={{fontSize:14,overflowWrap:"anywhere"}}>{social?<><Box component="span" sx={{fontWeight:600}}>{n.actorRole} {n.actorName}</Box>{" "}{n.message||"đã cập nhật bài viết"}{" "}<Box component="strong">{n.subject}</Box></>:n.title}</Typography>
    {n.priority==="IMPORTANT"&&<Chip size="small" label="Quan trọng" color="warning" variant="outlined" sx={{mt:0.5}}/>}
   </Box>

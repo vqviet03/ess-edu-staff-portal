@@ -38,8 +38,7 @@ export function UploadRouting() {
       <Stack spacing={2}>
         <Typography variant="h6">Ổ nhận upload mặc định</Typography>
         <Typography variant="body2">
-          File bình luận tự vào External source theo loại file. Quy tắc từng
-          loại ưu tiên hơn quy tắc Tất cả.
+          Avatar lưu trong Chung/Ảnh avatar; file bài đăng và phiên học lưu trong Chung/Bài đăng theo loại. Bình luận giữ External source. Quy tắc từng loại ưu tiên hơn Tất cả.
         </Typography>
         <Stack direction={{ xs: "column", md: "row" }} spacing={2}>
           <TextField
@@ -56,6 +55,8 @@ export function UploadRouting() {
               ["comment", "Bình luận"],
               ["session", "Phiên học"],
               ["library", "Kho tài liệu"],
+              ["avatar", "Ảnh avatar"],
+              ["post", "Bài đăng trực tiếp"],
             ].map(([v, l]) => (
               <MenuItem key={v} value={v}>
                 {l}

@@ -58,12 +58,14 @@ async function thumbnail(file: File) {
 }
 export function UploadDialog({
   folderId,
+  source,
   sessionId,
   postId,
   close,
   added,
 }: {
   folderId: string | null;
+  source?: "avatar" | "post";
   sessionId?: string;
   postId?: string;
   close: () => void;
@@ -125,7 +127,7 @@ export function UploadDialog({
           sizeBytes: row.file.size,
           storageId: postId ? "" : row.area,
           folderId,
-          uploadSource: postId ? "comment" : sessionId ? "session" : "library",
+          uploadSource: source === "avatar" ? "avatar" : postId ? "comment" : sessionId ? "session" : source ?? "library",
           sourcePostId: postId,
           sourceSessionId: sessionId,
           thumbnailMime: thumb?.type,
@@ -166,9 +168,7 @@ export function UploadDialog({
       fullWidth
       maxWidth="md"
     >
-      <DialogTitle>
-        Upload {postId ? "đính kèm bình luận" : sessionId ? "vào phiên học" : "vào kho"}
-      </DialogTitle>
+      <DialogTitle>{source === "avatar" ? "Tải ảnh đại diện" : "Upload " + (postId ? "đính kèm bình luận" : sessionId ? "vào phiên học" : "vào kho")}</DialogTitle>
       <DialogContent>
         <Feedback
           loading={settings.isLoading}
@@ -185,7 +185,8 @@ export function UploadDialog({
                 Chọn nhiều file
                 <input
                   type="file"
-                  multiple
+                accept={source === "avatar" ? "image/jpeg,image/png,image/webp" : undefined}
+                  multiple={source !== "avatar"}
                   hidden
                   onChange={(e) => {
                     const chosen = Array.from(e.target.files ?? []).map(
@@ -219,7 +220,7 @@ export function UploadDialog({
                   File lớn, thời gian tải có thể lâu.
                 </Alert>
               )}
-              {!postId && <TextField
+              {!postId && source !== "avatar" && <TextField
                 select
                 label="Nhóm storage"
                 value={row.area}

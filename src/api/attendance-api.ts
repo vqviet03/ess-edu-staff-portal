@@ -50,7 +50,7 @@ export const attendanceApi = api.injectEndpoints({
         version: number;
         rows: { studentId: string; status: "PRESENT" | "ABSENT" }[];
         reason: string;
-        notificationPriority?: "NORMAL"|"IMPORTANT";
+        notifyStudents?:boolean; notificationPriority?: "NORMAL"|"IMPORTANT";
       }
     >({
       query: ({ classId, ...body }) => ({
@@ -61,11 +61,11 @@ export const attendanceApi = api.injectEndpoints({
       transformResponse: unwrap<ClassAttendance>,
       invalidatesTags: (_, e, q) => (e ? [] : [...tags(q.classId), "Audit"]),
     }),
-    arrangeCalendarDay: b.mutation<ClassAttendance,{classId:string;date:string;version:number;kind:"HOLIDAY"|"MAKEUP"|"SUPPLEMENTAL";reason:string;startTime?:string;endTime?:string}>({
+    arrangeCalendarDay: b.mutation<ClassAttendance,{classId:string;date:string;version:number;kind:"HOLIDAY"|"MAKEUP"|"SUPPLEMENTAL";reason:string;notifyStudents?:boolean;startTime?:string;endTime?:string}>({
       query:({classId,...body})=>({url:`${path(classId)}/calendar`,method:"PUT",body}),transformResponse:unwrap<ClassAttendance>,
       invalidatesTags:(_,e,q)=>e?[]:[...tags(q.classId),"Audit"]
     }),
-    cancelCalendarDay: b.mutation<ClassAttendance,{classId:string;date:string;version:number;reason:string;confirmPast:boolean}>({
+    cancelCalendarDay: b.mutation<ClassAttendance,{classId:string;date:string;version:number;reason:string;confirmPast:boolean;notifyStudents?:boolean}>({
       query:({classId,...body})=>({url:`${path(classId)}/calendar/cancel`,method:"POST",body}),transformResponse:unwrap<ClassAttendance>,
       invalidatesTags:(_,e,q)=>e?[]:[...tags(q.classId),"Audit"]
     }),

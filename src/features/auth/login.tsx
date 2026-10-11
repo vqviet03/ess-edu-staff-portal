@@ -57,7 +57,7 @@ export function Login() {
             {auth.message && <Alert severity="info">{auth.message}</Alert>}
             {error && <Alert severity="error">{errorMessage(error)}</Alert>}
             <TextField
-              label="ID giảng viên / quản lý"
+              label="ID giảng viên / quản lý / email / số điện thoại"
               autoComplete="username"
               {...register("teacherId")}
               error={!!errors.teacherId}
