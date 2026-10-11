@@ -18,7 +18,7 @@ export async function installHttpFixture(page: Page, shared?: { get: () => strin
   let queue = Promise.resolve();
   const sockets = new Set<WebSocketRoute>();
   const persistedNotices = new Map<string, Notification>();
-  let connections = 0, closes = 0, changes = 0;
+  let connections = 0, closes = 0, changes = 0, authFailures = 0;
   await page.route(`${config.baseUrl}/**`, route => {
     queue = queue.then(async () => {
       const request = route.request();
@@ -70,6 +70,7 @@ export async function installHttpFixture(page: Page, shared?: { get: () => strin
           return;
         }
         if (auth.type !== 'AUTH' || !auth.accessToken) {socket.close({code:1008, reason:'UNAUTHORIZED'});return;}
+        if (authFailures > 0) { authFailures--; socket.close({code:1008, reason:'UNAUTHORIZED'}); return; }
         token = auth.accessToken;
         const checked = await adapter({url:'/auth/me', headers:{Authorization:`Bearer ${token}`}}, runtime, {});
         if (checked.error) {socket.close({code:1008, reason:'UNAUTHORIZED'});return;}
@@ -88,7 +89,7 @@ export async function installHttpFixture(page: Page, shared?: { get: () => strin
     });
     socket.onClose(() => { closes++; clearInterval(timer); sockets.delete(socket); });
   });
-  return { connectionCounts: () => ({connections, closes, active:sockets.size,changes}), pushNotice: (notice: Notification) => {
+  return { rejectSocketAuth: (count: number) => { authFailures = count; }, disconnectUnauthorized: () => { for (const socket of sockets) socket.close({code:1008, reason:'UNAUTHORIZED'}); }, connectionCounts: () => ({connections, closes, active:sockets.size,changes}), pushNotice: (notice: Notification) => {
     persistedNotices.set(notice.id, notice);
     for (const socket of sockets) socket.send(JSON.stringify({type:'NOTIFICATION', data:notice}));
   }};

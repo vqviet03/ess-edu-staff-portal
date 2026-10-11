@@ -83,7 +83,7 @@ test("socket notice updates badge/list; read actions patch cache without notific
   fixture.pushNotice(notice); fixture.pushNotice(notice);
   await expect(page.getByRole("link", {name:"Thông báo (1)",exact:true})).toBeVisible();
   await page.getByRole("link", {name:"Thông báo (1)",exact:true}).click();
-  await expect(page.getByText(notice.title, {exact:true})).toHaveCount(1);
+  await expect(page.getByRole("main").getByText(notice.title, {exact:true})).toHaveCount(1);
   expect(gets).toBe(0);
   await page.route(`${root}/notifications/${notice.id}`, async (route) => {
     writes++; await route.fulfill({status:200,contentType:"application/json",body:JSON.stringify({data:{...notice,isRead:true,version:2}})});
@@ -92,7 +92,7 @@ test("socket notice updates badge/list; read actions patch cache without notific
   await expect(page.getByRole("button", {name:"Đánh dấu chưa đọc",exact:true})).toBeVisible();
   expect(writes).toBe(1); expect(gets).toBe(0);
   fixture.pushNotice({...notice,id:"socket-notice-2",title:"Thông báo thứ hai"});
-  await expect(page.getByText("Thông báo thứ hai", {exact:true})).toBeVisible();
+  await expect(page.getByRole("main").getByText("Thông báo thứ hai", {exact:true})).toBeVisible();
   await page.route(`${root}/notifications/read-all`, async (route) => {
     writes++; await route.fulfill({status:200,contentType:"application/json",body:JSON.stringify({data:{updated:1}})});
   });
