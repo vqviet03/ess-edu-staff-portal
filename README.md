@@ -215,3 +215,7 @@ Trang `/profile/` sửa thông tin cá nhân, đổi ID đăng nhập yêu cầu
 
 ### Xác minh phiên khi socket lỗi
 Socket đóng `1008/UNAUTHORIZED` không tự đăng xuất. Client gọi `/auth/me` qua RTK Query một lần, dùng chung request đang chạy. Chỉ HTTP 401 mới xóa phiên/cache; 403, lỗi mạng và 5xx giữ phiên. Nếu xác minh thành công, nối lại socket tối đa một lần trong vòng đời phiên/socket. Không polling, không retry timer; socket cũ không ảnh hưởng phiên mới.
+
+## Tên miền riêng
+
+Xem [cấu hình eeslern.com / staff.eeslern.com](docs/custom-domains.md): DNS, GitHub Pages, CORS Cloud Run và deploy lại ở đường dẫn gốc. Không cần migration.

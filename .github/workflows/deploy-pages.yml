@@ -2,6 +2,7 @@ name: Deploy dev to GitHub Pages
 on:
   push:
     branches: [dev]
+  workflow_dispatch:
 permissions:
   contents: read
 concurrency:
@@ -9,8 +10,10 @@ concurrency:
   cancel-in-progress: false
 jobs:
   checks:
+    if: github.ref == 'refs/heads/dev'
     uses: ./.github/workflows/checks.yml
   package:
+    if: github.ref == 'refs/heads/dev'
     needs: checks
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -19,20 +22,24 @@ jobs:
       NEXT_PUBLIC_USE_MOCK: "false"
       NEXT_PUBLIC_API_BASE_URL: ${{ vars.NEXT_PUBLIC_API_BASE_URL || 'https://ess-edu-portal-api-246816830212.asia-southeast1.run.app/v1' }}
       NEXT_PUBLIC_API_TIMEOUT_MS: ${{ vars.NEXT_PUBLIC_API_TIMEOUT_MS || '15000' }}
-      NEXT_PUBLIC_BASE_PATH: ${{ vars.PAGES_BASE_PATH || format('/{0}', github.event.repository.name) }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: "24"
           cache: npm
+      - uses: actions/configure-pages@v5
+        id: pages
       - run: npm ci
       - run: npm run build
+        env:
+          NEXT_PUBLIC_BASE_PATH: ${{ steps.pages.outputs.base_path }}
       - run: touch out/.nojekyll
       - uses: actions/upload-pages-artifact@v3
         with:
           path: out
   deploy:
+    if: github.ref == 'refs/heads/dev'
     needs: package
     runs-on: ubuntu-latest
     permissions:
