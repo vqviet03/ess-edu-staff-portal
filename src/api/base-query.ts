@@ -25,7 +25,7 @@ export function createAppBaseQuery(config: {
   fetchFn?: NonNullable<Parameters<typeof fetchBaseQuery>[0]>["fetchFn"];
 }): Query {
   const resolved = resolveApiConfiguration(String(config.mock), config.url, config.timeout ?? 15000);
-  let mock = config.mockAdapter;
+  const mock = config.mockAdapter; // Only explicit test adapters; never load fixtures in the app.
   const real = fetchBaseQuery({
       baseUrl: resolved.baseUrl,
       fetchFn: config.fetchFn,
@@ -47,7 +47,7 @@ export function createAppBaseQuery(config: {
     let request: FetchArgs = typeof args === "string" ? { url: args } : args;
     if (request.body && typeof request.body === "object" && "notifyStudents" in request.body && typeof request.body.notifyStudents === "boolean")
       request = { ...request, params: { ...request.params, notifyStudents: request.body.notifyStudents } };
-    if (config.configurationError || resolved.error)
+    if (config.configurationError || resolved.error || (config.mock && !mock))
       return {
         error: {
           status: "CUSTOM_ERROR",
@@ -72,7 +72,6 @@ export function createAppBaseQuery(config: {
     }
     if (config.mock && auth.session && !publicRequest)
       headers.set("Authorization", `Bearer ${auth.session.accessToken}`);
-    if (config.mock && !mock) mock = (await import("@/mock/adapter")).createMockAdapter();
     if (!config.mock && businessMutation(request.url, request.method)) {
       headers.set("Prefer", "respond-async");
       if (!headers.has("Idempotency-Key")) headers.set("Idempotency-Key", crypto.randomUUID());

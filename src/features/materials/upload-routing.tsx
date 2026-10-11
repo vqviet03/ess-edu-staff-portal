@@ -53,6 +53,7 @@ export function UploadRouting() {
           >
             {[
               ["comment", "Bình luận"],
+              ["assignment", "Đề bài tập"], ["submission", "Bài nộp học sinh"],
               ["session", "Phiên học"],
               ["library", "Kho tài liệu"],
               ["avatar", "Ảnh avatar"],

@@ -1,6 +1,8 @@
 "use client";
 import {NotificationActionPriority} from "@/features/notifications/action-priority";
 import {NotificationPrioritySelect} from "@/features/notifications/priority";
+import NextLink from "next/link";
+import Button from "@mui/material/Button";
 import { Comments } from "./comments";
 import { IconAction } from "@/shared/icon-action";
 import FirstPage from "@mui/icons-material/FirstPage";
@@ -12,13 +14,13 @@ import Close from "@mui/icons-material/Close";
 import ButtonBase from "@mui/material/ButtonBase";
 import InputBase from "@mui/material/InputBase";
 import { PostSurface, postTypeLabels } from "./post-surface";
+import {useRouter} from "next/navigation";
 import { useWorkspace } from "@/features/access/hooks";
 import Autocomplete from "@mui/material/Autocomplete";
 import { useState } from "react";
 import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
-import Button from "@mui/material/Button";
 import TextField from "@mui/material/TextField";
 import Dialog from "@mui/material/Dialog";
 import DialogTitle from "@mui/material/DialogTitle";
@@ -27,6 +29,7 @@ import DialogActions from "@mui/material/DialogActions";
 import MenuItem from "@mui/material/MenuItem";
 import Alert from "@mui/material/Alert";
 import {
+  usePostQuery,
   usePostsQuery,
   useClassThreadsQuery,
   useThreadSessionsQuery,
@@ -43,7 +46,7 @@ import type { Attachment, MaterialFile, Post, PostInput } from "./models";
 import { MaterialBrowser } from "./browser";
 import { MaterialViewer } from "./viewer";
 import { UploadDialog } from "./upload";
-function PostCard({
+export function PostCard({
   post,
   sessionId,
   cursor,
@@ -56,6 +59,7 @@ function PostCard({
   editable: boolean;
   edit: (post: Post) => void;
 }) {
+  const router=useRouter();
   const me = useAppSelector((s) => s.auth.session?.teacher),
     [notifyStudents,setNotifyStudents]=useState<boolean|undefined>(),
     [actionPriority,setActionPriority]=useState<"NORMAL"|"IMPORTANT"|undefined>(),
@@ -73,6 +77,7 @@ function PostCard({
       <PostSurface
         post={post}
         headerActions={<NotificationActionPriority notifyStudents={notifyStudents} onNotifyStudentsChange={setNotifyStudents} classId={post.classId} feature="SOCIAL" value={actionPriority} onChange={setActionPriority}/>}
+        afterMedia={post.assignment && <Button variant="contained" component={NextLink} href={`/assignment/?assignmentId=${post.assignment.id}&classId=${post.classId}`}>Mở bài tập</Button>}
         commentOpen={showComments}
         openComments={() => setShowComments((s) => !s)}
         preview={setPreview}
@@ -92,7 +97,7 @@ function PostCard({
             setError(e);
           }
         }}
-        onEdit={canEdit ? () => edit(post) : undefined}
+        onEdit={canEdit ? () => post.assignment ? router.push(`/assignment/?assignmentId=${post.assignment.id}&classId=${post.classId}&mode=edit`) : edit(post) : undefined}
         onDelete={
           canDelete
             ? async () => {
@@ -113,12 +118,12 @@ function PostCard({
             : undefined
         }
       >
-        <Comments
+        {!post.assignment && <Comments
           post={post}
           expanded={showComments}
           expand={() => setShowComments(true)}
           collapse={() => setShowComments(false)}
-        />
+        />}
       </PostSurface>
       <Feedback error={error} />
       {preview && (
@@ -223,6 +228,7 @@ export function SessionFeed({
           >
             Tạo bài đăng
           </Button>
+          <Button component={NextLink} href={`/assignment/?classId=${classId}&mode=create${sessionId?`&sessionId=${sessionId}`:""}`} size="small" startIcon={<Add/>}>Tạo bài tập</Button>
         </Box>
       )}
       <Box
@@ -330,7 +336,7 @@ export function SessionFeed({
                   setDirty(true);
                 }}
               >
-                {Object.entries(postTypeLabels).map(([v, l]) => (
+                {Object.entries(postTypeLabels).filter(([v]) => v !== "ASSIGNMENT").map(([v, l]) => (
                   <MenuItem key={v} value={v}>
                     {l}
                   </MenuItem>
@@ -630,3 +636,5 @@ export function SessionFeed({
     </Stack>
   );
 }
+
+export function PostDetailPage({postId}:{postId:string}) { const router=useRouter(); const q=usePostQuery(postId,{skip:!postId});return <><Feedback loading={q.isLoading} error={q.error} retry={()=>void q.refetch()}/>{q.data&&<PostCard post={q.data} editable={q.data.canEdit===true} edit={p=>{router.push(`/class/?classId=${p.classId}&postId=${p.id}`);}}/>}</>;}

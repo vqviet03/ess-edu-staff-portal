@@ -151,6 +151,7 @@ export function DeletionPage() {
   );
 }
 export const notificationTypes: Record<string, string> = {
+  ASSIGNMENT: "Bài tập mới", SUBMISSION: "Nộp bài tập", ASSIGNMENT_RESULT: "Kết quả bài tập",
   MATERIAL: "Tài liệu / bài đăng",
   SOCIAL: "Bình luận / tương tác",
   REPLY: "Trả lời bình luận",

@@ -1,4 +1,5 @@
 "use client";
+import {ChangePassword} from "@/features/assignments/password";
 import { useState } from "react";
 import Alert from "@mui/material/Alert";
 import Paper from "@mui/material/Paper";
@@ -27,6 +28,7 @@ export function PersonalProfilePage() {
     {q.error && <Alert severity="error" action={<Button onClick={()=>void q.refetch()}>Thử lại</Button>}>{errorMessage(q.error)}</Alert>}
     {message&&<Alert severity="success">{message}</Alert>}
     {q.data && <ProfileForm key={q.data.version} initial={q.data} saved={()=>setMessage("Đã lưu hồ sơ.")}/>}
+    <ChangePassword/>
   </Stack>;
 }
 function ProfileForm({initial,saved}:{initial:PersonalProfile;saved:()=>void}) {

@@ -28,6 +28,7 @@ export const createStaffApi = (query = baseQuery) =>
     refetchOnReconnect: false,
     refetchOnMountOrArgChange: false,
     tagTypes: [
+      "LearningAssignments", "AssignmentForm", "AssignmentDraft", "AssignmentSubmissions", "AssignmentReport",
       "Attendance",
       "Members",
       "Rewards",

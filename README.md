@@ -15,10 +15,6 @@ npm run dev
 
 - Mặc định gọi API thật tại `https://ess-edu-portal-api-246816830212.asia-southeast1.run.app/v1`. Auth và endpoint giảng viên đã hoạt động; các endpoint/quyền quản lý mới cần triển khai theo contract quản lý.
 - Tài khoản backend demo: **GV000001 / TeacherDemo123!** (email `teacher@ess.local` cũng được), lớp **ess20-a1**. Chỉ dùng trong môi trường thử nghiệm đã seed; không dùng mật khẩu demo cho tài khoản thật.
-- Để chạy offline: đặt `NEXT_PUBLIC_USE_MOCK=true`. Các hướng dẫn mock bên dưới chỉ áp dụng khi bật rõ ràng chế độ này. Mock demo: **GV0001 / Demo123!**.
-- Link demo: `http://localhost:3000/login/link/#code=teacher-demo` (dùng một lần). Thử `expired-demo` để xem lỗi hết hạn. URL đã đọc sẽ xóa fragment ngay.
-- Nút **Reset demo** khôi phục fixtures và đăng xuất, cho phép dùng lại link demo. Chỉ có trong chế độ mock.
-- Mock có delay, đăng nhập sai, token hết hạn, code đã dùng, dữ liệu rỗng, kiểm tra quyền, version conflict. Dữ liệu giả lập lưu ở localStorage của thiết bị; JWT truy cập của phiên lưu sessionStorage. Không dùng thông tin cá nhân/credential thật.
 - Seed: 6 lớp, 34 học sinh, 17 hồ sơ Staff, phiên cùng Unit để kiểm tra không đếm trùng; bài 7 kỹ năng và bài 2 kỹ năng. Bon có 23.1/35 = 66%.
 - Thử: đăng nhập → Juniors03 → sửa học sinh / tab Phiên học → Unit 3 → cấu hình / bảng / form từng học sinh / Excel.
 - Đánh dấu phiên hoàn thành để tăng tiến độ; tạo phiên nháp không tăng. Bài đánh giá hoàn thành khóa điểm, cần về nháp để sửa. Hoàn thành bài yêu cầu từng học sinh có đủ điểm hoặc xác nhận vắng.
@@ -27,7 +23,6 @@ npm run dev
 
 | Biến công khai | Mặc định / ý nghĩa |
 |---|---|
-| NEXT_PUBLIC_USE_MOCK | `false` mặc định; `true` bật mock offline |
 | NEXT_PUBLIC_API_BASE_URL | URL Cloud Run đã có trong `.env.example`; root tự thêm `/v1` |
 | NEXT_PUBLIC_API_TIMEOUT_MS | `15000`, thời gian chờ request |
 | NEXT_PUBLIC_BASE_PATH | Trống local/root; `/ess-edu-staff-portal` cho project Pages |
@@ -59,7 +54,7 @@ npx playwright install chromium
 NEXT_PUBLIC_BASE_PATH=/ess-edu-staff-portal npm run test:e2e
 ```
 
-`output: export`, `trailingSlash: true`; deploy thư mục `out/`, không dùng next start. Mỗi route có index.html nên reload trực tiếp hoạt động. basePath do Next quản lý cho links/assets; mock và API thật độc lập với basePath. Thay env cần build lại. Không có service worker/offline hoặc Next server. Phiên giới hạn theo expiresAt/JWT exp, kiểm tra khi reload, focus và mỗi 10 giây; 401 xóa phiên/cache. sessionStorage bị chặn: phiên không thể khôi phục khi reload; localStorage bị chặn: mock trả lỗi lưu, dùng trình duyệt cho phép storage.
+`output: export`, `trailingSlash: true`; deploy thư mục `out/`, không dùng next start. Mỗi route có index.html nên reload trực tiếp hoạt động. basePath do Next quản lý cho links/assets; API thật độc lập với basePath. Thay env cần build lại. Không có service worker/offline hoặc Next server. Phiên giới hạn theo expiresAt/JWT exp; reload xác minh phiên, 401 xóa phiên/cache. Không polling định kỳ. sessionStorage bị chặn: phiên không thể khôi phục khi reload; lựa chọn giao diện cần browser storage được cho phép.
 
 ## GitHub Pages
 
@@ -100,7 +95,7 @@ Backend test phải cho phép CORS `http://127.0.0.1:4173`, có seed `GV000001 /
 
 Không tạo app/auth/deployment riêng. Thiết kế [Figma](https://www.figma.com/design/FbROYl4kQMTW4XbvvShuWV?node-id=2-3004); sidebar xanh pastel, dashboard, bảng desktop/card mobile, sáng/tối/theo hệ thống. Chỉ tài khoản có cả TEACHER và MANAGER thấy switch; lựa chọn hợp lệ nhớ theo ID. Quản lý chỉ xem learning; sửa phiên/schema/điểm phải ở không gian Giảng viên và có phân công hợp lệ trong chính lớp ACTIVE.
 
-Chạy bản duyệt quản lý: `NEXT_PUBLIC_USE_MOCK=true npm run dev`. Tài khoản demo (tất cả mật khẩu `Demo123!`):
+Các fixtures sau chỉ phục vụ unit test, không đăng nhập vào ứng dụng API thật (tất cả mật khẩu thử nghiệm `Demo123!`):
 
 | ID | Vai trò | Link đăng nhập demo dùng một lần |
 |---|---|---|
@@ -219,3 +214,9 @@ Socket đóng `1008/UNAUTHORIZED` không tự đăng xuất. Client gọi `/auth
 ## Tên miền riêng
 
 Xem [cấu hình eeslern.com / staff.eeslern.com](docs/custom-domains.md): DNS, GitHub Pages, CORS Cloud Run và deploy lại ở đường dẫn gốc. Không cần migration.
+
+## Bài tập
+
+Runtime luôn gọi API thật; biến NEXT_PUBLIC_USE_MOCK không bật mock trong ứng dụng. Fixtures cũ được giữ riêng cho kiểm thử hồi quy.
+
+Xem [hướng dẫn bài tập/API thật](docs/assignments.md): soạn form, làm bài/ghi âm, chấm/công bố, báo cáo riêng và đổi mật khẩu. Backend cần migration trước khi triển khai frontend.

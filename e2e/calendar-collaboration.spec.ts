@@ -12,6 +12,7 @@ test("manager pins future bonus, cannot attend it, and cancellation retains cale
  await installHttpFixture(page);await login(page);
  const next=new Date(todayDate()+"T00:00:00Z");next.setUTCDate(next.getUTCDate()+1);const future=next.toISOString().slice(0,10);
  await page.getByRole("button",{name:dateLabel(future),exact:true}).click();
+ await expect(page.getByText("Ngày tương lai chỉ xem, không điểm danh.",{exact:true}).last()).toBeVisible();
  await page.getByRole("button",{name:"Ghim lịch học bù / học thêm",exact:true}).last().click();
  await page.getByLabel("Ghi chú / lý do").fill("Ôn tập bổ sung");
  await page.getByRole("button",{name:"Xác nhận",exact:true}).click();
