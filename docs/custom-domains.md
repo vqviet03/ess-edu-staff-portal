@@ -1,7 +1,7 @@
-# eeslearn.com và staff.eeslearn.com
+# eeslern.com và staff.eeslern.com
 
-Học sinh: https://eeslearn.com → vqviet03/ess-edu-portal.
-Staff: https://staff.eeslearn.com → vqviet03/ess-edu-staff-portal.
+Học sinh: https://eeslern.com → vqviet03/ess-edu-portal.
+Staff: https://staff.eeslern.com → vqviet03/ess-edu-staff-portal.
 API vẫn là Cloud Run hiện có, không đổi hostname của API hoặc Cloud Tasks/PubSub.
 
 ## 1. DNS tại nhà cung cấp tên miền
@@ -13,27 +13,28 @@ Thêm bản ghi sau (TTL Auto hoặc 300). Thay bản ghi A/CNAME xung đột c�
 | A | @ | 185.199.109.153 |
 | A | @ | 185.199.110.153 |
 | A | @ | 185.199.111.153 |
+| CNAME | www | vqviet03.github.io |
 | CNAME | staff | vqviet03.github.io |
 
 Không nhập repo path hoặc https:// vào giá trị DNS. Không dùng wildcard CNAME.
 
-Nên xác minh sở hữu domain trong GitHub → Settings tài khoản → Pages → Add a domain → eeslearn.com và thêm TXT đúng mã GitHub cung cấp. Mã xác minh riêng cho tài khoản, không thể tự đoán.
+Nên xác minh sở hữu domain trong GitHub → Settings tài khoản → Pages → Add a domain → eeslern.com và thêm TXT đúng mã GitHub cung cấp. Mã xác minh riêng cho tài khoản, không thể tự đoán.
 
 ## 2. CORS cho API (làm trước khi mở domain cho người dùng)
 Cloud Run → ess-edu-portal-api → Edit & deploy new revision → Variables & Secrets. Giữ các secret/biến hiện có, đặt biến thường:
 
 Cors__AllowedOrigins__0=https://vqviet03.github.io
-Cors__AllowedOrigins__1=https://eeslearn.com
-Cors__AllowedOrigins__2=https://staff.eeslearn.com
-Frontend__BaseUrl=https://eeslearn.com
+Cors__AllowedOrigins__1=https://eeslern.com
+Cors__AllowedOrigins__2=https://staff.eeslern.com
+Frontend__BaseUrl=https://eeslern.com
 
 Origin không có đường dẫn hoặc dấu / cuối. Không dùng *. Không thay Api__PublicBaseUrl hoặc cấu hình Cloud Tasks/PubSub. Deploy revision. Backend PR có các default tương ứng; environment hiện có vẫn override appsettings, vì vậy cần kiểm tra biến Cloud Run.
 Không cần migration hoặc Job mới.
 
 ## 3. GitHub Pages và build frontend
 Merge PR frontend vào dev theo quy trình review đang dùng.
-- Repo ess-edu-portal → Settings → Pages → Custom domain: eeslearn.com → Save.
-- Repo ess-edu-staff-portal → Settings → Pages → Custom domain: staff.eeslearn.com → Save.
+- Repo ess-edu-portal → Settings → Pages → Custom domain: eeslern.com → Save.
+- Repo ess-edu-staff-portal → Settings → Pages → Custom domain: staff.eeslern.com → Save.
 
 Chờ DNS check thành công. Artifact cũ dùng repo path nên phải build/deploy lại sau khi lưu domain.
 Hai workflow lấy basePath từ actions/configure-pages: custom domain → chuỗi rỗng, project Pages → /repo. File public/CNAME đi vào out/.

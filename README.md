@@ -218,4 +218,4 @@ Socket đóng `1008/UNAUTHORIZED` không tự đăng xuất. Client gọi `/auth
 
 ## Tên miền riêng
 
-Xem [cấu hình eeslearn.com / staff.eeslearn.com](docs/custom-domains.md): DNS, GitHub Pages, CORS Cloud Run và deploy lại ở đường dẫn gốc. Không cần migration.
+Xem [cấu hình eeslern.com / staff.eeslern.com](docs/custom-domains.md): DNS, GitHub Pages, CORS Cloud Run và deploy lại ở đường dẫn gốc. Không cần migration.
