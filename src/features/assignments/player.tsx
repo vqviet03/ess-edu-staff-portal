@@ -114,7 +114,12 @@ const QuestionCard = memo(function QuestionCard({
               }}
             >
               <FormControlLabel
-                sx={{ m: 0, alignItems: "flex-start" }}
+                sx={{
+                  m: 0,
+                  gap: 1,
+                  alignItems: "flex-start",
+                  "& .MuiFormControlLabel-label": { pt: "3px", minWidth: 0 },
+                }}
                 control={
                   q.type === "SINGLE" ? (
                     <Radio
@@ -567,7 +572,7 @@ export function AssignmentPlayer({
   );
   return (
     <AssignmentSurface>
-      <Stack spacing={1.5} sx={{ maxWidth: 964, mx: "auto" }}>
+      <Stack spacing={{ xs: 2, md: 3 }} sx={{ minWidth: 0 }}>
         {!preview && (
           <Stack spacing={1}>
             <Typography component="h1" variant="h4" sx={{ fontWeight: 700 }}>
@@ -648,7 +653,7 @@ export function AssignmentPlayer({
           sx={{
             display: "grid",
             gridTemplateColumns: { xs: "1fr", md: "220px minmax(0,1fr)" },
-            gap: 2.5,
+            gap: 3,
             alignItems: "start",
           }}
         >
@@ -666,7 +671,7 @@ export function AssignmentPlayer({
           >
             {nav}
           </Paper>
-          <Stack spacing={1.5}>
+          <Stack spacing={2}>
             {assignment.questions.map((q, i) => (
               <Box
                 key={q.id}
@@ -711,7 +716,8 @@ export function AssignmentPlayer({
               <Stack
                 direction="row"
                 spacing={1}
-                sx={{ justifyContent: "flex-start", pb: 1 }}
+                useFlexGap
+                sx={{ justifyContent: "flex-start", flexWrap: "wrap", pb: 1 }}
               >
                 <Button
                   disabled={

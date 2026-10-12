@@ -273,7 +273,7 @@ function GradeForm({
   }
   return (
     <AssignmentSurface>
-      <Stack spacing={1.5} sx={{ maxWidth: 964, mx: "auto" }}>
+      <Stack spacing={{ xs: 2, md: 3 }} sx={{ minWidth: 0 }}>
         <Typography variant="h4" sx={{ fontWeight: 700 }}>
           Chấm bài · {draft.studentName}
           {draft.studentNickname ? ` (${draft.studentNickname})` : ""}
@@ -317,7 +317,10 @@ function GradeForm({
                   key={q.id}
                   sx={{
                     display: "grid",
-                    gridTemplateColumns: "64px 1fr auto",
+                    gridTemplateColumns: {
+                      xs: "48px minmax(0,1fr)",
+                      sm: "64px minmax(0,1fr) auto",
+                    },
                     gap: 1,
                     py: 1.5,
                     alignItems: "start",
@@ -337,6 +340,7 @@ function GradeForm({
                   </Box>
                   <Typography
                     sx={{
+                      gridColumn: { xs: "2", sm: "auto" },
                       fontWeight: 700,
                       color:
                         grade.score === q.maxScore
@@ -514,6 +518,7 @@ function GradeForm({
         <Stack
           direction="row"
           spacing={1}
+          useFlexGap
           sx={{ justifyContent: "flex-start", flexWrap: "wrap" }}
         >
           <Button

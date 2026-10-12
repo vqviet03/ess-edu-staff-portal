@@ -252,7 +252,7 @@ export function AssignmentEditor({
   );
   return (
     <AssignmentSurface>
-      <Stack spacing={2.5} sx={{ maxWidth: 964, mx: "auto" }}>
+      <Stack spacing={{ xs: 2, md: 3 }} sx={{ minWidth: 0 }}>
         <Typography component="h1" variant="h4">
           {step === 0 ? (
             "Tạo bài tập"
@@ -283,13 +283,20 @@ export function AssignmentEditor({
               variant={step === i ? "contained" : "text"}
               aria-current={step === i ? "step" : undefined}
               onClick={() => setStep(i)}
-              sx={{ justifyContent: "flex-start", textAlign: "left", px: 1.25 }}
+              sx={{
+                flexDirection: { xs: "column", sm: "row" },
+                justifyContent: { xs: "center", sm: "flex-start" },
+                textAlign: { xs: "center", sm: "left" },
+                minWidth: 0,
+                minHeight: { xs: 56, sm: 40 },
+                gap: 0.5,
+                px: 1,
+              }}
             >
-              {i + 1}{" "}
+              <Box component="span">{i + 1}</Box>
               <Box
                 component="span"
                 sx={{
-                  ml: 0.5,
                   display: { xs: i === 1 ? "none" : "inline", md: "inline" },
                 }}
               >
@@ -298,7 +305,7 @@ export function AssignmentEditor({
               {i === 1 && (
                 <Box
                   component="span"
-                  sx={{ ml: 0.5, display: { xs: "inline", md: "none" } }}
+                  sx={{ display: { xs: "inline", md: "none" } }}
                 >
                   Câu hỏi
                 </Box>
@@ -319,7 +326,7 @@ export function AssignmentEditor({
           <>
             <Paper
               className="assignment-bordered assignment-labels"
-              sx={{ p: 2 }}
+              sx={{ p: { xs: 2, md: 3 } }}
             >
               <Stack spacing={1.5}>
                 <Typography variant="h6">Thông tin cơ bản</Typography>
@@ -418,7 +425,7 @@ export function AssignmentEditor({
                 </Box>
               </Stack>
             </Paper>
-            <Paper className="assignment-bordered" sx={{ p: 2 }}>
+            <Paper className="assignment-bordered" sx={{ p: { xs: 2, md: 3 } }}>
               <Stack spacing={1.25}>
                 <Typography variant="h6">
                   Học sinh nộp bài bằng cách nào?
@@ -482,7 +489,7 @@ export function AssignmentEditor({
                 </Stack>
               </Stack>
             </Paper>
-            <Paper className="assignment-bordered" sx={{ p: 2 }}>
+            <Paper className="assignment-bordered" sx={{ p: { xs: 2, md: 3 } }}>
               <Typography sx={{ fontWeight: 700, mb: 1 }}>
                 Chia sẻ trong lớp
               </Typography>
@@ -498,7 +505,7 @@ export function AssignmentEditor({
             sx={{
               display: "grid",
               gridTemplateColumns: { xs: "1fr", md: "220px minmax(0,1fr)" },
-              gap: 2,
+              gap: 3,
               alignItems: "start",
             }}
           >
@@ -563,7 +570,7 @@ export function AssignmentEditor({
             {q && (
               <Paper
                 className="assignment-bordered assignment-labels"
-                sx={{ p: 2 }}
+                sx={{ p: { xs: 2, md: 3 } }}
               >
                 <Stack spacing={2}>
                   <Stack
@@ -607,6 +614,7 @@ export function AssignmentEditor({
                     </Stack>
                     <Stack
                       direction="row"
+                      spacing={1}
                       sx={{ display: { xs: "none", md: "flex" } }}
                     >
                       {[
@@ -628,7 +636,12 @@ export function AssignmentEditor({
                         const I = Icon as typeof Delete;
                         return (
                           <Tooltip key={String(label)} title={String(label)}>
-                            <span>
+                            <span
+                              style={{
+                                display:
+                                  i === 1 || i === 2 ? "none" : "inline-flex",
+                              }}
+                            >
                               <IconButton
                                 aria-label={String(label)}
                                 disabled={
@@ -637,10 +650,6 @@ export function AssignmentEditor({
                                     active === draft.questions.length - 1) ||
                                   (i === 0 && draft.questions.length >= 100)
                                 }
-                                sx={{
-                                  display:
-                                    i === 1 || i === 2 ? "none" : "inline-flex",
-                                }}
                                 onClick={fn as () => void}
                               >
                                 {i === 0 ? (
@@ -662,7 +671,7 @@ export function AssignmentEditor({
                     spacing={2}
                     sx={{
                       alignItems: "start",
-                      "& > :first-child": { flex: 1 },
+                      "& > :first-child": { flex: 1, minWidth: 0 },
                       "& > :last-child": { width: { xs: 110, sm: 180 } },
                     }}
                   >
@@ -802,10 +811,11 @@ export function AssignmentEditor({
                             <Stack
                               direction="row"
                               spacing={1}
-                              sx={{ alignItems: "center" }}
+                              sx={{ alignItems: "flex-start" }}
                             >
                               {q.type === "SINGLE" ? (
                                 <Radio
+                                  sx={{ height: 40, flexShrink: 0 }}
                                   checked={!!o.isCorrect}
                                   slotProps={{
                                     input: {
@@ -823,6 +833,7 @@ export function AssignmentEditor({
                                 />
                               ) : (
                                 <Checkbox
+                                  sx={{ height: 40, flexShrink: 0 }}
                                   checked={!!o.isCorrect}
                                   slotProps={{
                                     input: {
@@ -839,7 +850,6 @@ export function AssignmentEditor({
                                 />
                               )}
                               <Box sx={{ flex: 1, minWidth: 0 }}>
-                                {" "}
                                 <TextField
                                   className="assignment-option-content"
                                   size="small"
@@ -999,6 +1009,7 @@ export function AssignmentEditor({
         <Stack
           direction="row"
           spacing={1}
+          useFlexGap
           sx={{ justifyContent: "flex-start", pb: 1, flexWrap: "wrap" }}
         >
           {step === 1 && (
@@ -1383,7 +1394,7 @@ function MediaEditorItem({
           className="assignment-labels"
           direction="row"
           useFlexGap
-          sx={{ mt: 1, flexWrap: "wrap", gap: 1, alignItems: "center" }}
+          sx={{ mt: 1.5, flexWrap: "wrap", gap: 1.5, alignItems: "flex-end" }}
         >
           {visual && (
             <>
@@ -1410,7 +1421,10 @@ function MediaEditorItem({
                   },
                   htmlInput: { min: 1, max: 4096, step: 1 },
                 }}
-                sx={{ width: 150, maxWidth: "100%" }}
+                sx={{
+                  width: { xs: "calc((100% - 12px) / 2)", sm: 150 },
+                  maxWidth: "100%",
+                }}
               />
               <TextField
                 size="small"
@@ -1435,9 +1449,13 @@ function MediaEditorItem({
                   },
                   htmlInput: { min: 1, max: 4096, step: 1 },
                 }}
-                sx={{ width: 150, maxWidth: "100%" }}
+                sx={{
+                  width: { xs: "calc((100% - 12px) / 2)", sm: 150 },
+                  maxWidth: "100%",
+                }}
               />
               <FormControlLabel
+                sx={{ m: 0, minHeight: 40 }}
                 control={
                   <Checkbox
                     checked={item.keepAspectRatio}
