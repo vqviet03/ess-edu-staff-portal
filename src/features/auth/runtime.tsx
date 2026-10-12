@@ -2,6 +2,7 @@
 import { useEffect, type ReactNode } from "react";
 import { useStore } from "react-redux";
 import { useRouter } from "next/navigation";
+import { loginRedirect } from "@/shared/auth-navigation";
 import { api, useMeQuery } from "@/api/api";
 import { type RootState, useAppDispatch, useAppSelector } from "@/store";
 import { restore, signedOut, verified } from "@/store/auth";
@@ -52,7 +53,7 @@ export function Guard({ children }: { children: ReactNode }) {
     router = useRouter(),
     me = api.endpoints.me.useQueryState(undefined);
   useEffect(() => {
-    if (auth.status === "guest") router.replace("/login/");
+    if (auth.status === "guest") router.replace(loginRedirect(location.pathname + location.search + location.hash, process.env.NEXT_PUBLIC_BASE_PATH));
   }, [auth.status, router]);
   return (
     <Shell>

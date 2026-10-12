@@ -663,7 +663,7 @@ test("signed uploads send no JWT, complete and surface quota errors per file", a
     page.getByRole("checkbox", { name: "Chọn notes.txt" }),
   ).toBeVisible();
 });
-test("PDF viewer loads static worker under basePath and zooms without selecting the file", async ({
+test("PDF viewer loads its static worker and opens full-screen with vertical pages", async ({
   page,
 }) => {
   await fixture(page);
@@ -674,32 +674,13 @@ test("PDF viewer loads static worker under basePath and zooms without selecting 
     .getByRole("button", { name: "Xem Bài học a.pdf", exact: true })
     .click();
   const dialog = page.getByRole("dialog");
-  await expect(dialog.getByText("1/1", { exact: true })).toBeVisible();
-  await expect
-    .poll(() =>
-      dialog.locator("canvas").evaluate((node) => {
-        const canvas = node as HTMLCanvasElement;
-        return (
-          canvas.width > 0 &&
-          Math.abs(canvas.width / canvas.height - 2) < 0.02 &&
-          canvas.height <= window.innerHeight * 0.69
-        );
-      }),
-    )
-    .toBe(true);
-  await dialog.getByRole("button", { name: "Cuộn dọc", exact: true }).click();
-  await expect(
-    dialog.getByRole("button", { name: "Lật trang", exact: true }),
-  ).toBeVisible();
-  await dialog
-    .getByRole("button", { name: "Toàn màn hình", exact: true })
-    .click();
-  await expect(
-    dialog.getByRole("button", { name: "Thu về cửa sổ", exact: true }),
-  ).toBeVisible();
-  await dialog.getByRole("button", { name: "+", exact: true }).click();
-  await expect(dialog.getByText("125%", { exact: true })).toBeVisible();
-  await dialog.getByRole("button", { name: "Đóng", exact: true }).click();
+  await expect(dialog).toHaveClass(/MuiDialog-paperFullScreen/);
+  await expect(dialog.getByRole("document", {name:"Tài liệu PDF"})).toBeVisible();
+  await expect.poll(()=>dialog.locator("canvas").evaluate(node=>{const canvas=node as HTMLCanvasElement;return canvas.width>0&&Math.abs(canvas.width/canvas.height-2)<.02;})).toBe(true);
+  await expect(dialog.getByRole("button",{name:"Cuộn dọc",exact:true})).toHaveCount(0);
+  await expect(dialog.getByRole("button",{name:"Lật trang",exact:true})).toHaveCount(0);
+  await expect(dialog.getByRole("button",{name:"+",exact:true})).toHaveCount(0);
+  await dialog.getByRole("button",{name:"Đóng bản xem trước",exact:true}).click();
   await expect(
     page.getByRole("checkbox", { name: "Chọn Bài học a.pdf" }),
   ).not.toBeChecked();
