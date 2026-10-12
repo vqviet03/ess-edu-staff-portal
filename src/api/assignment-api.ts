@@ -8,6 +8,7 @@ import type {
   Answer,
   Grade,
   Submission,
+  SubmissionPage,
   Page,
   Recording,
   RecordingConfirmation,
@@ -202,14 +203,14 @@ export const assignmentApi = api
             : [{ type: "AssignmentSubmissions", id: q.id }, "AssignmentReport"],
       }),
       assignmentSubmissions: b.query<
-        Page<Submission>,
+        SubmissionPage,
         { id: string; cursor?: string }
       >({
         query: ({ id, ...params }) => ({
           url: `/assignments/${id}/submissions`,
           params,
         }),
-        transformResponse: unwrap<Page<Submission>>,
+        transformResponse: unwrap<SubmissionPage>,
         providesTags: (_, __, q) => [
           { type: "AssignmentSubmissions", id: q.id },
         ],

@@ -1,4 +1,6 @@
 "use client";
+import { RichInput, type RichInputHandle } from "./rich-input";
+import { AssignmentIcon } from "./surface";
 import { memo, useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import Box from "@mui/material/Box";
@@ -13,7 +15,11 @@ import FormControlLabel from "@mui/material/FormControlLabel";
 import TextField from "@mui/material/TextField";
 import Drawer from "@mui/material/Drawer";
 import Alert from "@mui/material/Alert";
-import LinearProgress from "@mui/material/LinearProgress";
+import Dialog from "@mui/material/Dialog";
+import DialogTitle from "@mui/material/DialogTitle";
+import DialogContent from "@mui/material/DialogContent";
+import DialogActions from "@mui/material/DialogActions";
+import { AssignmentSurface } from "./surface";
 import Close from "@mui/icons-material/Close";
 import {
   useSaveAssignmentDraftMutation,
@@ -29,6 +35,7 @@ import {
   blockMedia,
   emptyAnswer,
   numberLabel,
+  validLink,
   questionLabels,
   type Assignment,
   type Answer,
@@ -54,45 +61,56 @@ const QuestionCard = memo(function QuestionCard({
   onChange: (id: string, patch: Partial<Answer>) => void;
   onBusy: (id: string, busy: boolean) => void;
 }) {
+  const [textUpload, setTextUpload] = useState(false),
+    [linkOpen, setLinkOpen] = useState(false),
+    [linkValue, setLinkValue] = useState("");
+  const textRef = useRef<RichInputHandle>(null);
+  const insertText = (token: string) => {
+    const start = textRef.current?.selectionStart ?? a.text.length,
+      end = textRef.current?.selectionEnd ?? start;
+    onChange(q.id, {
+      text: a.text.slice(0, start) + token + a.text.slice(end),
+    });
+  };
   return (
     <Paper
       id={`question-${q.id}`}
       variant="outlined"
-      sx={{ p: { xs: 2, sm: 3 }, borderRadius: "16px", scrollMarginTop: 24 }}
+      sx={{
+        p: { xs: 2, sm: 3 },
+        border: 0,
+        borderRadius: "16px",
+        scrollMarginTop: 24,
+      }}
     >
       <Stack spacing={2}>
-        <Stack
-          direction="row"
-          sx={{ justifyContent: "space-between", gap: 1, flexWrap: "wrap" }}
-        >
-          <Typography sx={{ fontWeight: 700 }}>
-            Câu {index + 1} · {questionLabels[q.type]}
+        <Stack spacing={0.75}>
+          <Typography component="h2" sx={{ fontSize: 14, fontWeight: 700 }}>
+            {index + 1}. <RichContent value={q.content} media={q.media} />
           </Typography>
-          <Chip size="small" label={`${q.maxScore} điểm`} />
+          <Chip
+            className="assignment-badge"
+            size="small"
+            label={`${questionLabels[q.type]} · ${q.maxScore} điểm`}
+            sx={{ alignSelf: "flex-start" }}
+          />
         </Stack>
-        <RichContent value={q.content} media={q.media} />
         {q.instructions && (
           <Typography color="text.secondary" variant="body2">
             {q.instructions}
           </Typography>
         )}
-        <AssignmentMedia
-          media={blockMedia(q.content,q.media)}
-        />
+        <AssignmentMedia media={blockMedia(q.content, q.media)} />
         {(q.type === "SINGLE" || q.type === "MULTIPLE") &&
           q.options.map((o) => (
             <Paper
               variant="outlined"
               key={o.id}
               sx={{
-                p: 1.5,
-                borderRadius: "12px",
-                bgcolor: a.optionIds.includes(o.id)
-                  ? "action.selected"
-                  : undefined,
-                borderColor: a.optionIds.includes(o.id)
-                  ? "primary.main"
-                  : "divider",
+                p: 0,
+                border: 0,
+                borderRadius: 0,
+                bgcolor: "transparent",
               }}
             >
               <FormControlLabel
@@ -120,23 +138,117 @@ const QuestionCard = memo(function QuestionCard({
                 }
                 label={<RichContent value={o.content} media={o.media} />}
               />
-              <AssignmentMedia
-                media={blockMedia(o.content,o.media)}
-              />
+              <AssignmentMedia media={blockMedia(o.content, o.media)} />
             </Paper>
           ))}
         {q.type === "TEXT" && (
-          <TextField
-            size="small"
-            multiline
-            minRows={5}
-            fullWidth
-            label="Câu trả lời của em"
-            value={a.text}
-            disabled={readOnly}
-            onChange={(e) => onChange(q.id, { text: e.target.value })}
-            slotProps={{ htmlInput: { maxLength: 20000 } }}
-          />
+          <Box className="assignment-bordered" sx={{ p: 1 }}>
+            <RichInput
+              label="Câu trả lời của em"
+              value={a.text}
+              onChange={(text) => onChange(q.id, { text })}
+              disabled={readOnly}
+              inputRef={textRef}
+              minRows={3}
+              media={(a.files ?? []).map((file) => ({
+                materialId: file.id,
+                file,
+                displayWidth: null,
+                displayHeight: null,
+                keepAspectRatio: true,
+              }))}
+            />
+            {!readOnly && (
+              <Stack direction="row" spacing={1} sx={{ mt: 1 }}>
+                <Button
+                  startIcon={<AssignmentIcon name="attach" />}
+                  disabled={preview || a.materialIds.length >= 10}
+                  onClick={() => setTextUpload((v) => !v)}
+                >
+                  Đính kèm
+                </Button>
+                <Button
+                  startIcon={<AssignmentIcon name="link" />}
+                  onClick={() => setLinkOpen(true)}
+                >
+                  Chèn link
+                </Button>
+              </Stack>
+            )}
+            {textUpload && !preview && (
+              <AssignmentUpload
+                assignmentId={assignmentId}
+                questionId={q.id}
+                onBusy={(v) => onBusy(q.id, v)}
+                onFile={(f) => {
+                  onChange(q.id, {
+                    materialIds: [...a.materialIds, f.id],
+                    files: [...(a.files ?? []), f],
+                    text: a.text + ` [file:${f.id}]`,
+                  });
+                  setTextUpload(false);
+                }}
+              />
+            )}
+          </Box>
+        )}
+        <Dialog
+          open={linkOpen}
+          onClose={() => setLinkOpen(false)}
+          fullWidth
+          maxWidth="xs"
+        >
+          <DialogTitle>Chèn liên kết</DialogTitle>
+          <DialogContent>
+            <TextField
+              autoFocus
+              label="Liên kết http/https"
+              fullWidth
+              value={linkValue}
+              error={!!linkValue && !validLink(linkValue)}
+              onChange={(e) => setLinkValue(e.target.value)}
+              sx={{ mt: 1 }}
+            />
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setLinkOpen(false)}>Hủy</Button>
+            <Button
+              disabled={!validLink(linkValue)}
+              onClick={() => {
+                insertText(linkValue);
+                setLinkOpen(false);
+                setLinkValue("");
+              }}
+            >
+              Chèn link
+            </Button>
+          </DialogActions>
+        </Dialog>
+        {q.type === "SPEAKING" && preview && (
+          <Box
+            sx={{
+              p: 1.5,
+              bgcolor: "var(--a-info)",
+              color: "var(--a-blue)",
+              borderRadius: "12px",
+            }}
+          >
+            <Typography sx={{ fontWeight: 700 }}>
+              Bài nói tối đa {q.maxDurationSeconds} giây
+            </Typography>
+            <Typography sx={{ my: 1 }}>
+              00:00 /{" "}
+              {String(Math.floor(q.maxDurationSeconds / 60)).padStart(2, "0")}:
+              {String(q.maxDurationSeconds % 60).padStart(2, "0")}
+            </Typography>
+            <Typography variant="body2" sx={{ mb: 1 }}>
+              Đây là bản xem trước. Học sinh xác nhận dùng bản ghi trước khi
+              nộp.
+            </Typography>
+            <Button variant="contained" disabled>
+              Bắt đầu ghi âm
+            </Button>
+          </Box>
         )}
         {q.type === "LINK_FILE" && (
           <>
@@ -222,6 +334,7 @@ const QuestionCard = memo(function QuestionCard({
                 aria-label={`Bỏ ${f.displayName}`}
                 onClick={() =>
                   onChange(q.id, {
+                    text: a.text.replaceAll(`[file:${f.id}]`, ""),
                     materialIds: a.materialIds.filter((id) => id !== f.id),
                     files: a.files?.filter((x) => x.id !== f.id),
                     recordingSessionId: null,
@@ -372,234 +485,306 @@ export function AssignmentPlayer({
       .getElementById(`question-${assignment.questions[index].id}`)
       ?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
+  const [confirmSubmit, setConfirmSubmit] = useState(false);
+  async function submitConfirmed() {
+    setConfirmSubmit(false);
+    setError(undefined);
+    submitting.current = true;
+    try {
+      if (pending.current) await pending.current;
+      if (!submitKey.current) submitKey.current = crypto.randomUUID();
+      const result = await submit({
+        id: assignment.id,
+        assignmentVersionId: assignment.assignmentVersionId,
+        answers,
+        version: version.current,
+        key: submitKey.current,
+      }).unwrap();
+      version.current = result.version;
+      setSaved(serial);
+      setSubmission(result);
+      lastSaved.current = serial;
+    } catch (e) {
+      setError(e);
+    } finally {
+      submitting.current = false;
+    }
+  }
   const nav = (
     <Stack spacing={1}>
-      <Typography sx={{ fontWeight: 700 }}>Câu hỏi</Typography>
+      <Typography sx={{ fontWeight: 700 }}>Tiến độ làm bài</Typography>
       <Typography variant="body2" color="text.secondary">
-        Đã trả lời {complete}/{assignment.questions.length} câu
+        {complete} / {assignment.questions.length} câu đã trả lời
       </Typography>
-      <LinearProgress
-        variant="determinate"
-        value={
-          assignment.questions.length
-            ? (complete / assignment.questions.length) * 100
-            : 0
-        }
-      />
       {assignment.questions.map((q, i) => {
         const done = answered(q, answers[i]);
         return (
           <Button
             key={q.id}
-            size="small"
-            variant={active === i ? "contained" : "outlined"}
-            color={active === i ? "info" : done ? "success" : "inherit"}
             onClick={() => navigate(i)}
-            sx={{ justifyContent: "space-between", textAlign: "left" }}
             aria-current={active === i ? "step" : undefined}
+            sx={{
+              justifyContent: "flex-start",
+              alignItems: "flex-start",
+              flexDirection: "column",
+              textAlign: "left",
+              bgcolor:
+                active === i
+                  ? "var(--a-info)"
+                  : done
+                    ? "var(--a-tint)"
+                    : "transparent",
+              color:
+                active === i
+                  ? "var(--a-blue)"
+                  : done
+                    ? "var(--a-green)"
+                    : "text.secondary",
+              p: 1,
+            }}
           >
-            Câu {i + 1}
-            <Typography component="span" variant="caption">
-              {active === i ? "Đang xem" : done ? "Đã trả lời" : "Chưa trả lời"}
+            <Typography component="span" sx={{ fontSize: 14, fontWeight: 700 }}>
+              Câu {i + 1}
+            </Typography>
+            <Typography component="span" variant="body2">
+              {done ? "✓ Đã trả lời" : "Chưa trả lời"}
+              {active === i ? " · Đang xem" : ""}
             </Typography>
           </Button>
         );
       })}
+      <Typography variant="body2" color="text.secondary">
+        Xanh: đã trả lời
+        <br />
+        Xanh biển: đang xem
+        <br />
+        Xám: chưa trả lời
+      </Typography>
+      <Typography variant="body2" color="text.secondary">
+        Chọn một câu để chuyển đến phần trả lời.
+      </Typography>
     </Stack>
   );
   return (
-    <Stack spacing={2} sx={{ maxWidth: 1160, mx: "auto" }}>
-      <Stack spacing={1}>
-        <Typography variant="h4" sx={{ fontWeight: 700 }}>
-          {assignment.title}
-        </Typography>
-        <RichContent value={assignment.instructions} />
-        <Typography variant="body2" color="text.secondary">
-          Unit {assignment.unitNumber ?? "Chưa gắn"} · {assignment.totalMax}{" "}
-          điểm ·{" "}
-          {assignment.deadline
-            ? `Hạn nộp: ${new Date(assignment.deadline).toLocaleString("vi-VN")}`
-            : "Không giới hạn hạn nộp"}{" "}
-          · Phiên bản {assignment.schemaVersion}
-        </Typography>
-      </Stack>
-      {preview ? (
-        <Alert severity="info">
-          Xem trước giao diện học sinh. Đáp án đúng và tiêu chí chấm không hiển
-          thị ở đây.
-        </Alert>
-      ) : readOnly ? (
-        <Alert severity="success">
-          Đã nộp lúc {new Date(submission.submittedAt!).toLocaleString("vi-VN")}
-          . {submission.isLate ? "Nộp muộn. " : ""}
-          {submission.publishedAt
-            ? `Kết quả: ${numberLabel(submission.totalScore)}/${submission.totalMax} (${numberLabel(submission.percentage)}%)`
-            : "Kết quả đang chờ công bố."}{" "}
-          <Link
-            href={`/post/?postId=${assignment.postId}&classId=${assignment.classId}`}
-          >
-            Về bài đăng
-          </Link>
-        </Alert>
-      ) : (
-        <Alert severity={error ? "error" : "info"}>
-          {saveState.isLoading
-            ? "Đang lưu bản nháp…"
-            : dirty
-              ? "Thay đổi sẽ tự lưu sau khi em ngừng nhập."
-              : initial || saveState.isSuccess ? "Đã lưu bản nháp. Em có thể quay lại tiếp tục làm bài." : "Bản nháp sẽ tự lưu khi em bắt đầu trả lời."}
-        </Alert>
-      )}
-      {error != null && <Alert severity="error">{errorMessage(error)}</Alert>}
-      {message && <Alert severity="success">{message}</Alert>}
-      <Button
-        sx={{ display: { md: "none" } }}
-        variant="outlined"
-        onClick={() => setDrawer(true)}
-      >
-        Tiến độ · {complete}/{assignment.questions.length}
-      </Button>
-      <Drawer anchor="left" open={drawer} onClose={() => setDrawer(false)}>
-        <Box sx={{ width: 260, p: 2 }}>{nav}</Box>
-      </Drawer>
-      <Box
-        sx={{
-          display: "grid",
-          gridTemplateColumns: { xs: "1fr", md: "220px minmax(0,1fr)" },
-          gap: 2.5,
-          alignItems: "start",
-        }}
-      >
-        <Paper
-          variant="outlined"
+    <AssignmentSurface>
+      <Stack spacing={1.5} sx={{ maxWidth: 964, mx: "auto" }}>
+        {!preview && (
+          <Stack spacing={1}>
+            <Typography component="h1" variant="h4" sx={{ fontWeight: 700 }}>
+              {assignment.title}
+            </Typography>
+            <Chip
+              sx={{
+                alignSelf: "flex-start",
+                bgcolor: "var(--a-purple-bg)",
+                color: "var(--a-purple)",
+              }}
+              label={`${assignment.unitNumber ? `Unit ${assignment.unitNumber}` : "Bài tập lớp"} · Form bài tập`}
+            />
+            {assignment.instructions && (
+              <Typography color="text.secondary" variant="body2">
+                <RichContent value={assignment.instructions} />
+              </Typography>
+            )}
+            <Typography variant="body2" color="text.secondary">
+              Unit {assignment.unitNumber ?? "Chưa gắn"} · {assignment.totalMax}{" "}
+              điểm ·{" "}
+              {assignment.deadline
+                ? `Hạn nộp: ${new Date(assignment.deadline).toLocaleString("vi-VN")}`
+                : "Không giới hạn hạn nộp"}{" "}
+              · Phiên bản {assignment.schemaVersion}
+            </Typography>
+          </Stack>
+        )}
+        <Button
           sx={{
-            p: 2,
-            borderRadius: "16px",
-            position: "sticky",
-            top: 20,
-            display: { xs: "none", md: "block" },
-            maxHeight: "calc(100dvh - 40px)",
-            overflowY: "auto",
+            display: { md: "none" },
+            justifyContent: "flex-start",
+            textAlign: "left",
+            px: 2,
+            py: 1.5,
+          }}
+          variant="outlined"
+          onClick={() => setDrawer(true)}
+        >
+          {complete} / {assignment.questions.length} câu · Xem danh sách
+        </Button>
+        {preview ? (
+          <Alert severity="info">
+            Xem trước giao diện học sinh. Đáp án đúng và tiêu chí chấm không
+            hiển thị ở đây.
+          </Alert>
+        ) : readOnly ? (
+          <Alert severity="success">
+            Đã nộp lúc{" "}
+            {new Date(submission.submittedAt!).toLocaleString("vi-VN")}.{" "}
+            {submission.isLate ? "Nộp muộn. " : ""}
+            {submission.publishedAt
+              ? `Kết quả: ${numberLabel(submission.totalScore)}/${submission.totalMax} (${numberLabel(submission.percentage)}%)`
+              : "Kết quả đang chờ công bố."}{" "}
+            <Link
+              href={`/post/?postId=${assignment.postId}&classId=${assignment.classId}`}
+            >
+              Về bài đăng
+            </Link>
+          </Alert>
+        ) : (
+          <Alert severity={error ? "error" : "info"}>
+            {saveState.isLoading
+              ? "Đang lưu bản nháp…"
+              : dirty
+                ? "Thay đổi sẽ tự lưu sau khi em ngừng nhập."
+                : initial || saveState.isSuccess
+                  ? "Đã lưu bản nháp. Em có thể quay lại tiếp tục làm bài."
+                  : "Bản nháp sẽ tự lưu khi em bắt đầu trả lời."}
+          </Alert>
+        )}
+        {error != null && <Alert severity="error">{errorMessage(error)}</Alert>}
+        {message && <Alert severity="success">{message}</Alert>}
+        <Drawer anchor="left" open={drawer} onClose={() => setDrawer(false)}>
+          <Box sx={{ width: 260, p: 2 }}>{nav}</Box>
+        </Drawer>
+        <Box
+          sx={{
+            display: "grid",
+            gridTemplateColumns: { xs: "1fr", md: "220px minmax(0,1fr)" },
+            gap: 2.5,
+            alignItems: "start",
           }}
         >
-          {nav}
-        </Paper>
-        <Stack spacing={2.5}>
-          {assignment.questions.map((q, i) => (
-            <Box
-              key={q.id}
-              onFocus={() => setActive(i)}
-              onPointerDown={() => setActive(i)}
-            >
-              <QuestionCard
-                preview={preview}
-                q={q}
-                a={answers[i]}
-                index={i}
-                assignmentId={assignment.id}
-                readOnly={readOnly}
-                onChange={change}
-                onBusy={changeBusy}
-              />
-              {submission?.publishedAt && (
-                <Paper sx={{ p: 2, bgcolor: "action.selected", mt: 1 }}>
-                  {(() => {
-                    const g = submission.grades.find(
-                      (g) => g.questionId === q.id,
-                    );
-                    return (
-                      <>
-                        <Typography sx={{ fontWeight: 700 }}>
-                          {numberLabel(g?.score)} / {q.maxScore} điểm
-                        </Typography>
-                        {g?.comment && <Typography>{g.comment}</Typography>}
-                        {g?.advice && (
-                          <Typography color="text.secondary">
-                            {g.advice}
+          <Paper
+            variant="outlined"
+            sx={{
+              p: 2,
+              borderRadius: "16px",
+              position: "sticky",
+              top: 20,
+              display: { xs: "none", md: "block" },
+              maxHeight: "calc(100dvh - 40px)",
+              overflowY: "auto",
+            }}
+          >
+            {nav}
+          </Paper>
+          <Stack spacing={1.5}>
+            {assignment.questions.map((q, i) => (
+              <Box
+                key={q.id}
+                onFocus={() => setActive(i)}
+                onPointerDown={() => setActive(i)}
+              >
+                <QuestionCard
+                  preview={preview}
+                  q={q}
+                  a={answers[i]}
+                  index={i}
+                  assignmentId={assignment.id}
+                  readOnly={readOnly}
+                  onChange={change}
+                  onBusy={changeBusy}
+                />
+                {submission?.publishedAt && (
+                  <Paper sx={{ p: 2, bgcolor: "action.selected", mt: 1 }}>
+                    {(() => {
+                      const g = submission.grades.find(
+                        (g) => g.questionId === q.id,
+                      );
+                      return (
+                        <>
+                          <Typography sx={{ fontWeight: 700 }}>
+                            {numberLabel(g?.score)} / {q.maxScore} điểm
                           </Typography>
-                        )}
-                      </>
-                    );
-                  })()}
-                </Paper>
-              )}
-            </Box>
-          ))}
-          {!preview && !readOnly && (
-            <Stack
-              direction="row"
-              spacing={1}
-              sx={{ justifyContent: "flex-end", pb: 3 }}
-            >
-              <Button
-                disabled={
-                  !!busy.length || saveState.isLoading || submitState.isLoading
-                }
-                onClick={() =>
-                  void persist(answers, serial)
-                    .then(() => setMessage("Đã lưu bản nháp."))
-                    .catch(setError)
-                }
+                          {g?.comment && <Typography>{g.comment}</Typography>}
+                          {g?.advice && (
+                            <Typography color="text.secondary">
+                              {g.advice}
+                            </Typography>
+                          )}
+                        </>
+                      );
+                    })()}
+                  </Paper>
+                )}
+              </Box>
+            ))}
+            {!preview && !readOnly && (
+              <Stack
+                direction="row"
+                spacing={1}
+                sx={{ justifyContent: "flex-start", pb: 1 }}
               >
-                Lưu bản nháp
-              </Button>
-              <Button
-                variant="contained"
-                disabled={
-                  complete !== assignment.questions.length ||
-                  !!busy.length ||
-                  submitState.isLoading
-                }
-                onClick={async () => {
-                  if (
-                    !window.confirm(
-                      "Nộp bài? Sau khi nộp em không thể sửa câu trả lời.",
-                    )
-                  )
-                    return;
-                  setError(undefined);
-                  submitting.current = true;
-                  try {
-                    if (pending.current) await pending.current;
-                    if (!submitKey.current)
-                      submitKey.current = crypto.randomUUID();
-                    const result = await submit({
-                      id: assignment.id,
-                      assignmentVersionId: assignment.assignmentVersionId,
-                      answers,
-                      version: version.current,
-                      key: submitKey.current,
-                    }).unwrap();
-                    version.current = result.version;
-                    setSaved(serial);
-                    setSubmission(result);
-                    lastSaved.current = serial;
-                  } catch (e) {
-                    setError(e);
-                  } finally {
-                    submitting.current = false;
+                <Button
+                  disabled={
+                    !!busy.length ||
+                    saveState.isLoading ||
+                    submitState.isLoading
                   }
-                }}
-              >
-                {submitState.isLoading ? "Đang nộp…" : "Nộp bài"}
-              </Button>
-            </Stack>
-          )}
-          {submission?.publishedAt && (
-            <Paper sx={{ p: 2, bgcolor: "action.selected" }}>
-              <Typography sx={{ fontWeight: 700 }}>
-                Nhận xét tổng thể
-              </Typography>
-              <Typography sx={{ whiteSpace: "pre-wrap" }}>
-                {submission.overallComment || "Chưa có nhận xét tổng thể."}
-              </Typography>
-              <Typography sx={{ whiteSpace: "pre-wrap", mt: 1 }}>
-                {submission.overallAdvice}
-              </Typography>
-            </Paper>
-          )}
-        </Stack>
-      </Box>
-    </Stack>
+                  onClick={() =>
+                    void persist(answers, serial)
+                      .then(() => setMessage("Đã lưu bản nháp."))
+                      .catch(setError)
+                  }
+                >
+                  Lưu bản nháp
+                </Button>
+                <Button
+                  variant="contained"
+                  disabled={
+                    complete !== assignment.questions.length ||
+                    !!busy.length ||
+                    submitState.isLoading
+                  }
+                  onClick={() => setConfirmSubmit(true)}
+                >
+                  {submitState.isLoading ? "Đang nộp…" : "Nộp bài"}
+                </Button>
+              </Stack>
+            )}
+            {submission?.publishedAt && (
+              <Paper sx={{ p: 2, bgcolor: "action.selected" }}>
+                <Typography sx={{ fontWeight: 700 }}>
+                  Nhận xét tổng thể
+                </Typography>
+                <Typography sx={{ whiteSpace: "pre-wrap" }}>
+                  {submission.overallComment || "Chưa có nhận xét tổng thể."}
+                </Typography>
+                <Typography sx={{ whiteSpace: "pre-wrap", mt: 1 }}>
+                  {submission.overallAdvice}
+                </Typography>
+              </Paper>
+            )}
+          </Stack>
+        </Box>
+        <Dialog
+          open={confirmSubmit}
+          onClose={() => setConfirmSubmit(false)}
+          fullWidth
+          maxWidth="xs"
+        >
+          <DialogTitle>Nộp bài tập?</DialogTitle>
+          <DialogContent>
+            <Typography>
+              Em đã trả lời {complete} / {assignment.questions.length} câu. Sau
+              khi nộp, bài làm không thể chỉnh sửa.
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+              File và bản ghi phải tải xong trước khi nộp.
+            </Typography>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setConfirmSubmit(false)}>
+              Tiếp tục làm bài
+            </Button>
+            <Button
+              variant="contained"
+              onClick={() => void submitConfirmed()}
+              disabled={submitState.isLoading || busy.length > 0}
+            >
+              Xác nhận nộp
+            </Button>
+          </DialogActions>
+        </Dialog>
+      </Stack>
+    </AssignmentSurface>
   );
 }

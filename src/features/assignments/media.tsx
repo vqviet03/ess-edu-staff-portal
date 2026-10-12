@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import Stack from "@mui/material/Stack";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
+import PlayArrow from "@mui/icons-material/PlayArrow";
 import Chip from "@mui/material/Chip";
 import Typography from "@mui/material/Typography";
 import CircularProgress from "@mui/material/CircularProgress";
@@ -12,6 +13,7 @@ import { MaterialViewer } from "@/features/materials/viewer";
 import { bytes } from "@/features/materials/utils";
 import type { Media } from "./models";
 export function AssignmentMedia({ media }: { media: Media[] }) {
+  if (!media.length) return null;
   return (
     <Stack spacing={1}>
       {media.map((m) => (
@@ -59,7 +61,7 @@ function MediaItem({ item }: { item: Media }) {
       ref={host}
       sx={{
         maxWidth: "100%",
-        width: item.displayWidth ?? "100%",
+        width: item.displayWidth ?? (visual ? "fit-content" : "100%"),
         height: "auto",
       }}
     >
@@ -67,7 +69,7 @@ function MediaItem({ item }: { item: Media }) {
         <>
           <Box
             sx={{
-              width: "100%",
+              width: item.displayWidth ?? "fit-content",
               maxWidth: "100%",
               aspectRatio:
                 item.displayWidth && item.displayHeight
@@ -87,17 +89,29 @@ function MediaItem({ item }: { item: Media }) {
                     : undefined
                 }
                 sx={{
-                  width: "100%",
+                  width: item.displayWidth ? "100%" : "auto",
                   height:
                     item.displayWidth && item.displayHeight ? "100%" : "auto",
                   display: "block",
                   maxWidth: "100%",
-                  objectFit: "contain",
+                  objectFit: item.keepAspectRatio ? "contain" : "fill",
                   borderRadius: "12px",
                 }}
               />
             ) : (
               <Button
+                aria-label={
+                  f.mimeType.startsWith("video/") ? "Phát video" : "Xem ảnh"
+                }
+                sx={{
+                  width: item.displayWidth ?? 320,
+                  maxWidth: "100%",
+                  height: item.displayHeight ?? 180,
+                  bgcolor: f.mimeType.startsWith("video/")
+                    ? "#263f4a"
+                    : "var(--a-info)",
+                  color: "white",
+                }}
                 onClick={() =>
                   void load({ id: f.id, purpose: "preview" }, true)
                     .unwrap()
@@ -108,7 +122,13 @@ function MediaItem({ item }: { item: Media }) {
                 {state.isFetching ? (
                   <CircularProgress size={20} />
                 ) : f.mimeType.startsWith("video/") ? (
-                  "Phát video"
+                  <PlayArrow
+                    sx={{
+                      fontSize: 44,
+                      bgcolor: "#6f9eaa",
+                      borderRadius: "50%",
+                    }}
+                  />
                 ) : (
                   "Xem ảnh"
                 )}
@@ -117,27 +137,19 @@ function MediaItem({ item }: { item: Media }) {
           </Box>
         </>
       ) : f.mimeType.startsWith("audio/") ? (
-        <Box
-          sx={{
-            "--post-border": "#dce7df",
-            "--post-file": "transparent",
-            "--post-soft": "#e2f1e7",
-            "--post-muted": "#60776b",
-          }}
-        >
+        <Box sx={{ maxWidth: 460, "--post-file": "transparent" }}>
           <InlineAudio file={f} />
         </Box>
       ) : (
         <Stack
-          direction="row"
+          direction="column"
           spacing={1}
           sx={{
             p: 1.5,
-            border: 1,
-            borderColor: "divider",
+            border: 0,
+            bgcolor: "var(--a-bg)",
             borderRadius: "12px",
-            alignItems: "center",
-            flexWrap: "wrap",
+            alignItems: "stretch",
           }}
         >
           <Typography sx={{ overflowWrap: "anywhere", flex: 1 }}>
@@ -151,7 +163,25 @@ function MediaItem({ item }: { item: Media }) {
               {f.mimeType.split("/").at(-1)} · {bytes(f.sizeBytes)}
             </Typography>
           </Typography>
-          <Button onClick={() => setView(true)}>Xem / tải</Button>
+          <Stack direction="row" spacing={1}>
+            <Button onClick={() => setView(true)}>Xem / phát</Button>
+            <Button
+              disabled={state.isFetching}
+              onClick={() =>
+                void load({ id: f.id, purpose: "download" })
+                  .unwrap()
+                  .then((value) => {
+                    const a = document.createElement("a");
+                    a.href = value;
+                    a.download = f.displayName;
+                    a.click();
+                  })
+                  .catch(() => {})
+              }
+            >
+              Tải xuống
+            </Button>
+          </Stack>
         </Stack>
       )}
       {state.isError && (
@@ -174,7 +204,10 @@ export function RichContent({
   const [active, setActive] = useState<Media | null>(null);
   const parts = value.split(/(\[file:[a-fA-F0-9-]+\]|https?:\/\/[^\s<>]+)/g);
   return (
-    <Box sx={{ whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}>
+    <Box
+      component="span"
+      sx={{ whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}
+    >
       {parts.map((text, i) => {
         if (text.startsWith("[file:")) {
           const file = media.find((m) => m.materialId === text.slice(6, -1));
@@ -182,11 +215,10 @@ export function RichContent({
             <Chip
               key={i}
               size="small"
-              color="warning"
-              variant="outlined"
+              className="assignment-chip-file"
               label={file.file.displayName}
               title={file.file.displayName}
-              sx={{maxWidth:"100%",verticalAlign:"middle"}}
+              sx={{ maxWidth: "100%", verticalAlign: "middle" }}
               onClick={() => setActive(file)}
             />
           ) : (
@@ -205,12 +237,11 @@ export function RichContent({
                 target="_blank"
                 rel="noopener noreferrer"
                 size="small"
-                color="success"
-                variant="outlined"
+                className="assignment-chip-link"
                 clickable
                 label={u.hostname}
                 title={u.href}
-                sx={{maxWidth:"100%",verticalAlign:"middle"}}
+                sx={{ maxWidth: "100%", verticalAlign: "middle" }}
               />
             );
           } catch {

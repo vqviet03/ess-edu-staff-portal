@@ -1,9 +1,15 @@
 "use client";
 import { Suspense, useEffect, type ReactNode } from "react";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useStore } from "react-redux";
 import Alert from "@mui/material/Alert";
+import Popover from "@mui/material/Popover";
+import { useState } from "react";
+import { useTheme } from "@mui/material/styles";
+import { AssignmentSurface } from "@/features/assignments/surface";
+import { useClassQuery } from "@/api/api";
+import { useClassCapabilities } from "@/features/access/hooks";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Chip from "@mui/material/Chip";
@@ -25,7 +31,12 @@ import { signedOut } from "@/store/auth";
 import { useLogoutMutation, useResetDemoMutation } from "@/api/api";
 import { errorMessage, useMock } from "@/api/base-query";
 import { useWorkspace } from "@/features/access/hooks";
-import { AppScale, DisplayTools, GuideLayout, useAppDisplay } from "@/features/help/display";
+import {
+  AppScale,
+  DisplayTools,
+  GuideLayout,
+  useAppDisplay,
+} from "@/features/help/display";
 import { confirmLeave } from "./unsaved";
 export function Feedback({
   loading,
@@ -78,14 +89,18 @@ export function Title({
 }) {
   return (
     <Stack spacing={2} sx={{ mb: 2.5 }}>
-      <Stack direction="row" sx={{ alignItems: "center", gap: 1 }}><Suspense><BackButton /></Suspense>
-      <Typography
-        component="h1"
-        variant="h4"
-        sx={{ fontSize: { xs: 25, md: 30 } }}
-      >
-        {title}
-      </Typography></Stack>
+      <Stack direction="row" sx={{ alignItems: "center", gap: 1 }}>
+        <Suspense>
+          <BackButton />
+        </Suspense>
+        <Typography
+          component="h1"
+          variant="h4"
+          sx={{ fontSize: { xs: 25, md: 30 } }}
+        >
+          {title}
+        </Typography>
+      </Stack>
       {subtitle && <Typography color="text.secondary">{subtitle}</Typography>}
       {actions && (
         <Stack
@@ -157,11 +172,27 @@ export function Progress({
     </Stack>
   );
 }
+function AssignmentBreadcrumb({ appName }: { appName: string }) {
+  const params = useSearchParams(),
+    classId = params.get("classId") ?? "",
+    access = useClassCapabilities(classId);
+  const room = useClassQuery(classId, {
+    skip: !classId || !access.viewLearning,
+  });
+  return (
+    <>
+      {appName}
+      {room.currentData?.name ? ` / ${room.currentData.name}` : ""}
+    </>
+  );
+}
 export function Shell({ children }: { children: ReactNode }) {
   const workspace = useWorkspace(),
     pathname = usePathname();
   const { settings } = useApplicationSettings();
-  useEffect(() => { document.title = settings.appName + " · Staff Portal"; }, [settings.appName]);
+  useEffect(() => {
+    document.title = settings.appName + " · Staff Portal";
+  }, [settings.appName]);
   const auth = useAppSelector((s) => s.auth),
     dispatch = useAppDispatch(),
     router = useRouter();
@@ -183,135 +214,219 @@ export function Shell({ children }: { children: ReactNode }) {
   };
   const { zoom } = useAppDisplay();
   const [reset, { isLoading }] = useResetDemoMutation();
-  return (
-    <AppScale><Box
+  const assignmentRoute = /^\/assignment(?:-report)?\/?$/.test(pathname),
+    theme = useTheme();
+  const [optionsAnchor, setOptionsAnchor] = useState<HTMLElement | null>(null);
+  const headerControls = (
+    <Stack
+      direction="row"
+      useFlexGap
       sx={{
-        maxWidth: 1800 / (zoom / 100),
-        mx: "auto",
-        p: { xs: 1.5, md: 2 },
-        minHeight: "100vh",
+        alignItems: "center",
+        gap: 1,
+        flexWrap: "wrap",
       }}
     >
+      {auth.status === "authenticated" && workspace.allowed.length > 1 && (
+        <TextField
+          select
+          label="Không gian"
+          value={workspace.selected ?? ""}
+          sx={{ width: 145 }}
+          onChange={(e) => {
+            if (confirmLeave()) {
+              workspace.choose(e.target.value as "manager" | "teacher");
+              if (pathname.startsWith("/manage/")) router.push("/home/");
+            }
+          }}
+        >
+          <MenuItem value="manager">Quản lý</MenuItem>
+          <MenuItem value="teacher">Giảng viên</MenuItem>
+        </TextField>
+      )}
+      <DisplayTools />
+      <PreferencesMenu />
+      {auth.status === "authenticated" && (
+        <>
+          <Typography
+            variant="body2"
+            color="text.secondary"
+            sx={{ display: { xs: "none", sm: "block" } }}
+          >
+            {auth.session?.teacher.roles?.includes("MANAGER")
+              ? "Quản lý"
+              : "Giảng viên"}{" "}
+            · {auth.session?.teacher.name}
+          </Typography>
+          <Tooltip title="Hồ sơ cá nhân">
+            <IconButton
+              component={Link}
+              href="/profile/"
+              aria-label="Hồ sơ cá nhân"
+            >
+              <ProfileAvatar
+                name={auth.session?.teacher.name ?? "Bạn"}
+                value={auth.session?.teacher.avatar}
+                size={30}
+              />
+            </IconButton>
+          </Tooltip>
+          <Tooltip title="Đăng xuất">
+            <IconButton
+              aria-label="Đăng xuất"
+              disabled={logoutState.isLoading}
+              onClick={signOut}
+            >
+              <LogoutIcon />
+            </IconButton>
+          </Tooltip>
+        </>
+      )}
+      {useMock && (
+        <Button
+          disabled={isLoading}
+          onClick={async () => {
+            if (
+              confirmLeave() &&
+              window.confirm("Khôi phục dữ liệu demo ban đầu và đăng xuất?")
+            ) {
+              try {
+                await reset().unwrap();
+                dispatch(signedOut());
+                router.replace("/login/");
+              } catch (e) {
+                window.alert(errorMessage(e));
+              }
+            }
+          }}
+        >
+          Reset demo
+        </Button>
+      )}
+    </Stack>
+  );
+  const content = (
+    <AppScale>
       <Box
         sx={{
-          display: { md: auth.status === "authenticated" ? "grid" : "block" },
-          gridTemplateColumns: "auto minmax(0,1fr)",
-          gap: 3,
-          alignItems: "start",
+          maxWidth: (assignmentRoute ? 1200 : 1800) / (zoom / 100),
+          mx: "auto",
+          p: assignmentRoute ? 0 : { xs: 1.5, md: 2 },
+          bgcolor: assignmentRoute ? "var(--a-bg)" : undefined,
+          minHeight: "100vh",
         }}
       >
-        {auth.status === "authenticated" && <Suspense><Sidebar manager={workspace.selected === "manager"} appName={settings.appName} /></Suspense>}
-        <Box sx={{ minWidth: 0 }}>
-          <Stack
-            component="header"
-            direction="row"
-            useFlexGap
+        <Box
+          sx={{
+            display: { md: auth.status === "authenticated" ? "grid" : "block" },
+            gridTemplateColumns: "auto minmax(0,1fr)",
+            gap: assignmentRoute ? 0 : 3,
+            alignItems: "start",
+          }}
+        >
+          {auth.status === "authenticated" && (
+            <Suspense>
+              <Sidebar
+                manager={workspace.selected === "manager"}
+                appName={settings.appName}
+                assignment={assignmentRoute}
+              />
+            </Suspense>
+          )}
+          <Box
             sx={{
-              ...{ mb: 2, py: 1 },
-              alignItems: "center",
-              justifyContent: "space-between",
-              flexWrap: "wrap",
-              gap: 1,
+              minWidth: 0,
+              p: assignmentRoute ? { xs: 2, md: 3.5 } : undefined,
             }}
           >
-            <Typography
-              component={Link}
-              href={auth.status === "authenticated" ? "/home/" : "/login/"}
-              sx={{
-                fontSize: 20,
-                fontWeight: 700,
-                color: "primary.main",
-                textDecoration: "none",
-              }}
-            >
-              {settings.appName}
-            </Typography>
             <Stack
+              component="header"
+              className={assignmentRoute ? "assignment-topbar" : undefined}
               direction="row"
               useFlexGap
               sx={{
+                ...{
+                  mb: assignmentRoute ? 2.5 : 2,
+                  py: assignmentRoute ? 0 : 1,
+                },
                 alignItems: "center",
-                gap: 1,
+                justifyContent: "space-between",
                 flexWrap: "wrap",
+                gap: 1,
               }}
             >
-              {auth.status === "authenticated" &&
-                workspace.allowed.length > 1 && (
-                  <TextField
-                    select
-                    label="Không gian"
-                    value={workspace.selected ?? ""}
-                    sx={{ width: 145 }}
-                    onChange={(e) => {
-                      if (confirmLeave()) {
-                        workspace.choose(
-                          e.target.value as "manager" | "teacher",
-                        );
-                        if (pathname.startsWith("/manage/"))
-                          router.push("/home/");
-                      }
+              <Typography
+                component={Link}
+                href={auth.status === "authenticated" ? "/home/" : "/login/"}
+                sx={{
+                  fontSize: assignmentRoute ? 12 : 20,
+                  fontWeight: assignmentRoute ? 400 : 700,
+                  color: assignmentRoute ? "text.secondary" : "primary.main",
+                  textDecoration: "none",
+                }}
+              >
+                {assignmentRoute ? (
+                  <Suspense fallback={settings.appName}>
+                    <AssignmentBreadcrumb appName={settings.appName} />
+                  </Suspense>
+                ) : (
+                  settings.appName
+                )}
+              </Typography>
+              {assignmentRoute ? (
+                <>
+                  <Button
+                    aria-label="Tuỳ chọn giao diện và tài khoản"
+                    onClick={(e) => setOptionsAnchor(e.currentTarget)}
+                    sx={{
+                      p: 0,
+                      minHeight: 18,
+                      bgcolor: "transparent",
+                      color: "text.secondary",
+                      fontSize: 12,
+                      fontWeight: 400,
                     }}
                   >
-                    <MenuItem value="manager">Quản lý</MenuItem>
-                    <MenuItem value="teacher">Giảng viên</MenuItem>
-                  </TextField>
-                )}
-              <DisplayTools />
-              <PreferencesMenu />
-              {auth.status === "authenticated" && (
-                <>
-                  <Typography
-                    variant="body2"
-                    color="text.secondary"
-                    sx={{ display: { xs: "none", sm: "block" } }}
-                  >
-                    {auth.session?.teacher.roles?.includes("MANAGER")
+                    {workspace.selected === "manager"
                       ? "Quản lý"
                       : "Giảng viên"}{" "}
-                    · {auth.session?.teacher.name}
-                  </Typography>
-<Tooltip title="Hồ sơ cá nhân"><IconButton component={Link} href="/profile/" aria-label="Hồ sơ cá nhân"><ProfileAvatar name={auth.session?.teacher.name??"Bạn"} value={auth.session?.teacher.avatar} size={30}/></IconButton></Tooltip>
-<Tooltip title="Đăng xuất"><IconButton aria-label="Đăng xuất" disabled={logoutState.isLoading} onClick={signOut}><LogoutIcon /></IconButton></Tooltip>
+                    · VI · {theme.palette.mode === "dark" ? "Tối" : "Sáng"}
+                  </Button>
+                  <Popover
+                    open={!!optionsAnchor}
+                    anchorEl={optionsAnchor}
+                    onClose={() => setOptionsAnchor(null)}
+                    anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+                    transformOrigin={{ vertical: "top", horizontal: "right" }}
+                  >
+                    <Box sx={{ p: 1.5, maxWidth: 480 }}>{headerControls}</Box>
+                  </Popover>
                 </>
-              )}
-              {useMock && (
-                <Button
-                  disabled={isLoading}
-                  onClick={async () => {
-                    if (
-                      confirmLeave() &&
-                      window.confirm(
-                        "Khôi phục dữ liệu demo ban đầu và đăng xuất?",
-                      )
-                    ) {
-                      try {
-                        await reset().unwrap();
-                        dispatch(signedOut());
-                        router.replace("/login/");
-                      } catch (e) {
-                        window.alert(errorMessage(e));
-                      }
-                    }
-                  }}
-                >
-                  Reset demo
-                </Button>
+              ) : (
+                headerControls
               )}
             </Stack>
-          </Stack>
-          <GuideLayout workspace={workspace.selected}><Box component="main">{children}</Box></GuideLayout>
-          <Typography
-            component="footer"
-            variant="caption"
-            color="text.secondary"
-            sx={{ display: "block", mt: 4 }}
-          >
-            {useMock
-              ? "Bản demo · Dữ liệu giả lập được lưu trên thiết bị này."
-              : `${settings.appName} · Cổng thông tin giảng viên`}
-          </Typography>
+            <GuideLayout workspace={workspace.selected}>
+              <Box component="main">{children}</Box>
+            </GuideLayout>
+            <Typography
+              component="footer"
+              variant="caption"
+              color="text.secondary"
+              sx={{ display: assignmentRoute ? "none" : "block", mt: 4 }}
+            >
+              {useMock
+                ? "Bản demo · Dữ liệu giả lập được lưu trên thiết bị này."
+                : `${settings.appName} · Cổng thông tin giảng viên`}
+            </Typography>
+          </Box>
         </Box>
       </Box>
-    </Box></AppScale>
+    </AppScale>
+  );
+  return assignmentRoute ? (
+    <AssignmentSurface>{content}</AssignmentSurface>
+  ) : (
+    content
   );
 }

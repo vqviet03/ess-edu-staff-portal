@@ -265,6 +265,23 @@ export function schemaWrite(a: Assignment): AssignmentWrite {
   };
 }
 
-export const blockMedia = (content:string,media:Media[]) => media.filter(m=>!content.includes(`[file:${m.materialId}]`));
+export const blockMedia = (content: string, media: Media[]) =>
+  media.filter((m) => !content.includes(`[file:${m.materialId}]`));
 
-export interface RecordingConfirmation {id:string;status:"CONFIRMED"|"CANCELLED";materialId:string|null;verifiedDurationSeconds:number|null;version:number}
+export interface RecordingConfirmation {
+  id: string;
+  status: "CONFIRMED" | "CANCELLED";
+  materialId: string | null;
+  verifiedDurationSeconds: number | null;
+  version: number;
+}
+
+export interface SubmissionPage extends Page<Submission> {
+  summary: {
+    assigned: number;
+    submitted: number;
+    awaitingGrading: number;
+    graded: number;
+    notSubmitted: number;
+  };
+}

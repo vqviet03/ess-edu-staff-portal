@@ -1,4 +1,5 @@
 "use client";
+import { RecordingAudio, recordingTime } from "./recording-audio";
 import { useEffect, useRef, useState } from "react";
 import Stack from "@mui/material/Stack";
 import Button from "@mui/material/Button";
@@ -38,7 +39,7 @@ export function SpeakingRecorder({
     [source, setSource] = useState(""),
     [audio, setAudio] = useState<File>(),
     [send, setSend] = useState<File>(),
-    [uploaded,setUploaded]=useState<MaterialFile>(),
+    [uploaded, setUploaded] = useState<MaterialFile>(),
     [error, setError] = useState<unknown>();
   const recorder = useRef<MediaRecorder | null>(null),
     stream = useRef<MediaStream | null>(null),
@@ -153,7 +154,18 @@ export function SpeakingRecorder({
     } catch (e) {
       release();
       onBusy(false);
-      const error = e instanceof DOMException && e.name === "NotAllowedError" ? new Error("Chưa được cấp quyền micro. Cho phép micro trong cài đặt trình duyệt rồi thử lại.") : e instanceof DOMException && e.name === "NotFoundError" ? new Error("Không tìm thấy micro. Kết nối thiết bị rồi thử lại.") : e instanceof DOMException && e.name === "NotReadableError" ? new Error("Micro đang bị ứng dụng khác sử dụng hoặc không hoạt động.") : e;
+      const error =
+        e instanceof DOMException && e.name === "NotAllowedError"
+          ? new Error(
+              "Chưa được cấp quyền micro. Cho phép micro trong cài đặt trình duyệt rồi thử lại.",
+            )
+          : e instanceof DOMException && e.name === "NotFoundError"
+            ? new Error("Không tìm thấy micro. Kết nối thiết bị rồi thử lại.")
+            : e instanceof DOMException && e.name === "NotReadableError"
+              ? new Error(
+                  "Micro đang bị ứng dụng khác sử dụng hoặc không hoạt động.",
+                )
+              : e;
       if (mounted.current) setError(error);
     } finally {
       starting.current = false;
@@ -182,27 +194,51 @@ export function SpeakingRecorder({
     objectUrl.current = "";
     setSource("");
   }
-  async function confirmFile(file:MaterialFile) {
-    if(!session)return;
-    setUploaded(file);setError(undefined);onBusy(true);
+  async function confirmFile(file: MaterialFile) {
+    if (!session) return;
+    setUploaded(file);
+    setError(undefined);
+    onBusy(true);
     try {
-      await finish({id:assignmentId,recordingId:session.id,version:session.version}).unwrap();
-      if(mounted.current){onConfirmed(file,session.id);setPhase("confirmed");}
-    } catch(e){if(mounted.current)setError(e);}
-    finally{onBusy(false);}
+      await finish({
+        id: assignmentId,
+        recordingId: session.id,
+        version: session.version,
+      }).unwrap();
+      if (mounted.current) {
+        onConfirmed(file, session.id);
+        setPhase("confirmed");
+      }
+    } catch (e) {
+      if (mounted.current) setError(e);
+    } finally {
+      onBusy(false);
+    }
   }
   return (
-    <Stack spacing={1.5}>
-      <Alert severity="info">
-        Bài nói tối đa {maxSeconds} giây. Dừng ghi âm không tự nộp bài.
-      </Alert>
+    <Stack
+      spacing={1.5}
+      sx={{
+        p: 1.5,
+        bgcolor: "var(--a-info)",
+        color: "var(--a-blue)",
+        borderRadius: "12px",
+      }}
+    >
+      <Typography sx={{ fontWeight: 700 }}>
+        Bài nói tối đa {maxSeconds} giây
+      </Typography>
       <Typography role="timer" aria-live="off">
-        {elapsed} / {maxSeconds} giây
+        {recordingTime(elapsed)} / {recordingTime(maxSeconds)}
+      </Typography>
+      <Typography variant="body2">
+        Dừng ghi âm không tự nộp bài. Chọn “Sử dụng bản ghi” để lưu câu trả lời.
       </Typography>
       {phase === "idle" && (
         <Button
           startIcon={<Mic />}
           variant="contained"
+          sx={{ alignSelf: "flex-start" }}
           onClick={() => void begin()}
         >
           Bắt đầu ghi âm
@@ -220,14 +256,7 @@ export function SpeakingRecorder({
           Dừng ghi âm
         </Button>
       )}
-      {source && (
-        <audio
-          src={source}
-          controls
-          preload="metadata"
-          style={{ width: "100%" }}
-        />
-      )}
+      {source && <RecordingAudio source={source} />}
       {phase === "review" && (
         <Stack direction="row" spacing={1}>
           <Button startIcon={<Replay />} onClick={() => void again()}>
@@ -253,11 +282,14 @@ export function SpeakingRecorder({
           recordingSessionId={session.id}
           fileToUpload={send}
           onBusy={onBusy}
-          onFile={(file)=>void confirmFile(file)}
+          onFile={(file) => void confirmFile(file)}
         />
       )}
       {phase === "uploading" && uploaded && error != null && (
-        <Button disabled={state.isLoading} onClick={() => void confirmFile(uploaded)}>
+        <Button
+          disabled={state.isLoading}
+          onClick={() => void confirmFile(uploaded)}
+        >
           Thử lại xác nhận bản ghi
         </Button>
       )}
