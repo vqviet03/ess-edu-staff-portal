@@ -1,4 +1,5 @@
 "use client";
+import {downloadName} from "./utils";
 import dynamic from "next/dynamic";
 import {useRef,useState} from "react";
 import Dialog from "@mui/material/Dialog";
@@ -24,7 +25,7 @@ export function MaterialViewer({file,close}:{file:Pick<MaterialFile,"id"|"displa
    setError(undefined);
    try {
      const result=await download({id:file.id,purpose:"download"},false).unwrap();
-     const link=document.createElement("a");link.href=result;link.download=file.displayName;link.target="_blank";link.rel="noopener noreferrer";link.click();
+     const link=document.createElement("a");link.href=result;link.download=downloadName(file);link.target="_blank";link.rel="noopener noreferrer";link.click();
    }catch(e){setError(e);}
  }
  return <Dialog open fullScreen onClose={close} aria-labelledby="material-preview-title" data-testid="material-preview" slotProps={{paper:{sx:{m:0,borderRadius:0,overflow:"hidden",height:"100dvh"}}}}>
@@ -38,7 +39,7 @@ export function MaterialViewer({file,close}:{file:Pick<MaterialFile,"id"|"displa
   <DialogContent data-testid="preview-content" sx={{p:{xs:.5,md:1},flex:1,minHeight:0,overflow:"auto",touchAction:"pan-x pan-y pinch-zoom"}}>
    <Feedback loading={access.isLoading} error={access.error||error} retry={()=>{setError(undefined);void access.refetch();}}/>
    {url&&(mime==="application/pdf"?<PdfViewer url={url} retry={()=>void access.refetch()}/>:
-    mime.startsWith("image/")?<Box sx={{minHeight:"100%",display:"grid",placeItems:"center"}}><Box component="img" src={url} alt={file.displayName} onError={()=>setError(new Error("Không tải được ảnh."))} sx={{display:"block",width:"auto",height:"auto",maxWidth:"100%",maxHeight:"calc(100dvh - 64px)",objectFit:"contain"}}/></Box>:
+    mime.startsWith("image/")?<Box sx={{minHeight:"100%",display:"grid",placeItems:"center"}}><Box component="img" src={url} alt={file.displayName} onError={()=>setError(new Error("Không tải được ảnh."))} sx={{display:"block",width:"100%",height:"auto",maxWidth:"100%",objectFit:"contain"}}/></Box>:
     mime.startsWith("audio/")?<Stack spacing={2} sx={{width:"100%",maxWidth:760,mx:"auto",pt:3}}>
      <audio ref={audio} controls preload="metadata" src={url} style={{width:"100%"}} onLoadedMetadata={()=>{if(audio.current)audio.current.playbackRate=speed;}} onError={()=>setError(new Error("Không phát được audio."))}/>
      <TextField select size="small" label="Tốc độ phát" value={speed} sx={{alignSelf:"flex-start",minWidth:120}} onChange={e=>{const n=Number(e.target.value);setSpeed(n);if(audio.current)audio.current.playbackRate=n;}}>{[.25,.5,.75,1,1.25,1.5,1.75,2].map(s=><MenuItem key={s} value={s}>{s}x</MenuItem>)}</TextField>

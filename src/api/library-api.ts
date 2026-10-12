@@ -138,11 +138,11 @@ export const libraryApi = api.injectEndpoints({
     }),
     content: b.query<
       string,
-      { id: string; purpose: "preview" | "download" | "thumbnail" }
+      { id: string; purpose: "preview" | "download" | "thumbnail"; width?:number }
     >({
-      query: ({ id, purpose }) => ({
+      query: ({ id, purpose, width }) => ({
         url: `/materials/${id}/content`,
-        params: { purpose },
+        params: { purpose, width },
         responseHandler: async (res) =>
           res.ok ? URL.createObjectURL(await res.blob()) : res.json(),
       }),
@@ -303,9 +303,9 @@ export const libraryApi = api.injectEndpoints({
               (v) => buffer.progress(90 + Math.round(v * 0.1)),
             );
           const r = await base(
-            mutation(`/material-uploads/${arg.ticket.uploadId}/complete`, {
+            {...mutation(`/material-uploads/${arg.ticket.uploadId}/complete`, {
               version: arg.ticket.version,
-            }),
+            }),timeout:90000},
           );
           if (r.error) return { error: r.error };
           return { data: (r.data as Envelope<MaterialFile>).data };

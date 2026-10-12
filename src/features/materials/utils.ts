@@ -92,3 +92,9 @@ export function validateUpload(file: File, max: number) {
     return "Tên file không hợp lệ.";
   return null;
 }
+
+export function downloadName(file:{displayName:string;mimeType:string}){
+ const extension:Record<string,string>={"image/avif":"avif","image/webp":"webp","image/jpeg":"jpg","image/png":"png","image/gif":"gif"};
+ const suffix=extension[file.mimeType];if(!suffix||file.displayName.toLowerCase().endsWith("."+suffix)||suffix==="jpg"&&/\.jpeg$/i.test(file.displayName))return file.displayName;
+ return file.displayName.replace(/\.[^.]+$/,"")+"."+suffix;
+}

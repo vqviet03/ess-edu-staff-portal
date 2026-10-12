@@ -1,4 +1,5 @@
 "use client";
+import {downloadName} from "./utils";
 import { MaterialThumbnail } from "./thumbnail";
 import { type ReactNode, memo, useCallback, useEffect, useRef, useState } from "react";
 import IconButton from "@mui/material/IconButton";
@@ -652,7 +653,7 @@ export function MaterialBrowser({
                   ).unwrap();
                   const link = document.createElement("a");
                   link.href = access;
-                  link.download = f.displayName;
+                  link.download = downloadName(f);
                   link.target = "_blank";
                   link.rel = "noopener noreferrer";
                   link.click();

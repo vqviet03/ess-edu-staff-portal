@@ -7,6 +7,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import {PwaRuntime} from "@/features/pwa/runtime";
 import { Provider } from "react-redux";
 import { setupListeners } from "@reduxjs/toolkit/query";
 import { AppRouterCacheProvider } from "@mui/material-nextjs/v16-appRouter";
@@ -139,7 +140,7 @@ export function Providers({ children }: { children: ReactNode }) {
         <Preferences.Provider value={{ mode, setMode }}>
           <ThemeProvider theme={theme}>
             <CssBaseline />
-            <AuthRuntime />
+            <PwaRuntime/><AuthRuntime />
             <WorkspaceRuntime />
             <OperationsRuntime />
             <UnsavedRuntime />
