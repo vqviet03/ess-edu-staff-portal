@@ -50,7 +50,7 @@ export function AssignmentReportView({
   ].sort((a, b) => a - b);
   return (
     <AssignmentSurface>
-      <Stack spacing={1.5}>
+      <Stack spacing={{ xs: 2, md: 3 }}>
         <Typography variant="h4" component="h2">
           {studentId ? "Báo cáo bài tập" : "Báo cáo bài tập của em"}
         </Typography>
@@ -261,9 +261,9 @@ export function AssignmentReportView({
                       display: "grid",
                       gridTemplateColumns: {
                         xs: "1fr",
-                        md: "minmax(160px,1fr) auto auto minmax(140px,1.5fr)",
+                        md: "minmax(0,2fr) 100px 160px minmax(0,2fr)",
                       },
-                      gap: 1,
+                      gap: 2,
                       alignItems: "center",
                     }}
                   >
@@ -282,6 +282,7 @@ export function AssignmentReportView({
                       size="small"
                       sx={{
                         justifySelf: "start",
+                        maxWidth: "100%",
                         bgcolor: "var(--a-purple-bg)",
                         color: "var(--a-purple)",
                       }}
@@ -293,6 +294,7 @@ export function AssignmentReportView({
                       size="small"
                       sx={{
                         justifySelf: "start",
+                        maxWidth: "100%",
                         bgcolor: x.missing ? "error.main" : "var(--a-tint)",
                         color: x.missing
                           ? "error.contrastText"

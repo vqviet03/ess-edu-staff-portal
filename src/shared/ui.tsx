@@ -1,15 +1,9 @@
 "use client";
 import { Suspense, useEffect, type ReactNode } from "react";
 import Link from "next/link";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useStore } from "react-redux";
 import Alert from "@mui/material/Alert";
-import Popover from "@mui/material/Popover";
-import { useState } from "react";
-import { useTheme } from "@mui/material/styles";
-import { AssignmentSurface } from "@/features/assignments/surface";
-import { useClassQuery } from "@/api/api";
-import { useClassCapabilities } from "@/features/access/hooks";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Chip from "@mui/material/Chip";
@@ -172,20 +166,6 @@ export function Progress({
     </Stack>
   );
 }
-function AssignmentBreadcrumb({ appName }: { appName: string }) {
-  const params = useSearchParams(),
-    classId = params.get("classId") ?? "",
-    access = useClassCapabilities(classId);
-  const room = useClassQuery(classId, {
-    skip: !classId || !access.viewLearning,
-  });
-  return (
-    <>
-      {appName}
-      {room.currentData?.name ? ` / ${room.currentData.name}` : ""}
-    </>
-  );
-}
 export function Shell({ children }: { children: ReactNode }) {
   const workspace = useWorkspace(),
     pathname = usePathname();
@@ -214,9 +194,6 @@ export function Shell({ children }: { children: ReactNode }) {
   };
   const { zoom } = useAppDisplay();
   const [reset, { isLoading }] = useResetDemoMutation();
-  const assignmentRoute = /^\/assignment(?:-report)?\/?$/.test(pathname),
-    theme = useTheme();
-  const [optionsAnchor, setOptionsAnchor] = useState<HTMLElement | null>(null);
   const headerControls = (
     <Stack
       direction="row"
@@ -305,14 +282,13 @@ export function Shell({ children }: { children: ReactNode }) {
       )}
     </Stack>
   );
-  const content = (
+  return (
     <AppScale>
       <Box
         sx={{
-          maxWidth: (assignmentRoute ? 1200 : 1800) / (zoom / 100),
+          maxWidth: 1800 / (zoom / 100),
           mx: "auto",
-          p: assignmentRoute ? 0 : { xs: 1.5, md: 2 },
-          bgcolor: assignmentRoute ? "var(--a-bg)" : undefined,
+          p: { xs: 1.5, md: 2 },
           minHeight: "100vh",
         }}
       >
@@ -320,7 +296,7 @@ export function Shell({ children }: { children: ReactNode }) {
           sx={{
             display: { md: auth.status === "authenticated" ? "grid" : "block" },
             gridTemplateColumns: "auto minmax(0,1fr)",
-            gap: assignmentRoute ? 0 : 3,
+            gap: 3,
             alignItems: "start",
           }}
         >
@@ -329,25 +305,22 @@ export function Shell({ children }: { children: ReactNode }) {
               <Sidebar
                 manager={workspace.selected === "manager"}
                 appName={settings.appName}
-                assignment={assignmentRoute}
               />
             </Suspense>
           )}
           <Box
             sx={{
               minWidth: 0,
-              p: assignmentRoute ? { xs: 2, md: 3.5 } : undefined,
             }}
           >
             <Stack
               component="header"
-              className={assignmentRoute ? "assignment-topbar" : undefined}
               direction="row"
               useFlexGap
               sx={{
                 ...{
-                  mb: assignmentRoute ? 2.5 : 2,
-                  py: assignmentRoute ? 0 : 1,
+                  mb: 2,
+                  py: 1,
                 },
                 alignItems: "center",
                 justifyContent: "space-between",
@@ -359,52 +332,15 @@ export function Shell({ children }: { children: ReactNode }) {
                 component={Link}
                 href={auth.status === "authenticated" ? "/home/" : "/login/"}
                 sx={{
-                  fontSize: assignmentRoute ? 12 : 20,
-                  fontWeight: assignmentRoute ? 400 : 700,
-                  color: assignmentRoute ? "text.secondary" : "primary.main",
+                  fontSize: 20,
+                  fontWeight: 700,
+                  color: "primary.main",
                   textDecoration: "none",
                 }}
               >
-                {assignmentRoute ? (
-                  <Suspense fallback={settings.appName}>
-                    <AssignmentBreadcrumb appName={settings.appName} />
-                  </Suspense>
-                ) : (
-                  settings.appName
-                )}
+                {settings.appName}
               </Typography>
-              {assignmentRoute ? (
-                <>
-                  <Button
-                    aria-label="Tuỳ chọn giao diện và tài khoản"
-                    onClick={(e) => setOptionsAnchor(e.currentTarget)}
-                    sx={{
-                      p: 0,
-                      minHeight: 18,
-                      bgcolor: "transparent",
-                      color: "text.secondary",
-                      fontSize: 12,
-                      fontWeight: 400,
-                    }}
-                  >
-                    {workspace.selected === "manager"
-                      ? "Quản lý"
-                      : "Giảng viên"}{" "}
-                    · VI · {theme.palette.mode === "dark" ? "Tối" : "Sáng"}
-                  </Button>
-                  <Popover
-                    open={!!optionsAnchor}
-                    anchorEl={optionsAnchor}
-                    onClose={() => setOptionsAnchor(null)}
-                    anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
-                    transformOrigin={{ vertical: "top", horizontal: "right" }}
-                  >
-                    <Box sx={{ p: 1.5, maxWidth: 480 }}>{headerControls}</Box>
-                  </Popover>
-                </>
-              ) : (
-                headerControls
-              )}
+              {headerControls}
             </Stack>
             <GuideLayout workspace={workspace.selected}>
               <Box component="main">{children}</Box>
@@ -413,7 +349,7 @@ export function Shell({ children }: { children: ReactNode }) {
               component="footer"
               variant="caption"
               color="text.secondary"
-              sx={{ display: assignmentRoute ? "none" : "block", mt: 4 }}
+              sx={{ display: "block", mt: 4 }}
             >
               {useMock
                 ? "Bản demo · Dữ liệu giả lập được lưu trên thiết bị này."
@@ -423,10 +359,5 @@ export function Shell({ children }: { children: ReactNode }) {
         </Box>
       </Box>
     </AppScale>
-  );
-  return assignmentRoute ? (
-    <AssignmentSurface>{content}</AssignmentSurface>
-  ) : (
-    content
   );
 }

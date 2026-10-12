@@ -16,8 +16,6 @@ import Notifications from "@mui/icons-material/NotificationsNone";
 import Warning from "@mui/icons-material/WarningAmber";
 import History from "@mui/icons-material/History";
 import Settings from "@mui/icons-material/SettingsOutlined";
-import Assignment from "@mui/icons-material/AssignmentOutlined";
-import Assessment from "@mui/icons-material/AssessmentOutlined";
 import MenuOpen from "@mui/icons-material/MenuOpen";
 import Menu from "@mui/icons-material/Menu";
 import ArrowBack from "@mui/icons-material/ArrowBack";
@@ -102,11 +100,9 @@ const items: {
 export function Sidebar({
   manager,
   appName,
-  assignment = false,
 }: {
   manager: boolean;
   appName: string;
-  assignment?: boolean;
 }) {
   const notices = libraryApi.endpoints.notifications.useQueryState({});
   const [collapsed, setCollapsed] = useState(false),
@@ -133,12 +129,11 @@ export function Sidebar({
       data-testid="sidebar"
       data-collapsed={collapsed}
       sx={{
-        display: assignment ? { xs: "none", md: "block" } : undefined,
         alignSelf: "start",
-        p: assignment ? 2.5 : 1,
-        width: { md: collapsed ? 68 : assignment ? 180 : 220 },
+        p: 1,
+        width: { md: collapsed ? 68 : 220 },
         position: { md: "sticky" },
-        top: assignment ? 0 : 16,
+        top: 16,
         maxHeight: { md: "calc(100vh - 32px)" },
         overflowY: "auto",
         transition: "width .2s ease",
@@ -154,8 +149,7 @@ export function Sidebar({
         {!collapsed && (
           <Typography
             sx={{
-              px: assignment ? 0 : 1,
-              fontSize: assignment ? 18 : undefined,
+              px: 1,
               fontWeight: 700,
               overflowWrap: "anywhere",
             }}
@@ -166,18 +160,6 @@ export function Sidebar({
         )}
         <Tooltip title={collapsed ? "Mở menu" : "Thu menu"}>
           <IconButton
-            sx={
-              assignment
-                ? {
-                    width: 24,
-                    height: 24,
-                    minWidth: 24,
-                    minHeight: 24,
-                    p: 0,
-                    bgcolor: "transparent",
-                  }
-                : undefined
-            }
             aria-label={collapsed ? "Mở menu" : "Thu menu"}
             aria-expanded={!collapsed}
             onClick={toggle}
@@ -186,70 +168,23 @@ export function Sidebar({
           </IconButton>
         </Tooltip>
       </Stack>
-      {assignment && !collapsed && (
-        <Typography
-          variant="caption"
-          color="text.secondary"
-          sx={{
-            display: "block",
-            mt: 1,
-            mb: 1.5,
-            borderBottom: 1,
-            borderColor: "divider",
-            pb: 1.5,
-          }}
-        >
-          STAFF PORTAL
-        </Typography>
-      )}
       <Stack
         component="nav"
         aria-label={manager ? "Menu quản lý" : "Menu giảng viên"}
         direction={{ xs: "row", md: "column" }}
         sx={{ gap: 0.5, mt: 1, overflowX: { xs: "auto", md: "visible" } }}
       >
-        {(assignment
-          ? [
-              { label: "Tổng quan", href: "/home/", icon: Dashboard },
-              {
-                label: "Lớp học",
-                href: params.get("classId")
-                  ? `/class/?classId=${encodeURIComponent(params.get("classId")!)}`
-                  : "/home/",
-                icon: Class,
-              },
-              {
-                label: "Bài tập",
-                href: `/class/?classId=${encodeURIComponent(params.get("classId") ?? "")}`,
-                icon: Assignment,
-              },
-              {
-                label: "Báo cáo",
-                href: params.get("classId")
-                  ? `/assignment-report/?classId=${encodeURIComponent(params.get("classId")!)}${params.get("studentId") ? `&studentId=${encodeURIComponent(params.get("studentId")!)}` : ""}`
-                  : "/home/",
-                icon: Assessment,
-              },
-              {
-                label: "Thông báo",
-                href: "/notifications/",
-                icon: Notifications,
-              },
-              { label: "Tài khoản", href: "/profile/", icon: Account },
-            ]
-          : items.filter((i) => !i.manager || manager)
-        ).map(
-          (item: {
-            label: string;
-            href: string;
-            icon: SvgIconComponent;
-            entity?: string;
-            manager?: boolean;
-          }) => {
-            const active = assignment
-              ? item.label ===
-                (pathname.includes("assignment-report") ? "Báo cáo" : "Bài tập")
-              : item.entity
+        {items
+          .filter((i) => !i.manager || manager)
+          .map(
+            (item: {
+              label: string;
+              href: string;
+              icon: SvgIconComponent;
+              entity?: string;
+              manager?: boolean;
+            }) => {
+              const active = item.entity
                 ? [
                     "/manage/list/",
                     "/manage/profile/",
@@ -266,79 +201,76 @@ export function Sidebar({
                       "/student-score/",
                       "/import/",
                       "/reports/",
+                      "/assignment/",
+                      "/assignment-report/",
                     ].includes(pathname));
-            const Icon = item.icon;
-            return (
-              <Tooltip
-                key={item.label}
-                title={collapsed ? item.label : ""}
-                placement="right"
-              >
-                <ListItemButton
-                  component={Link}
-                  href={item.href}
-                  aria-label={
-                    item.label +
-                    (item.href === "/notifications/" &&
-                    notices.data?.unreadCount
-                      ? ` (${notices.data.unreadCount})`
-                      : "")
-                  }
-                  aria-current={active ? "page" : undefined}
-                  selected={active}
-                  sx={{
-                    borderRadius: 2,
-                    minHeight: assignment ? 32 : 44,
-                    py: assignment ? 0 : undefined,
-                    px: collapsed ? 1.5 : assignment ? 0 : 1,
-                    justifyContent: collapsed ? "center" : "flex-start",
-                    flexShrink: 0,
-                    "&.Mui-selected": {
-                      bgcolor: assignment ? "transparent" : "action.selected",
-                      color: "primary.main",
-                      boxShadow: assignment
-                        ? "none"
-                        : "inset 3px 0 0 currentColor",
-                    },
-                  }}
+              const Icon = item.icon;
+              return (
+                <Tooltip
+                  key={item.label}
+                  title={collapsed ? item.label : ""}
+                  placement="right"
                 >
-                  <ListItemIcon
+                  <ListItemButton
+                    component={Link}
+                    href={item.href}
+                    aria-label={
+                      item.label +
+                      (item.href === "/notifications/" &&
+                      notices.data?.unreadCount
+                        ? ` (${notices.data.unreadCount})`
+                        : "")
+                    }
+                    aria-current={active ? "page" : undefined}
+                    selected={active}
                     sx={{
-                      display: assignment && !collapsed ? "none" : "flex",
-                      minWidth: collapsed ? 0 : 36,
-                      color: "inherit",
+                      borderRadius: 2,
+                      minHeight: 44,
+                      px: collapsed ? 1.5 : 1,
+                      justifyContent: collapsed ? "center" : "flex-start",
+                      flexShrink: 0,
+                      "&.Mui-selected": {
+                        bgcolor: "action.selected",
+                        color: "primary.main",
+                        boxShadow: "inset 3px 0 0 currentColor",
+                      },
                     }}
                   >
-                    <Badge
-                      badgeContent={
-                        item.href === "/notifications/"
-                          ? notices.data?.unreadCount
-                          : 0
-                      }
-                      color="error"
-                    >
-                      <Icon />
-                    </Badge>
-                  </ListItemIcon>
-                  {!collapsed && (
-                    <ListItemText
-                      primary={item.label}
-                      slotProps={{
-                        primary: {
-                          variant: assignment ? "body1" : "body2",
-                          sx: {
-                            whiteSpace: "nowrap",
-                            fontWeight: assignment ? 700 : undefined,
-                          },
-                        },
+                    <ListItemIcon
+                      sx={{
+                        minWidth: collapsed ? 0 : 36,
+                        color: "inherit",
                       }}
-                    />
-                  )}
-                </ListItemButton>
-              </Tooltip>
-            );
-          },
-        )}
+                    >
+                      <Badge
+                        badgeContent={
+                          item.href === "/notifications/"
+                            ? notices.data?.unreadCount
+                            : 0
+                        }
+                        color="error"
+                      >
+                        <Icon />
+                      </Badge>
+                    </ListItemIcon>
+                    {!collapsed && (
+                      <ListItemText
+                        primary={item.label}
+                        slotProps={{
+                          primary: {
+                            variant: "body2",
+                            sx: {
+                              whiteSpace: "nowrap",
+                            },
+                          },
+                        }}
+                      />
+                    )}
+                  </ListItemButton>
+                </Tooltip>
+              );
+            },
+          )}
       </Stack>
     </Paper>
   );
