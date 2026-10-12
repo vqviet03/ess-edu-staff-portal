@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type SyntheticEvent } from "react";
 import Stack from "@mui/material/Stack";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
@@ -12,17 +12,33 @@ import { InlineAudio } from "@/features/materials/inline-audio";
 import { MaterialViewer } from "@/features/materials/viewer";
 import { bytes } from "@/features/materials/utils";
 import type { Media } from "./models";
-export function AssignmentMedia({ media }: { media: Media[] }) {
+export interface MediaDimensions {
+  width: number;
+  height: number;
+}
+export function AssignmentMedia({
+  media,
+  onDimensions,
+}: {
+  media: Media[];
+  onDimensions?: (dimensions: MediaDimensions) => void;
+}) {
   if (!media.length) return null;
   return (
     <Stack spacing={1}>
       {media.map((m) => (
-        <MediaItem key={m.materialId} item={m} />
+        <MediaItem key={m.materialId} item={m} onDimensions={onDimensions} />
       ))}
     </Stack>
   );
 }
-function MediaItem({ item }: { item: Media }) {
+function MediaItem({
+  item,
+  onDimensions,
+}: {
+  item: Media;
+  onDimensions?: (dimensions: MediaDimensions) => void;
+}) {
   const f = item.file,
     [load, state] = useLazyContentQuery(),
     [url, setUrl] = useState(""),
@@ -83,6 +99,24 @@ function MediaItem({ item }: { item: Media }) {
                 src={url}
                 controls={f.mimeType.startsWith("video/")}
                 preload="metadata"
+                onLoad={(
+                  event: SyntheticEvent<HTMLImageElement | HTMLVideoElement>,
+                ) => {
+                  if (event.currentTarget instanceof HTMLImageElement)
+                    onDimensions?.({
+                      width: event.currentTarget.naturalWidth,
+                      height: event.currentTarget.naturalHeight,
+                    });
+                }}
+                onLoadedMetadata={(
+                  event: SyntheticEvent<HTMLImageElement | HTMLVideoElement>,
+                ) => {
+                  if (event.currentTarget instanceof HTMLVideoElement)
+                    onDimensions?.({
+                      width: event.currentTarget.videoWidth,
+                      height: event.currentTarget.videoHeight,
+                    });
+                }}
                 alt={
                   f.mimeType.startsWith("image/")
                     ? "Minh họa bài tập"

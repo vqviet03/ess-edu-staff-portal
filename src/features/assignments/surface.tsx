@@ -185,11 +185,11 @@ export function AssignmentSurface({
             display: "none",
           },
           "& .assignment-labels .MuiOutlinedInput-root": { marginTop: 0 },
-          "& .assignment-option .MuiOutlinedInput-notchedOutline": {
+          "& .assignment-option-content .MuiOutlinedInput-notchedOutline": {
             border: 0,
           },
-          "& .assignment-option .MuiInputBase-input": { padding: "4px 0" },
-          "& .assignment-option .MuiInputLabel-root": {
+          "& .assignment-option-content .MuiInputBase-input": { padding: "4px 0" },
+          "& .assignment-option-content .MuiInputLabel-root": {
             position: "absolute",
             width: 1,
             height: 1,

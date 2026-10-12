@@ -12,7 +12,7 @@ Nguồn: https://www.figma.com/design/t3kAHowsm0FLtomJCMQiuv
 | Ghi âm | 40:1749 / 40:1780 | Responsive |
 | Đổi mật khẩu | 7:1490 | Responsive |
 
-Theme riêng của tính năng áp dụng màu, Roboto, typography, input 40px, bo góc và spacing từ Figma. Desktop khung 1200px, sidebar 180px, main 964px; mobile padding 16px. Các màn lớp, kho, điểm danh, nhập điểm 7 kỹ năng và đăng nhập dùng theme cũ.
+Theme riêng của tính năng chỉ áp dụng cho nội dung bài tập (màu, Roboto, typography, input, bo góc và spacing). Màn bài tập và báo cáo dùng layout chung của ứng dụng: header, điều hướng, tài khoản, giao diện, zoom và footer giữ cùng vị trí và hành vi như các màn khác. Không có sidebar hoặc header riêng cho bài tập.
 
 Icon trong `public/assignment-icons` được export SVG nguyên bản từ Figma (20×20). Light: help 26:1903, plus 26:1925, copy 26:1932, trash 26:1942, attach 26:1966, link 26:1970, back 26:2017. Dark: chevron 28:1582, plus 28:1586, attach 28:1598, link 28:1601, help 28:1604.
 
@@ -30,3 +30,5 @@ Các HTTP fixtures chỉ được dùng bởi test runner; ứng dụng chạy A
 - [builder-mobile-dark](assignment-review/builder-mobile-dark.png)
 - [grading-desktop](assignment-review/grading-desktop.png)
 - [submissions-desktop](assignment-review/submissions-desktop.png)
+
+Trong Soạn câu hỏi, từng đáp án có nút Xóa riêng và xác nhận. Các ô kích thước media có label Chiều rộng / Chiều cao và đơn vị px; giá trị để trống dùng kích thước gốc. Kích thước mặc định được đọc từ ảnh/video đã tải qua API xác thực, hiển thị trong placeholder và dòng trợ giúp; Kích thước gốc khôi phục null/null và giữ tỷ lệ. Không lưu số pixel mặc định thành kích thước tùy chỉnh.
