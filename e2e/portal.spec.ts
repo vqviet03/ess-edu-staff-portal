@@ -55,9 +55,9 @@ test("đăng nhập, reload, theme, deep links và 401", async ({ page }) => {
       localStorage.setItem("learnleaf.staff.mock.v1", JSON.stringify(db));
     } else {
       const key = "learnleaf.staff.auth";
-      const session = JSON.parse(sessionStorage.getItem(key)!);
+      const session = JSON.parse(localStorage.getItem(key)!);
       session.accessToken = "invalid";
-      sessionStorage.setItem(key, JSON.stringify(session));
+      localStorage.setItem(key, JSON.stringify(session));
     }
   }, process.env.NEXT_PUBLIC_USE_MOCK === "true");
   await page.goto("home/");
@@ -65,7 +65,7 @@ test("đăng nhập, reload, theme, deep links và 401", async ({ page }) => {
     page.getByRole("heading", { name: "Đăng nhập ESS Staff" }),
   ).toBeVisible();
   expect(
-    await page.evaluate(() => sessionStorage.getItem("learnleaf.staff.auth")),
+    await page.evaluate(() => localStorage.getItem("learnleaf.staff.auth")),
   ).toBeNull();
   expect(errors).toEqual([]);
 });

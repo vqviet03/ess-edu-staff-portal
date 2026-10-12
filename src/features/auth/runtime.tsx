@@ -6,7 +6,7 @@ import { loginRedirect } from "@/shared/auth-navigation";
 import { api, useMeQuery } from "@/api/api";
 import { type RootState, useAppDispatch, useAppSelector } from "@/store";
 import { restore, signedOut, verified } from "@/store/auth";
-import { expired, expiresAt, readSession } from "./storage";
+import { SESSION_KEY, expired, expiresAt, readSession } from "./storage";
 import { staffActive, workspaces } from "@/features/access/capabilities";
 import { Feedback, Shell } from "@/shared/ui";
 export function AuthRuntime() {
@@ -19,6 +19,17 @@ export function AuthRuntime() {
   useEffect(() => {
     if (store.getState().auth.status === "booting")
       dispatch(restore(readSession()));
+  }, [dispatch, store]);
+  useEffect(() => {
+    const onStorage = (event: StorageEvent) => {
+      if ((event.key !== null && event.key !== SESSION_KEY) || event.storageArea !== localStorage) return;
+      const session = readSession();
+      if ((store.getState().auth.session?.accessToken ?? null) === (session?.accessToken ?? null)) return;
+      dispatch(restore(session));
+      dispatch(api.util.resetApiState());
+    };
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
   }, [dispatch, store]);
   useEffect(() => {
     if (auth.status === "validating" && me.data && auth.session)

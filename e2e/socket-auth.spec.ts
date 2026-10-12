@@ -25,7 +25,7 @@ test("socket rejection verifies HTTP auth once and does not log out or loop when
   expect(reads).toBe(1);
   expect(connections(fixture)).toBe(2);
   await expect(page).toHaveURL(/\/home\//);
-  expect(await page.evaluate(() => sessionStorage.getItem("learnleaf.staff.auth"))).not.toBeNull();
+  expect(await page.evaluate(() => localStorage.getItem("learnleaf.staff.auth"))).not.toBeNull();
 });
 
 test("socket rejection waits for API 401 before clearing session", async ({page}) => {
@@ -43,10 +43,10 @@ test("socket rejection waits for API 401 before clearing session", async ({page}
   fixture.disconnectUnauthorized();
   await checked;
   await expect(page).toHaveURL(/\/home\//);
-  expect(await page.evaluate(() => sessionStorage.getItem("learnleaf.staff.auth"))).not.toBeNull();
+  expect(await page.evaluate(() => localStorage.getItem("learnleaf.staff.auth"))).not.toBeNull();
   finish();
   await expect(page).toHaveURL(/\/login\//);
-  expect(await page.evaluate(() => sessionStorage.getItem("learnleaf.staff.auth"))).toBeNull();
+  expect(await page.evaluate(() => localStorage.getItem("learnleaf.staff.auth"))).toBeNull();
 });
 
 test("failed auth verification preserves login without repeated HTTP attempts", async ({page}) => {
@@ -63,5 +63,5 @@ test("failed auth verification preserves login without repeated HTTP attempts", 
   expect(reads).toBe(1);
   expect(connections(fixture)).toBe(1);
   await expect(page).toHaveURL(/\/home\//);
-  expect(await page.evaluate(() => sessionStorage.getItem("learnleaf.staff.auth"))).not.toBeNull();
+  expect(await page.evaluate(() => localStorage.getItem("learnleaf.staff.auth"))).not.toBeNull();
 });

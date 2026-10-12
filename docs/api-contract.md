@@ -39,7 +39,7 @@ Tên/note/nhận xét là Unicode, giữ newline. Họ tên và tên phiên/bài
 {"data":{"accessToken":"<jwt>","expiresAt":"2026-10-03T10:00:00Z","teacher":{"id":"teacher-1","name":"Nguyễn Minh Anh"}}}
 ```
 
-Mọi endpoint ngoài login/exchange yêu cầu `Authorization: Bearer <accessToken>`. JWT trong sessionStorage; không lưu mật khẩu. Backend kiểm chữ ký, issuer/audience, exp, trạng thái tài khoản, vai trò TEACHER/MANAGER cùng permission tương ứng và quyền lớp qua chuỗi session/assessment/student. Logout thu hồi session server và luôn xóa phiên/cache phía browser; lỗi mạng chưa đảm bảo server nhận thu hồi, session vẫn hết hạn theo JWT. 401 xóa phiên/cache, về login; 403 hiển thị không có quyền, không logout. Không tự refresh token hoặc retry mutation.
+Mọi endpoint ngoài login/exchange yêu cầu `Authorization: Bearer <accessToken>`. JWT trong localStorage; không lưu mật khẩu. Backend kiểm chữ ký, issuer/audience, exp, trạng thái tài khoản, vai trò TEACHER/MANAGER cùng permission tương ứng và quyền lớp qua chuỗi session/assessment/student. Logout thu hồi session server và luôn xóa phiên/cache phía browser; lỗi mạng chưa đảm bảo server nhận thu hồi, session vẫn hết hạn theo JWT. 401 xóa phiên/cache, về login; 403 hiển thị không có quyền, không logout. Không tự refresh token hoặc retry mutation.
 
 Link frontend `/<basePath>/login/link/#code=<code>`; code xóa khỏi URL ngay. Backend tạo code ngẫu nhiên đủ entropy, hạn ngắn, lưu hash, consume nguyên tử một lần, ràng buộc teacher/expiry; invalid400, expired/used410. Không log code/token/password ở frontend/backend/proxy; password/JWT không nằm URL. Thực thi rate limits chống dò credential/code. Exchange không gọi lặp bởi StrictMode. Frontend không gửi link hay tạo code.
 

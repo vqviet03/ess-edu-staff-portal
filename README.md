@@ -54,7 +54,7 @@ npx playwright install chromium
 NEXT_PUBLIC_BASE_PATH=/ess-edu-staff-portal npm run test:e2e
 ```
 
-`output: export`, `trailingSlash: true`; deploy thư mục `out/`, không dùng next start. Mỗi route có index.html nên reload trực tiếp hoạt động. basePath do Next quản lý cho links/assets; API thật độc lập với basePath. Thay env cần build lại. Không có service worker/offline hoặc Next server. Phiên giới hạn theo expiresAt/JWT exp; reload xác minh phiên, 401 xóa phiên/cache. Không polling định kỳ. sessionStorage bị chặn: phiên không thể khôi phục khi reload; lựa chọn giao diện cần browser storage được cho phép.
+`output: export`, `trailingSlash: true`; deploy thư mục `out/`, không dùng next start. Mỗi route có index.html nên reload trực tiếp hoạt động. basePath do Next quản lý cho links/assets; API thật độc lập với basePath. Thay env cần build lại. Không có service worker/offline hoặc Next server. Phiên giới hạn theo expiresAt/JWT exp; reload xác minh phiên, 401 xóa phiên/cache. Không polling định kỳ. localStorage bị chặn: phiên không thể khôi phục khi reload; lựa chọn giao diện cần browser storage được cho phép.
 
 ## GitHub Pages
 
@@ -235,3 +235,4 @@ Hồ sơ cá nhân → **Thông báo & ứng dụng**: bật push bằng thao t�
 Manifest/icon lấy từ API public branding; manager đổi tên/icon/màu riêng cho hai portal qua đề xuất được duyệt. SVG logo tối đa 32KB và được server kiểm tra. Service worker không lưu JWT, không cache dữ liệu/tài liệu riêng tư, không polling. Cấu hình API/basePath và static export/GitHub Pages không đổi; không thêm API Routes hay server cho FE.
 
 Backend cần migration Core022, Materials011, Logs002, Notifications005 và VAPID/EncryptionKey trong Secret Manager cho push. Xem `ess-edu-api/docs/portal-media-pwa.md`. File cũ fallback thumbnail cũ; server tạo ba thumbnail cho ảnh upload mới và kiểm tra quyền mọi lần access. Chế độ review/build của bản này dùng API thật; fixtures chỉ dùng trong kiểm thử.
+[Giữ đăng nhập khi đóng/mở web](docs/persistent-session.md).

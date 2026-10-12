@@ -18,8 +18,8 @@ test("Quản lý đặt thời hạn, thu hồi phiên qua realtime và giảng 
   await page.getByLabel("Thời hạn · Năm", { exact: true }).fill("0"); await page.getByLabel("Thời hạn · Phút").fill("7"); await page.getByLabel("Lý do thay đổi thời hạn").fill("Đặt thời hạn kiểm thử");
   await page.getByRole("button", { name: "Lưu thời hạn phiên", exact: true }).click(); await expect(page.getByText("Thời hạn: 7 phút", { exact: false })).toBeVisible(); await expect(teacher).toHaveURL(/\/home\//);
   await page.getByRole("button", { name: "Buộc kết thúc tất cả phiên", exact: true }).click(); const dialog = page.getByRole("dialog"); await dialog.getByLabel("Lý do kết thúc phiên").fill("Yêu cầu đăng nhập lại"); await dialog.getByRole("button", { name: "Xác nhận kết thúc phiên" }).click(); await expect(dialog).not.toBeVisible();
-  await expect(teacher).toHaveURL(/\/login\//); expect(await teacher.evaluate(() => sessionStorage.getItem("learnleaf.staff.auth"))).toBeNull(); await expect(page.getByText("0 phiên còn hiệu lực", { exact: false })).toBeVisible();
-  await login(teacher, "GV0001"); const expiresAt = await teacher.evaluate(() => JSON.parse(sessionStorage.getItem("learnleaf.staff.auth")!).expiresAt as string); expect(Math.abs(Date.parse(expiresAt) - Date.now() - 420000)).toBeLessThan(10000);
+  await expect(teacher).toHaveURL(/\/login\//); expect(await teacher.evaluate(() => localStorage.getItem("learnleaf.staff.auth"))).toBeNull(); await expect(page.getByText("0 phiên còn hiệu lực", { exact: false })).toBeVisible();
+  await login(teacher, "GV0001"); const expiresAt = await teacher.evaluate(() => JSON.parse(localStorage.getItem("learnleaf.staff.auth")!).expiresAt as string); expect(Math.abs(Date.parse(expiresAt) - Date.now() - 420000)).toBeLessThan(10000);
   expect((JSON.parse(value) as Database).management!.accounts.find((a) => a.id === "acc-GV0001")!.status).toBe("ACTIVE"); expect(errors).toEqual([]); await context.close();
 });
 test("Mobile tối: bảo vệ MANAGER, giữ form khi version conflict và cảnh báo chưa lưu", async ({ page }) => {
