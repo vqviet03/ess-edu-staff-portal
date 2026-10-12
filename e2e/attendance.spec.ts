@@ -189,7 +189,7 @@ test("off-schedule requires reason, manager controls stay read-only", async ({
   await expect(
     page.getByRole("checkbox", { name: /Có mặt:/ }).first(),
   ).toBeEnabled();
-  await page.evaluate(() => sessionStorage.clear());
+  await page.evaluate(() => localStorage.clear());
   await login(page, "MG0001");
   await expect(
     page.getByRole("checkbox", { name: /Có mặt:/ }).first(),
