@@ -54,7 +54,7 @@ npx playwright install chromium
 NEXT_PUBLIC_BASE_PATH=/ess-edu-staff-portal npm run test:e2e
 ```
 
-`output: export`, `trailingSlash: true`; deploy thư mục `out/`, không dùng next start. Mỗi route có index.html nên reload trực tiếp hoạt động. basePath do Next quản lý cho links/assets; API thật độc lập với basePath. Thay env cần build lại. Không có service worker/offline hoặc Next server. Phiên giới hạn theo expiresAt/JWT exp; reload xác minh phiên, 401 xóa phiên/cache. Không polling định kỳ. sessionStorage bị chặn: phiên không thể khôi phục khi reload; lựa chọn giao diện cần browser storage được cho phép.
+`output: export`, `trailingSlash: true`; deploy thư mục `out/`, không dùng next start. Mỗi route có index.html nên reload trực tiếp hoạt động. basePath do Next quản lý cho links/assets; API thật độc lập với basePath. Thay env cần build lại. Không có service worker/offline hoặc Next server. Phiên giới hạn theo expiresAt/JWT exp; reload xác minh phiên, 401 xóa phiên/cache. Không polling định kỳ. localStorage bị chặn: phiên không thể khôi phục khi reload; lựa chọn giao diện cần browser storage được cho phép.
 
 ## GitHub Pages
 
@@ -224,3 +224,5 @@ Xem [hướng dẫn bài tập/API thật](docs/assignments.md): soạn form, l�
 Giao diện bài tập: đối chiếu frame desktop/mobile, theme và icon được ghi trong [docs/assignment-design.md](docs/assignment-design.md). Route `/assignment-report/` dùng query parameters và vẫn hỗ trợ static export.
 
 Liên kết qua đăng nhập, chia sẻ theo portal và preview toàn màn hình: [hướng dẫn](docs/post-links-preview.md).
+
+[Giữ đăng nhập khi đóng/mở web](docs/persistent-session.md).
