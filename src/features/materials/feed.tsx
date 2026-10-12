@@ -219,7 +219,7 @@ export function SessionFeed({
       )}
       {editable && (
         <Box
-          sx={{ width: "100%", maxWidth: 600, mx: "auto", alignSelf: "center" }}
+          sx={{ width: "100%", mx: "auto", alignSelf: "center" }}
         >
           <Button
             size="small"
@@ -236,7 +236,6 @@ export function SessionFeed({
           display: "grid",
           gridTemplateColumns: "minmax(0,1fr)",
           width: "100%",
-          maxWidth: 680,
           alignSelf: "center",
           mx: "auto",
           gap: 3,

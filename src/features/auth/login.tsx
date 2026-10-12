@@ -17,6 +17,7 @@ import { useAppDispatch, useAppSelector } from "@/store";
 import { Card, Feedback, NavButton, Shell, Title } from "@/shared/ui";
 import type { AuthSession } from "@/types";
 import { useApplicationSettings } from "@/features/settings/hooks";
+import { loginDestination, loginRedirect } from "@/shared/auth-navigation";
 const exchanges = new Map<string, Promise<AuthSession>>();
 export function Login() {
   const { settings } = useApplicationSettings();
@@ -34,7 +35,7 @@ export function Login() {
     defaultValues: { teacherId: "", password: "" },
   });
   useEffect(() => {
-    if (auth.status === "authenticated") router.replace("/home/");
+    if (auth.status === "authenticated") router.replace(loginDestination(location.search, process.env.NEXT_PUBLIC_BASE_PATH));
   }, [auth.status, router]);
   return (
     <Shell>
@@ -50,7 +51,6 @@ export function Login() {
             onSubmit={handleSubmit(async (value) => {
               try {
                 dispatch(signedIn(await login(value).unwrap()));
-                router.replace("/home/");
               } catch {}
             })}
           >
@@ -105,6 +105,8 @@ export function LinkLogin() {
     dispatch = useAppDispatch(),
     started = useRef<Promise<AuthSession> | null>(null),
     initialized = useRef(false),
+    destination = useRef("/home/"),
+    [backLink, setBackLink] = useState("/login/"),
     [error, setError] = useState("");
   useEffect(() => {
     let active = true;
@@ -113,7 +115,7 @@ export function LinkLogin() {
         (session) => {
           if (active && started.current === pending) {
             dispatch(signedIn(session));
-            router.replace("/home/");
+            router.replace(destination.current);
           }
         },
         (e) => {
@@ -122,6 +124,8 @@ export function LinkLogin() {
       );
     const read = () => {
       initialized.current = true;
+      destination.current = loginDestination(location.search, process.env.NEXT_PUBLIC_BASE_PATH);
+      setBackLink(loginRedirect(destination.current));
       setError("");
       const code = new URLSearchParams(location.hash.slice(1)).get("code");
       history.replaceState(
@@ -164,7 +168,7 @@ export function LinkLogin() {
               <Alert severity="error" sx={{ mb: 2 }}>
                 {error}
               </Alert>
-              <NavButton href="/login/">Về đăng nhập</NavButton>
+              <NavButton href={backLink}>Về đăng nhập</NavButton>
             </>
           ) : (
             <Feedback loading />
