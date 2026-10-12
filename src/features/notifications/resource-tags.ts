@@ -1,5 +1,8 @@
 import type {api} from "@/api/api";
 export function notificationResourceTags(type:string,classId?:string|null):Parameters<typeof api.util.invalidateTags>[0]{
+ if(type==="ASSIGNMENT")return [{type:"LearningAssignments",...(classId?{id:classId}:{})},"Posts","AssignmentReport"];
+ if(type==="SUBMISSION")return ["AssignmentSubmissions","AssignmentReport"];
+ if(type==="ASSIGNMENT_RESULT")return ["AssignmentDraft","AssignmentReport"];
  const id=classId?{id:classId}:{};
  if(type==="SCHEDULE")return [{type:"Attendance",...id},{type:"Schedule",...id},{type:"Rewards",...id}];
  if(type==="ATTENDANCE")return [{type:"Attendance",...id},{type:"Rewards",...id}];

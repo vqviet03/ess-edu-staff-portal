@@ -19,7 +19,7 @@ export function notificationStyle(type:string) {
  case "SOCIAL":case "REPLY":return {icon:ChatBubble,color:"#6b86b9",tint:"#e9effa"};
  case "ATTENDANCE":return {icon:EventAvailable,color:"#54876d",tint:"#e6f3ec"};
  case "SCHEDULE":return {icon:EventAvailable,color:"#a47c27",tint:"#fff2c9"};
- case "SCORE":return {icon:SchoolOutlined,color:"#8d78ae",tint:"#eee9f7"};
+ case "ASSIGNMENT":case "SUBMISSION":case "ASSIGNMENT_RESULT":case "SCORE":return {icon:SchoolOutlined,color:"#8d78ae",tint:"#eee9f7"};
  case "REWARD":return {icon:EmojiEvents,color:"#6d9c73",tint:"#e9f4e7"};
  case "APPROVAL":case "CONSENT":return {icon:ReportOutlined,color:"#b87667",tint:"#f9e8e1"};
  case "MATERIAL":return {icon:ArticleOutlined,color:"#689486",tint:"#e9f3ef"};

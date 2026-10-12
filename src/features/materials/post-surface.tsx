@@ -1,4 +1,5 @@
 "use client";
+import NextLink from "next/link";
 import { ContentViews } from "@/features/presence/views";
 import { useState, type ReactNode } from "react";
 import {ProfileAvatar} from "@/features/profile/avatar";
@@ -30,6 +31,7 @@ export const postTypeLabels: Record<PostType, string> = {
   SESSION_MATERIAL: "Tài liệu phiên học",
   ANNOUNCEMENT: "Thông báo",
   DISCUSSION: "Trao đổi",
+  ASSIGNMENT: "Bài tập",
 };
 export function initials(name: string) {
   const parts = name.trim().split(/\s+/);
@@ -131,7 +133,7 @@ export function PostSurface({
             )}
           </Box>
           {headerActions}
-          {(onEdit || onDelete) && (
+          {!draft && (
             <>
               <Tooltip title="Thao tác bài đăng">
                 <IconButton
@@ -143,6 +145,7 @@ export function PostSurface({
                 </IconButton>
               </Tooltip>
               <Menu anchorEl={menu} open={!!menu} onClose={() => setMenu(null)}>
+                <MenuItem onClick={async()=>{setMenu(null);try{const path = `${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/post/?postId=${post.id}&classId=${post.classId}`; await navigator.clipboard.writeText(new URL(path,location.origin).href);}catch(e){setError(e);}}}>Sao chép liên kết</MenuItem>
                 {onEdit && (
                   <MenuItem
                     onClick={() => {
@@ -197,17 +200,19 @@ export function PostSurface({
             <Typography
               component="h2"
               sx={{
-                fontSize: 23,
+                display: "block", textDecoration: "none", color: "inherit", fontSize: 23,
                 fontWeight: 600,
                 mb: 1,
                 overflowWrap: "anywhere",
               }}
             >
-              {post.title}
+              {draft ? post.title : <NextLink style={{color:"inherit",textDecoration:"none"}} href={post.assignment ? `/assignment/?assignmentId=${post.assignment.id}&classId=${post.classId}` : `/post/?postId=${post.id}&classId=${post.classId}`}>{post.title}</NextLink>}
             </Typography>
             <Typography
+              component={NextLink}
+              href={post.assignment ? `/assignment/?assignmentId=${post.assignment.id}&classId=${post.classId}` : `/post/?postId=${post.id}&classId=${post.classId}`}
               sx={{
-                fontSize: 14,
+                textDecoration:"none", display:"block", fontSize: 14,
                 color: "var(--post-muted)",
                 whiteSpace: "pre-wrap",
                 overflowWrap: "anywhere",
@@ -339,12 +344,12 @@ export function PostSurface({
           sx={{ justifyContent: "space-between", color: "var(--post-muted)" }}
         >
           <ReactionCounts counts={post.reactions} />
-          <Tooltip title={`${post.commentCount} bình luận`}>
+          {!post.assignment && (<Tooltip title={`${post.commentCount} bình luận`}>
             <Stack direction="row" sx={{ gap: 0.5, alignItems: "center" }}>
               <ChatBubble fontSize="small" />
               <Typography sx={{ fontSize: 12 }}>{post.commentCount}</Typography>
             </Stack>
-          </Tooltip>
+          </Tooltip>)}
         </Stack>
         <Divider sx={{ borderColor: "var(--post-border)" }} />
         <Stack direction="row" sx={{ gap: 0.5, alignItems: "center" }}>
@@ -353,7 +358,7 @@ export function PostSurface({
             disabled={reacting || draft}
             onChange={onReaction}
           />
-          <Tooltip title="Bình luận">
+          {!post.assignment && (<Tooltip title="Bình luận">
             <IconButton
               sx={{
                 flex: 1,
@@ -369,7 +374,7 @@ export function PostSurface({
             >
               <ChatBubble fontSize="small" />
             </IconButton>
-          </Tooltip>
+          </Tooltip>)}
           <Tooltip title="Tải tài liệu">
             <span style={{ flex: 1, display: "flex" }}>
               <IconButton

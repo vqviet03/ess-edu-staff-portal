@@ -19,6 +19,7 @@ const StudentRewards = dynamic(
   () => import("@/features/rewards/detail").then((m) => m.StudentRewards),
   { loading: () => <Feedback loading /> },
 );
+const AssignmentReport=dynamic(()=>import("@/features/assignments/report").then(m=>m.AssignmentReportView),{loading:()=> <Feedback loading/>});
 const Reports = dynamic(
   () => import("@/features/reports/page").then((m) => m.StudentReports),
   { loading: () => <Feedback loading /> },
@@ -33,7 +34,7 @@ export function StudentDetail() {
       skip: !classId || !studentId || !permissions.viewLearning,
     }),
     [tab, setTab] = useState(
-      params.get("tab") === "rewards" ? "rewards" : "info",
+      params.get("tab") === "assignments" ? "assignments" : params.get("tab") === "rewards" ? "rewards" : "info",
     ),
     [edit, setEdit] = useState(false),
     [message, setMessage] = useState("");
@@ -109,6 +110,7 @@ export function StudentDetail() {
       >
         <Tab value="info" label="Thông tin" />
         <Tab value="report" label="Báo cáo học tập" />
+        <Tab value="assignments" label="Báo cáo bài tập"/>
         <Tab value="rewards" label="Điểm tích luỹ" />
       </Tabs>
       {tab === "rewards" && (
@@ -118,6 +120,7 @@ export function StudentDetail() {
           name={student.nickname || student.name}
         />
       )}
+      {tab==="assignments"&&<AssignmentReport classId={classId} studentId={student.id}/>}
       {tab === "report" && (
         <Reports initialClassId={classId} initialStudentId={student.id} />
       )}

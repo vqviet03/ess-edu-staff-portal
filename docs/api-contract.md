@@ -154,3 +154,7 @@ GET `/assessments/:assessmentId/publication` → `{data:{unitId:string|null,unit
 RTK Query chỉ giữ WebSocket khi ứng dụng hiển thị và có mạng. visibilitychange ẩn trang, offline, pagehide hoặc logout đóng socket và hủy reconnect. Foreground khôi phục đúng một kết nối, gửi AUTH cùng cursor cũ, nhận snapshot NOTIFICATIONS và replay CHANGE/OPERATION. Không gửi token trong URL; không tự GET me/operations/notifications theo timer hoặc khi focus. Mở lại có thể làm mới dữ liệu liên quan nếu server trả thay đổi đã bỏ lỡ. API kiểm tra quyền mọi request; socket kiểm tra trước khi đẩy dữ liệu. Backend Cloud Tasks có thể tiếp tục xử lý lúc mọi client offline; việc tạo queue/IAM thuộc rollout backend.
 
 Điểm động viên/lịch học và các payload, quyền, phiên bản, idempotency: [rewards-schedules.md](rewards-schedules.md). Không triển khai backend trong repo này.
+
+## Bài tập
+
+Endpoints và lifecycle mới: [assignments](assignments.md), dùng cùng base URL, auth và response contract hiện có. Không có mock cho tính năng này.

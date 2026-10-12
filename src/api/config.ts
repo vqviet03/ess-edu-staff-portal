@@ -25,7 +25,7 @@ export function resolveApiConfiguration(mockValue = "false", value?: string, tim
 }
 
 export const apiConfiguration = resolveApiConfiguration(
-  process.env.NEXT_PUBLIC_USE_MOCK ?? "false",
+  "false", // Application runtime always uses the real API; test adapters stay isolated.
   process.env.NEXT_PUBLIC_API_BASE_URL,
   process.env.NEXT_PUBLIC_API_TIMEOUT_MS ?? "15000",
 );

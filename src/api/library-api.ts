@@ -356,6 +356,7 @@ export const libraryApi = api.injectEndpoints({
         ...(r?.items.map((p) => ({ type: "Posts" as const, id: p.id })) ?? []),
       ],
     }),
+    post: b.query<Post,string>({query:id=>`/posts/${id}`,transformResponse:unwrap<Post>,providesTags:["Posts"]}),
     posts: b.query<
       CursorPage<Post>,
       { sessionId: string; cursor?: string; workspace?: string }
@@ -673,6 +674,7 @@ export const {
   useStoragesQuery,
   useStorageAlertsQuery,
   usePostsQuery,
+  usePostQuery,
   useClassThreadsQuery,
   useThreadSessionsQuery,
   useSavePostMutation,
