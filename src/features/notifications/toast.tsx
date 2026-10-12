@@ -1,4 +1,7 @@
 "use client";
+import {useAppSelector} from "@/store";
+import {useNotificationPreferencesQuery} from "@/api/pwa-api";
+import {wantsNotification} from "@/features/pwa/models";
 import {useEffect,useRef,useState} from "react";
 import Link from "next/link";
 import Snackbar from "@mui/material/Snackbar";
@@ -14,8 +17,9 @@ import {NOTICE_TOAST_EVENT} from "./events";
 import type {Notification} from "@/features/materials/models";
 
 export function NotificationToast(){
+ const authenticated=useAppSelector(s=>s.auth.status==="authenticated"),preferences=useNotificationPreferencesQuery(undefined,{skip:!authenticated});
  const [queue,setQueue]=useState<Notification[]>([]),seen=useRef(new Set<string>());
- useEffect(()=>{const add=(event:Event)=>{const n=(event as CustomEvent<Notification>).detail;if(seen.current.has(n.id))return;seen.current.add(n.id);if(seen.current.size>256)seen.current.delete(seen.current.values().next().value!);setQueue(q=>[...q,n].slice(-15));};window.addEventListener(NOTICE_TOAST_EVENT,add);return()=>window.removeEventListener(NOTICE_TOAST_EVENT,add);},[]);
+ useEffect(()=>{const add=(event:Event)=>{const n=(event as CustomEvent<Notification>).detail;if(!wantsNotification(n.type,n.priority,preferences.data?.types)||seen.current.has(n.id))return;seen.current.add(n.id);if(seen.current.size>256)seen.current.delete(seen.current.values().next().value!);setQueue(q=>[...q,n].slice(-15));};window.addEventListener(NOTICE_TOAST_EVENT,add);return()=>window.removeEventListener(NOTICE_TOAST_EVENT,add);},[preferences.data?.types]);
  const notice=queue[0],close=()=>setQueue(q=>q.slice(1)),href=notice?notice.href:null;
  return <Snackbar key={notice?.id} open={!!notice} autoHideDuration={notice?.priority==="IMPORTANT"?null:8000} anchorOrigin={{vertical:"top",horizontal:"right"}} onClose={(_,reason)=>{if(reason!=="clickaway")close();}}>
   <div>{notice&&<SwipeDismiss onDismiss={close}><Paper role="alert" sx={{p:1.5,maxWidth:420,width:"100%",boxShadow:4,border:"1px solid",borderColor:notice.priority==="IMPORTANT"?"warning.main":"divider"}}><Stack direction="row" sx={{gap:0.5,alignItems:"flex-start"}}><NotificationContent notice={notice}/>{href&&<Tooltip title="Mở nội dung"><IconButton component={Link} href={href} aria-label="Mở thông báo" onClick={close}><OpenInNew fontSize="small"/></IconButton></Tooltip>}<Tooltip title="Đóng thông báo"><IconButton aria-label="Đóng thông báo" onClick={close}><Close fontSize="small"/></IconButton></Tooltip></Stack></Paper></SwipeDismiss>}</div>

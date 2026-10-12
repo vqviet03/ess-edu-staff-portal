@@ -42,7 +42,14 @@ test("manager creates a branding proposal without changing the current name", as
   await installHttpFixture(page); await login(page); await page.goto(`${base}/manage/settings/`);
   await expect(page.getByRole("heading", { name: "Cấu hình ứng dụng" })).toBeVisible();
   await page.getByLabel("Tên ứng dụng").fill("LearnLeaf Academy"); await page.getByLabel("Tiền tố gợi ý ID lớp").fill("leaf"); await page.getByLabel("Lý do thay đổi").fill("Đổi tên đã trao đổi");
+  await page.getByLabel("Tên hiển thị · Ứng dụng học sinh", {exact:true}).fill("LearnLeaf Học sinh");
+  await page.getByLabel("Tên hiển thị · Staff Portal", {exact:true}).fill("LearnLeaf Staff");
+  const proposalRequest = page.waitForRequest(r => r.method() === "POST" && new URL(r.url()).pathname.endsWith("/manager/settings/proposals"));
   page.on("dialog", d => void d.accept()); await page.getByRole("button", { name: "Gửi đề xuất thay đổi" }).click();
+  const payload = (await proposalRequest).postDataJSON();
+  expect(payload.appName).toBe("LearnLeaf Academy");
+  expect(payload.portals.student.name).toBe("LearnLeaf Học sinh");
+  expect(payload.portals.staff.name).toBe("LearnLeaf Staff");
   await expect(page.getByText(/Đã gửi đề xuất, đang chờ/)).toBeVisible(); await expect(page.getByText("Chờ xác nhận", { exact: true })).toBeVisible();
   await expect(page.getByRole("link", { name: "ESS", exact: true })).toBeVisible();
   await page.setViewportSize({ width: 375, height: 812 });

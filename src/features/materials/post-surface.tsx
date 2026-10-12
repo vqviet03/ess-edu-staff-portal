@@ -2,7 +2,7 @@
 import NextLink from "next/link";
 import {postShareUrl,currentPortalUrl} from "./share-links";
 import { ContentViews } from "@/features/presence/views";
-import { useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import {ProfileAvatar} from "@/features/profile/avatar";
 import Box from "@mui/material/Box";
 import ButtonBase from "@mui/material/ButtonBase";
@@ -29,7 +29,7 @@ import { Feedback } from "@/shared/ui";
 import type { MaterialFile, Post, PostType, Reaction } from "./models";
 import { MaterialThumbnail } from "./thumbnail";
 import { InlineAudio } from "./inline-audio";
-import { bytes, fileKind } from "./utils";
+import { downloadName, bytes, fileKind } from "./utils";
 export const postTypeLabels: Record<PostType, string> = {
   SESSION_MATERIAL: "Tài liệu phiên học",
   ANNOUNCEMENT: "Thông báo",
@@ -53,11 +53,13 @@ export function PostSurface({
   onEdit,
   onDelete,
   draft = false,
+  detail = false,
   content,
   afterMedia,
   headerActions,
 }: {
   draft?: boolean;
+  detail?: boolean;
   content?: ReactNode;
   afterMedia?: ReactNode;
   headerActions?: ReactNode;
@@ -91,6 +93,7 @@ export function PostSurface({
       data-testid="lesson-post"
       sx={{
         width: "100%",
+        containerType: "inline-size",
         alignSelf: "center",
         mx: "auto",
         p: { xs: "20px 18px", sm: "26px" },
@@ -110,7 +113,7 @@ export function PostSurface({
         "& .MuiTypography-root": { lineHeight: 1.55 },
       }}
     >
-      <Box data-testid="post-columns" sx={{display:"grid",gridTemplateColumns:{xs:"minmax(0,1fr)",lg:draft?"minmax(0,1fr)":"minmax(0,1fr) minmax(280px,0.5fr)"},gap:{xs:2,lg:3}}}>
+      <Box data-testid="post-columns" sx={{display:"grid",gridTemplateColumns:"minmax(0,1fr)",gap:3,"@container (min-width: 900px)":draft?{}:{gridTemplateColumns:"minmax(0,2fr) minmax(0,1fr)",position:"relative",minHeight:320}}}>
       <Stack data-testid="post-content" spacing={2} sx={{minWidth:0}}>
         {!draft && <Box sx={{alignSelf:"flex-end"}}><ContentViews kind="POST" id={post.id}/></Box>}
         <Stack direction="row" spacing={1.5} sx={{ alignItems: "flex-start" }}>
@@ -215,20 +218,9 @@ export function PostSurface({
                 overflowWrap: "anywhere",
               }}
             >
-              {draft ? post.title : <NextLink style={{color:"inherit",textDecoration:"none"}} href={post.assignment ? `/assignment/?assignmentId=${post.assignment.id}&classId=${post.classId}` : `/post/?postId=${post.id}&classId=${post.classId}`}>{post.title}</NextLink>}
+              {draft ? post.title : <NextLink style={{color:"inherit",textDecoration:"none",display:"block",overflow:detail?undefined:"hidden",textOverflow:detail?undefined:"ellipsis",whiteSpace:detail?undefined:"nowrap"}} title={post.title} href={`/post/?postId=${encodeURIComponent(post.id)}&classId=${encodeURIComponent(post.classId)}`}>{post.title}</NextLink>}
             </Typography>
-            <Typography
-              component={NextLink}
-              href={post.assignment ? `/assignment/?assignmentId=${post.assignment.id}&classId=${post.classId}` : `/post/?postId=${post.id}&classId=${post.classId}`}
-              sx={{
-                textDecoration:"none", display:"block", fontSize: 14,
-                color: "var(--post-muted)",
-                whiteSpace: "pre-wrap",
-                overflowWrap: "anywhere",
-              }}
-            >
-              {post.body}
-            </Typography>
+            <PostBody body={post.body} detail={detail||draft} href={`/post/?postId=${encodeURIComponent(post.id)}&classId=${encodeURIComponent(post.classId)}`}/>
           </Box>
         )}
         {files.filter((f) => f.mimeType.startsWith("image/")).length === 1 &&
@@ -349,7 +341,7 @@ export function PostSurface({
           ))}
         {afterMedia}
       </Stack>
-      <Stack data-testid="post-interactions" spacing={2} sx={{minWidth:0,borderLeft:{lg:draft?0:"1px solid var(--post-border)"},pl:{lg:draft?0:3}}}>
+      <Stack data-testid="post-interactions" spacing={2} sx={{minWidth:0,"@container (min-width: 900px)":draft?{}:{position:"absolute",top:0,bottom:0,right:0,width:"calc((100% - 24px) / 3)",borderLeft:"1px solid var(--post-border)",pl:3,overflow:"hidden"}}}>
         <Stack
           direction="row"
           sx={{ justifyContent: "space-between", color: "var(--post-muted)" }}
@@ -434,7 +426,7 @@ export function PostSurface({
                   if (!url) throw new Error("Không tải được file.");
                   const link = document.createElement("a");
                   link.href = url;
-                  link.download = f.displayName;
+                  link.download = downloadName(f);
                   link.click();
                 } catch (e) {
                   setError(e);
@@ -447,9 +439,16 @@ export function PostSurface({
         </Menu>
         <Feedback error={error} />
         <Divider sx={{ borderColor: "var(--post-border)" }} />
-        {children}
+        <Box data-testid="post-comment-scroll" sx={{minHeight:0,"@container (min-width: 900px)":draft?{}:{flex:1,overflowY:"auto",overscrollBehavior:"contain",scrollbarGutter:"stable"}}}>{children}</Box>
       </Stack>
       </Box>
     </Paper>
   );
+}
+
+function PostBody({body,detail,href}:{body:string;detail:boolean;href:string}) {
+ const node=useRef<HTMLAnchorElement>(null),[overflow,setOverflow]=useState(false);
+ useEffect(()=>{const current=node.current;if(!current||detail)return;const observer=new ResizeObserver(()=>setOverflow(current.scrollHeight>current.clientHeight+1));observer.observe(current);return()=>observer.disconnect();},[body,detail]);
+ const style={textDecoration:"none",fontSize:14,color:"var(--post-muted)",whiteSpace:"pre-wrap",overflowWrap:"anywhere"} as const;
+ return detail?<Typography sx={style}>{body}</Typography>:<><Typography ref={node} component={NextLink} href={href} sx={{...style,display:"-webkit-box",WebkitLineClamp:8,WebkitBoxOrient:"vertical",overflow:"hidden"}}>{body}</Typography>{overflow&&<Typography component={NextLink} href={href} sx={{fontSize:13,fontWeight:600,color:"var(--post-green)",textDecoration:"none"}}>Xem thêm</Typography>}</>;
 }

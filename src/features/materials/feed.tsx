@@ -3,6 +3,10 @@ import {NotificationActionPriority} from "@/features/notifications/action-priori
 import {NotificationPrioritySelect} from "@/features/notifications/priority";
 import NextLink from "next/link";
 import Button from "@mui/material/Button";
+import IconButton from "@mui/material/IconButton";
+import Tooltip from "@mui/material/Tooltip";
+import ArrowBack from "@mui/icons-material/ArrowBack";
+import {usePostTarget} from "./post-target";
 import { Comments } from "./comments";
 import { IconAction } from "@/shared/icon-action";
 import FirstPage from "@mui/icons-material/FirstPage";
@@ -48,12 +52,16 @@ import { MaterialViewer } from "./viewer";
 import { UploadDialog } from "./upload";
 export function PostCard({
   post,
+  detail = false,
+  targetComment,
   sessionId,
   cursor,
   editable,
   edit,
 }: {
   post: Post;
+  detail?: boolean;
+  targetComment?: string;
   sessionId?: string;
   cursor?: string;
   editable: boolean;
@@ -63,7 +71,7 @@ export function PostCard({
   const me = useAppSelector((s) => s.auth.session?.teacher),
     [notifyStudents,setNotifyStudents]=useState<boolean|undefined>(),
     [actionPriority,setActionPriority]=useState<"NORMAL"|"IMPORTANT"|undefined>(),
-    [showComments, setShowComments] = useState(false),
+    [showComments, setShowComments] = useState(!!targetComment),
     [preview, setPreview] = useState<MaterialFile | null>(null),
     [reaction, state] = useReactionMutation(),
     [remove] = useRemovePostMutation(),
@@ -72,9 +80,12 @@ export function PostCard({
     editable && post.authorId === me?.id && post.canEdit !== false;
   const canDelete =
     post.canDelete ?? (!!me?.roles?.includes("MANAGER") || canEdit);
+  const [lastTarget,setLastTarget]=useState(targetComment);
+  if(lastTarget!==targetComment){setLastTarget(targetComment);if(targetComment)setShowComments(true);}
   return (
     <>
       <PostSurface
+        detail={detail}
         post={post}
         headerActions={<NotificationActionPriority notifyStudents={notifyStudents} onNotifyStudentsChange={setNotifyStudents} classId={post.classId} feature="SOCIAL" value={actionPriority} onChange={setActionPriority}/>}
         afterMedia={post.assignment && <Button variant="contained" component={NextLink} href={`/assignment/?assignmentId=${post.assignment.id}&classId=${post.classId}`}>Mở bài tập</Button>}
@@ -120,6 +131,7 @@ export function PostCard({
       >
         {!post.assignment && <Comments
           post={post}
+          targetComment={targetComment}
           expanded={showComments}
           expand={() => setShowComments(true)}
           collapse={() => setShowComments(false)}
@@ -636,4 +648,4 @@ export function SessionFeed({
   );
 }
 
-export function PostDetailPage({postId}:{postId:string}) { const router=useRouter(); const q=usePostQuery(postId,{skip:!postId});return <><Feedback loading={q.isLoading} error={q.error} retry={()=>void q.refetch()}/>{q.data&&<PostCard post={q.data} editable={q.data.canEdit===true} edit={p=>{router.push(`/class/?classId=${p.classId}&postId=${p.id}`);}}/>}</>;}
+export function PostDetailPage({postId}:{postId:string}) { const router=useRouter(); const q=usePostQuery(postId,{skip:!postId});const target=usePostTarget(postId);return <><Feedback loading={q.isLoading} error={q.error} retry={()=>void q.refetch()}/>{q.data&&target&&<><Tooltip title="Về thread"><IconButton component={NextLink} href={`/class/?classId=${encodeURIComponent(q.data.classId)}&tab=thread`} aria-label="Về thread"><ArrowBack/></IconButton></Tooltip><PostCard detail targetComment={target?.comment} post={q.data} editable={q.data.canEdit===true} edit={p=>{router.push(`/class/?classId=${p.classId}&postId=${p.id}`);}}/></>}</>;}

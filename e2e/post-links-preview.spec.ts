@@ -69,3 +69,36 @@ test("image preview keeps aspect ratio with a fullscreen frame and closes with E
  const picture=preview.getByRole("img",{name:"Ảnh lớp.png",exact:true});await expect.poll(()=>picture.evaluate(n=>(n as HTMLImageElement).naturalWidth)).toBeGreaterThan(0);await expect(picture).toHaveCSS("object-fit","contain");await expect(preview.getByRole("button")).toHaveCount(2);
  await page.keyboard.press("Escape");await expect(preview).toHaveCount(0);
 });
+
+test("desktop comments scroll independently and post detail has an icon back to thread",async({page})=>{
+ await setup(page);await page.setViewportSize({width:1700,height:900});
+ const comments=Array.from({length:30},(_,i)=>({id:`comment-${i}`,postId:post.id,parentId:null,authorId:"student-one",authorName:"Học sinh",body:`Bình luận ${i} với nội dung chi tiết`,createdAt:"2026-10-10T08:00:00Z",version:1,attachments:[],likeCount:0,myLike:false}));
+ await page.route("**/posts/link-post/comments**",r=>r.fulfill({headers,json:{data:{items:comments,nextCursor:null}}}));
+ await page.route("**/posts/link-post",r=>r.fulfill({headers,json:{data:{...post,commentCount:30,body:Array.from({length:14},(_,i)=>`Dòng nội dung ${i+1}`).join("\n")}}}));
+ await page.goto(base+target);await credentials(page);await expect(page.getByTestId("lesson-post")).toBeVisible();
+ await expect(page.getByRole("link",{name:"Về thread",exact:true})).toBeVisible();
+ const toggle=page.getByRole("button",{name:"Bình luận (30)",exact:true});if(await toggle.getAttribute("aria-expanded")==="false")await toggle.click();
+ const section=page.getByTestId("post-comment-scroll");await expect(section).toHaveCSS("overflow-y","auto");await expect.poll(()=>section.evaluate(n=>n.scrollHeight>n.clientHeight)).toBe(true);
+ const height=await page.getByTestId("lesson-post").evaluate(n=>n.getBoundingClientRect().height);await section.evaluate(n=>{n.scrollTop=n.scrollHeight;});expect(await page.getByTestId("lesson-post").evaluate(n=>n.getBoundingClientRect().height)).toBe(height);
+ await expect(page.getByText("Dòng nội dung 14",{exact:false})).toBeVisible();
+});
+
+test("thread clamps title to one line and body to eight lines, detail preserves full content",async({page})=>{
+ await setup(page);const title="Tiêu đề rất dài ".repeat(24),body=Array.from({length:14},(_,i)=>`Dòng nội dung ${i+1}`).join("\n"),longPost={...post,title,body};
+ await page.route("**/classes/class-green/thread**",r=>r.fulfill({headers,json:{data:{items:[longPost],nextCursor:null}}}));
+ await page.route("**/posts/link-post",r=>r.fulfill({headers,json:{data:longPost}}));
+ await page.goto(base+"/login/");await credentials(page);await page.goto(base+"/class/?classId=class-green&tab=thread");
+ const article=page.getByTestId("lesson-post").filter({hasText:"Tiêu đề rất dài"});await expect(article).toBeVisible();
+ const titleLink=article.getByRole("link",{name:title.trim(),exact:true});await expect(titleLink).toHaveCSS("white-space","nowrap");
+ const bodyLink=article.getByRole("link",{name:/Dòng nội dung 1/}).first();await expect(bodyLink).toHaveCSS("-webkit-line-clamp","8");
+ await article.getByRole("link",{name:"Xem thêm",exact:true}).click();await expect(page).toHaveURL(/\/post\/\?postId=link-post/);await expect(page.getByRole("link",{name:"Về thread",exact:true})).toBeVisible();
+ expect(await page.getByTestId("post-content").getByText(body,{exact:true}).evaluate(n=>n.clientHeight>parseFloat(getComputedStyle(n).lineHeight)*8)).toBe(true);
+});
+
+test("notification preferences do not request before login; noisy types are off and saves use API",async({page})=>{
+ await setup(page);let reads=0,writes=0,pref={pushEnabled:false,types:{} as Record<string,boolean>,version:1,configured:false,publicKey:null};
+ await page.route("**/me/notification-preferences",r=>{if(r.request().method()==="OPTIONS")return r.fulfill({status:204,headers:{...headers,"Access-Control-Allow-Methods":"GET,PATCH,OPTIONS"}});if(r.request().method()==="PATCH"){writes++;pref={...pref,...r.request().postDataJSON(),version:pref.version+1};}else reads++;return r.fulfill({headers,json:{data:pref}});});
+ await page.goto(base+"/login/");await expect(page.getByRole("button",{name:"Đăng nhập",exact:true})).toBeVisible();expect(reads).toBe(0);await credentials(page);await expect(page).toHaveURL(/\/home\//);await page.goto(base+"/profile/");
+ const reaction=page.getByRole("switch",{name:"Tương tác",exact:true});await expect(reaction).not.toBeChecked();await reaction.click();await expect(reaction).toBeChecked();expect(writes).toBe(1);expect(pref.types.REACTION).toBe(true);expect(reads).toBeLessThanOrEqual(2);
+ await expect(page.locator('link[rel="manifest"]')).toHaveAttribute("href",/portal\/manifest.webmanifest/);
+});

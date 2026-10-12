@@ -225,4 +225,14 @@ Giao diện bài tập: đối chiếu frame desktop/mobile, theme và icon đư
 
 Liên kết qua đăng nhập, chia sẻ theo portal và preview toàn màn hình: [hướng dẫn](docs/post-links-preview.md).
 
+
+### Post, ảnh và ứng dụng trên màn hình chính
+
+Thread: tiêu đề một dòng, nội dung tối đa tám dòng; tiêu đề/nội dung/“Xem thêm” mở trang post đầy đủ. Trang post có icon về thread. Desktop dùng cột tương tác bên phải, bình luận cuộn riêng; mobile xếp dọc. Preview fullscreen, PDF cuộn dọc; ảnh rộng theo vùng xem.
+
+Hồ sơ cá nhân → **Thông báo & ứng dụng**: bật push bằng thao tác người dùng, chọn từng loại. Inbox được giữ; tương tác/lượt xem/trạng thái online/thông báo hệ thống ít quan trọng mặc định không đẩy toast/push. Quan trọng được giữ trừ khi người dùng chủ động tắt loại. iOS/iPadOS cần thêm app vào màn hình chính để bật Web Push; UI trình duyệt/OS còn tùy hỗ trợ của thiết bị.
+
+Manifest/icon lấy từ API public branding; manager đổi tên/icon/màu riêng cho hai portal qua đề xuất được duyệt. SVG logo tối đa 32KB và được server kiểm tra. Service worker không lưu JWT, không cache dữ liệu/tài liệu riêng tư, không polling. Cấu hình API/basePath và static export/GitHub Pages không đổi; không thêm API Routes hay server cho FE.
+
+Backend cần migration Core022, Materials011, Logs002, Notifications005 và VAPID/EncryptionKey trong Secret Manager cho push. Xem `ess-edu-api/docs/portal-media-pwa.md`. File cũ fallback thumbnail cũ; server tạo ba thumbnail cho ảnh upload mới và kiểm tra quyền mọi lần access. Chế độ review/build của bản này dùng API thật; fixtures chỉ dùng trong kiểm thử.
 [Giữ đăng nhập khi đóng/mở web](docs/persistent-session.md).
