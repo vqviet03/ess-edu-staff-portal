@@ -236,3 +236,5 @@ Manifest/icon lấy từ API public branding; manager đổi tên/icon/màu riê
 
 Backend cần migration Core022, Materials011, Logs002, Notifications005 và VAPID/EncryptionKey trong Secret Manager cho push. Xem `ess-edu-api/docs/portal-media-pwa.md`. File cũ fallback thumbnail cũ; server tạo ba thumbnail cho ảnh upload mới và kiểm tra quyền mọi lần access. Chế độ review/build của bản này dùng API thật; fixtures chỉ dùng trong kiểm thử.
 [Giữ đăng nhập khi đóng/mở web](docs/persistent-session.md).
+
+Chuyển API project mới và proxy cùng host Staff: [hướng dẫn](docs/staff-api-proxy.md).
