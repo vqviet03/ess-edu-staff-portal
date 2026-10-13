@@ -56,3 +56,12 @@ test("proxy rejects wrong origin/paths and hides transport errors without retrie
 test("Cloudflare entrypoint does not treat ExecutionContext as an HTTP client", async () => {
   assert.equal((await worker.fetch(new Request("https://other.test/api/v1/me"), env)).status, 404);
 });
+
+test("HEAD and empty API responses are forwarded without attempting to parse JSON", async () => {
+  const head = await proxyRequest(new Request(env.PUBLIC_ORIGIN + "/api/v1/application-settings", {method: "HEAD"}), env,
+    async () => new Response(null, {headers: {"content-type": "application/json"}}));
+  assert.equal(head.status, 200); assert.equal(await head.text(), "");
+  const empty = await proxyRequest(new Request(env.PUBLIC_ORIGIN + "/api/v1/me"), env,
+    async () => new Response(null, {status: 204}));
+  assert.equal(empty.status, 204);
+});

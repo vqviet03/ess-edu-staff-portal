@@ -45,7 +45,7 @@ export async function proxyRequest(request: Request, env: ProxyEnvironment, send
     const location = outgoing.get("location");
     if (location) outgoing.set("location", publicUrl(location, upstream, publicOrigin));
     const type = outgoing.get("content-type") ?? "";
-    if (/application\/(?:[\w.-]+\+)?json\b/i.test(type)) {
+    if (request.method !== "HEAD" && response.body !== null && /application\/(?:[\w.-]+\+)?json\b/i.test(type)) {
       const body: unknown = await response.json();
       outgoing.delete("content-length");
       outgoing.delete("content-encoding");
