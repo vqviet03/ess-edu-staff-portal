@@ -32,3 +32,9 @@ Feed and post detail display the API-provided deadline in Vietnamese local date/
 ## Formatting and checks
 
 Use `npm run format` before committing; `npm run format:check` runs in CI. Prettier excludes generated output, lockfile, public binary/worker assets and environment files. Run lint, typecheck, unit tests, production build and Playwright. Browser regression tests cover exact tab restoration, browser back/forward, reload and duplicate-request counts.
+
+## Staff assignment view and cancel
+
+Assignments open in a student-style preview by default. The edit icon is available only to the assigned teacher with schema-edit permission. A readonly user opening an old `mode=edit` link gets the preview. The submissions list is loaded only when opened. The assignment page owns its Back icon in create/view/edit/grading states.
+
+Cancel exits the local editor without a save request. Unsaved changes require confirmation; canceling that confirmation retains the editor. Previously saved drafts and published versions remain unchanged. Edit is a mode of the same page (URL replace), so cancel returns to preview while Back retains the originating page/tab.

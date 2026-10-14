@@ -285,6 +285,7 @@ test("submission overview renders all four server totals instead of inferring th
   await page.goto(
     `${base}/assignment/?classId=class-green&assignmentId=assignment-design`,
   );
+  await page.getByRole("button", { name: "Xem bài nộp", exact: true }).click();
   const region = page.getByRole("region", { name: "Tổng hợp bài nộp" });
   await expect(region.getByText("0/2", { exact: true })).toBeVisible();
   await expect(region.getByText("Chưa nộp", { exact: true })).toBeVisible();
