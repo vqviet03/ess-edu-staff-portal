@@ -84,10 +84,12 @@ export function AssignmentEditor({
   classId,
   initial,
   sessionId,
+  cancel,
 }: {
   classId: string;
   initial?: Assignment;
   sessionId?: string;
+  cancel: () => void;
 }) {
   const router = useRouter(),
     [draft, setDraft] = useState<Assignment>(
@@ -133,6 +135,7 @@ export function AssignmentEditor({
     [deleteOption, setDeleteOption] = useState<number | null>(null),
     [questionMenu, setQuestionMenu] = useState<HTMLElement | null>(null),
     [details, setDetails] = useState(false),
+    [cancelOpen, setCancelOpen] = useState(false),
     [deleteQuestion, setDeleteQuestion] = useState<number | null>(null);
   const [save, state] = useSaveAssignmentMutation(),
     [publish, publishing] = usePublishAssignmentMutation(),
@@ -1021,6 +1024,18 @@ export function AssignmentEditor({
               Quay lại
             </Button>
           )}
+          <Tooltip title="Hủy, không lưu nháp">
+            <span>
+              <IconButton
+                aria-label="Hủy, không lưu nháp"
+                color="error"
+                disabled={state.isLoading || publishing.isLoading || busy}
+                onClick={() => (dirty ? setCancelOpen(true) : cancel())}
+              >
+                <Close fontSize="small" />
+              </IconButton>
+            </span>
+          </Tooltip>
           <Button
             disabled={state.isLoading || publishing.isLoading || busy}
             onClick={() => void persist().catch(() => {})}
@@ -1059,6 +1074,26 @@ export function AssignmentEditor({
             </Button>
           )}
         </Stack>
+        <Dialog
+          open={cancelOpen}
+          onClose={() => setCancelOpen(false)}
+          fullWidth
+          maxWidth="xs"
+        >
+          <DialogTitle>Hủy thay đổi?</DialogTitle>
+          <DialogContent>
+            Những thay đổi chưa lưu sẽ bị bỏ và không lưu nháp. Bản đã lưu hoặc
+            công bố được giữ nguyên.
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setCancelOpen(false)}>
+              Tiếp tục chỉnh sửa
+            </Button>
+            <Button color="error" onClick={cancel}>
+              Hủy, không lưu nháp
+            </Button>
+          </DialogActions>
+        </Dialog>
         <Dialog
           open={picker !== false}
           onClose={() => {
