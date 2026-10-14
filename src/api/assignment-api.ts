@@ -371,10 +371,28 @@ export const assignmentApi = api
           }
         },
       }),
-      classAssignmentReport: b.query<Page<{studentId:string;studentName:string;report:AssignmentReport}>,{classId:string;unit?:number;cursor?:string}>({
-        query:({classId,...params})=>({url:`/classes/${encodeURIComponent(classId)}/assignment-report`,params}),
-        transformResponse:unwrap<Page<{studentId:string;studentName:string;report:AssignmentReport}>>,
-        providesTags:(_,__,q)=>[{type:"AssignmentReport",id:q.classId}],
+      classAssignmentReport: b.query<
+        Page<{
+          studentId: string;
+          studentName: string;
+          report: AssignmentReport;
+        }>,
+        { classId: string; unit?: number; cursor?: string }
+      >({
+        query: ({ classId, ...params }) => ({
+          url: `/classes/${encodeURIComponent(classId)}/assignment-report`,
+          params,
+        }),
+        transformResponse: unwrap<
+          Page<{
+            studentId: string;
+            studentName: string;
+            report: AssignmentReport;
+          }>
+        >,
+        providesTags: (_, __, q) => [
+          { type: "AssignmentReport", id: q.classId },
+        ],
       }),
       changePassword: b.mutation<
         { changed: boolean; reauthenticate: boolean },

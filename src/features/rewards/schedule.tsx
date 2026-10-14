@@ -62,7 +62,7 @@ function ScheduleEditor({
     [planStartDate, setPlanStartDate] = useState(
       data.planStartDate ?? vietnamToday(),
     );
-  const [notifyStudents,setNotifyStudents]=useState<boolean|undefined>();
+  const [notifyStudents, setNotifyStudents] = useState<boolean | undefined>();
   const [version] = useState(data.version),
     [config, setConfig] = useState<ScheduleConfig>(
       structuredClone(data.configuration),
@@ -561,8 +561,11 @@ function ScheduleEditor({
             </Stack>
           </Box>
           {validation && <Alert severity="warning">{validation}</Alert>}
-          <StudentNotificationSelect value={notifyStudents} onChange={setNotifyStudents}/>
-            <Feedback error={error} />
+          <StudentNotificationSelect
+            value={notifyStudents}
+            onChange={setNotifyStudents}
+          />
+          <Feedback error={error} />
         </Stack>
       </DialogContent>
       <DialogActions>

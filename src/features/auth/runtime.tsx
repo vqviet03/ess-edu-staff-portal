@@ -22,9 +22,17 @@ export function AuthRuntime() {
   }, [dispatch, store]);
   useEffect(() => {
     const onStorage = (event: StorageEvent) => {
-      if ((event.key !== null && event.key !== SESSION_KEY) || event.storageArea !== localStorage) return;
+      if (
+        (event.key !== null && event.key !== SESSION_KEY) ||
+        event.storageArea !== localStorage
+      )
+        return;
       const session = readSession();
-      if ((store.getState().auth.session?.accessToken ?? null) === (session?.accessToken ?? null)) return;
+      if (
+        (store.getState().auth.session?.accessToken ?? null) ===
+        (session?.accessToken ?? null)
+      )
+        return;
       dispatch(restore(session));
       dispatch(api.util.resetApiState());
     };
@@ -44,7 +52,14 @@ export function AuthRuntime() {
     let timer: ReturnType<typeof setTimeout>;
     const schedule = () => {
       check();
-      if (!expired(auth.session!)) timer = setTimeout(schedule, Math.min(2147483647, Math.max(1, expiresAt(auth.session!) - Date.now())));
+      if (!expired(auth.session!))
+        timer = setTimeout(
+          schedule,
+          Math.min(
+            2147483647,
+            Math.max(1, expiresAt(auth.session!) - Date.now()),
+          ),
+        );
     };
     schedule();
     const onVisible = () => {
@@ -64,13 +79,29 @@ export function Guard({ children }: { children: ReactNode }) {
     router = useRouter(),
     me = api.endpoints.me.useQueryState(undefined);
   useEffect(() => {
-    if (auth.status === "guest") router.replace(loginRedirect(location.pathname + location.search + location.hash, process.env.NEXT_PUBLIC_BASE_PATH));
+    if (auth.status === "guest")
+      router.replace(
+        loginRedirect(
+          location.pathname + location.search + location.hash,
+          process.env.NEXT_PUBLIC_BASE_PATH,
+        ),
+      );
   }, [auth.status, router]);
   return (
     <Shell>
       {auth.status === "authenticated" ? (
         me.error && "status" in me.error && me.error.status === 403 ? (
-          <Feedback error={me.error} retry={() => void dispatch(api.endpoints.me.initiate(undefined, { forceRefetch: true, subscribe: false }))} />
+          <Feedback
+            error={me.error}
+            retry={() =>
+              void dispatch(
+                api.endpoints.me.initiate(undefined, {
+                  forceRefetch: true,
+                  subscribe: false,
+                }),
+              )
+            }
+          />
         ) : staffActive(auth.session?.teacher) &&
           workspaces(auth.session?.teacher).length ? (
           children
@@ -87,7 +118,14 @@ export function Guard({ children }: { children: ReactNode }) {
         <Feedback
           loading={!me.error}
           error={me.error}
-          retry={() => void dispatch(api.endpoints.me.initiate(undefined, { forceRefetch: true, subscribe: false }))}
+          retry={() =>
+            void dispatch(
+              api.endpoints.me.initiate(undefined, {
+                forceRefetch: true,
+                subscribe: false,
+              }),
+            )
+          }
         />
       )}
     </Shell>

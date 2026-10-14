@@ -478,10 +478,7 @@ export function AssignmentPlayer({
     submitState.isLoading,
   ]);
   const complete = assignment.questions.filter((q) =>
-    answered(
-      q,
-      answers.find((a) => a.questionId === q.id)!,
-    ),
+    answered(q, answers.find((a) => a.questionId === q.id)!),
   ).length;
   const navigate = (index: number) => {
     setActive(index);

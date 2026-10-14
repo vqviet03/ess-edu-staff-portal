@@ -1,4 +1,7 @@
-import type { EnrollmentDates, EnrollmentDatesRequest } from "@/features/management/enrollment-dates";
+import type {
+  EnrollmentDates,
+  EnrollmentDatesRequest,
+} from "@/features/management/enrollment-dates";
 import { api } from "./api";
 import type { Envelope } from "@/types";
 import type {
@@ -46,32 +49,70 @@ const binary = async (r: Response) => (r.ok ? r.blob() : r.json());
 export const managementApi = api.injectEndpoints({
   endpoints: (b) => ({
     accountLoginHistory: b.query<LoginHistory, { id: string; page?: number }>({
-      query: ({ id, page = 1 }) => `/manager/accounts/${encodeURIComponent(id)}/login-history?page=${page}&pageSize=5`,
+      query: ({ id, page = 1 }) =>
+        `/manager/accounts/${encodeURIComponent(id)}/login-history?page=${page}&pageSize=5`,
       transformResponse: unwrap<LoginHistory>,
       providesTags: ["Management"],
     }),
     accountSessionPolicy: b.query<AccountSessionPolicy, string>({
-      query: (id) => `/manager/accounts/${encodeURIComponent(id)}/session-policy`,
+      query: (id) =>
+        `/manager/accounts/${encodeURIComponent(id)}/session-policy`,
       transformResponse: unwrap<AccountSessionPolicy>,
       providesTags: ["Management"],
     }),
-    updateSessionPolicy: b.mutation<AccountSessionPolicy, { id: string; body: SessionPolicyRequest }>({
-      query: ({ id, body }) => ({ url: `/manager/accounts/${encodeURIComponent(id)}/session-policy`, method: "PATCH", body }),
+    updateSessionPolicy: b.mutation<
+      AccountSessionPolicy,
+      { id: string; body: SessionPolicyRequest }
+    >({
+      query: ({ id, body }) => ({
+        url: `/manager/accounts/${encodeURIComponent(id)}/session-policy`,
+        method: "PATCH",
+        body,
+      }),
       transformResponse: unwrap<AccountSessionPolicy>,
-      invalidatesTags: (_, error) => error ? [] : ["Management", "Audit"],
+      invalidatesTags: (_, error) => (error ? [] : ["Management", "Audit"]),
     }),
-    revokeAccountSessions: b.mutation<SessionRevocation, { id: string; version: number; reason: string }>({
-      query: ({ id, ...body }) => ({ url: `/manager/accounts/${encodeURIComponent(id)}/sessions/revoke`, method: "POST", body }),
+    revokeAccountSessions: b.mutation<
+      SessionRevocation,
+      { id: string; version: number; reason: string }
+    >({
+      query: ({ id, ...body }) => ({
+        url: `/manager/accounts/${encodeURIComponent(id)}/sessions/revoke`,
+        method: "POST",
+        body,
+      }),
       transformResponse: unwrap<SessionRevocation>,
-      invalidatesTags: (_, error) => error ? [] : ["Management", "Audit"],
+      invalidatesTags: (_, error) => (error ? [] : ["Management", "Audit"]),
     }),
-    suggestIdentifier: b.mutation<{ id: string; isAvailable: boolean; requestedId: string }, { entity: Entity; fullName?: string; id?: string }>({
-      query: (body) => ({ url: "/manager/identifiers/suggest", method: "POST", body }),
-      transformResponse: unwrap<{ id: string; isAvailable: boolean; requestedId: string }>,
+    suggestIdentifier: b.mutation<
+      { id: string; isAvailable: boolean; requestedId: string },
+      { entity: Entity; fullName?: string; id?: string }
+    >({
+      query: (body) => ({
+        url: "/manager/identifiers/suggest",
+        method: "POST",
+        body,
+      }),
+      transformResponse: unwrap<{
+        id: string;
+        isAvailable: boolean;
+        requestedId: string;
+      }>,
     }),
-    checkIdentifier: b.mutation<{ id: string; isAvailable: boolean; requestedId: string }, { entity: Entity; id: string; excludeId?: string }>({
-      query: (body) => ({ url: "/manager/identifiers/check", method: "POST", body }),
-      transformResponse: unwrap<{ id: string; isAvailable: boolean; requestedId: string }>,
+    checkIdentifier: b.mutation<
+      { id: string; isAvailable: boolean; requestedId: string },
+      { entity: Entity; id: string; excludeId?: string }
+    >({
+      query: (body) => ({
+        url: "/manager/identifiers/check",
+        method: "POST",
+        body,
+      }),
+      transformResponse: unwrap<{
+        id: string;
+        isAvailable: boolean;
+        requestedId: string;
+      }>,
     }),
     selectionCount: b.query<
       { count: number },
@@ -160,13 +201,22 @@ export const managementApi = api.injectEndpoints({
       }),
       transformResponse: unwrap<BulkPreview>,
     }),
-    enrollmentDates: b.query<EnrollmentDates, {classId: string; studentId: string}>({
+    enrollmentDates: b.query<
+      EnrollmentDates,
+      { classId: string; studentId: string }
+    >({
       query: (p) => "/manager/enrollments/dates?" + query(p),
       transformResponse: unwrap<EnrollmentDates>,
-      providesTags: (_, __, p) => [{type: "Management", id: `enrollment:${p.classId}:${p.studentId}`}],
+      providesTags: (_, __, p) => [
+        { type: "Management", id: `enrollment:${p.classId}:${p.studentId}` },
+      ],
     }),
     previewEnrollmentDates: b.mutation<BulkPreview, EnrollmentDatesRequest>({
-      query: (body) => ({url: "/manager/enrollments/dates/preview", method: "POST", body}),
+      query: (body) => ({
+        url: "/manager/enrollments/dates/preview",
+        method: "POST",
+        body,
+      }),
       transformResponse: unwrap<BulkPreview>,
     }),
     previewEnrollment: b.mutation<
@@ -196,7 +246,12 @@ export const managementApi = api.injectEndpoints({
       { page: number; search: string; pageSize?: number }
     >({
       query: (p) => "/manager/audit?" + query(p),
-      transformResponse: unwrap<{ items: AuditEvent[]; total: number; page?: number; pageSize?: number }>,
+      transformResponse: unwrap<{
+        items: AuditEvent[];
+        total: number;
+        page?: number;
+        pageSize?: number;
+      }>,
       providesTags: ["Audit"],
     }),
     activation: b.mutation<

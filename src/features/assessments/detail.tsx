@@ -18,7 +18,9 @@ export function AssessmentDetail() {
     [update, state] = useUpdateAssessmentMutation(),
     [error, setError] = useState(""),
     [message, setMessage] = useState("");
-  const publication = usePublicationQuery(q.context.assessmentId, { skip: !q.assessment || !!q.empty, });
+  const publication = usePublicationQuery(q.context.assessmentId, {
+    skip: !q.assessment || !!q.empty,
+  });
   if (q.loading || q.error || q.empty)
     return (
       <Feedback
@@ -57,7 +59,11 @@ export function AssessmentDetail() {
       >
         <StatusChip status={a.status} />
         <Button
-          disabled={!q.canEdit || state.isLoading || publication.currentData?.isPublished}
+          disabled={
+            !q.canEdit ||
+            state.isLoading ||
+            publication.currentData?.isPublished
+          }
           onClick={async () => {
             if (
               !confirmLeave() ||
@@ -88,8 +94,19 @@ export function AssessmentDetail() {
           {error}
         </Alert>
       )}
-      <ReadOnlyNotice editable={q.canEdit}/>
-      <PublicationPanel assessment={a} publication={publication.currentData} canEdit={q.canEdit} loading={publication.isLoading || (publication.isFetching && !publication.currentData)} error={publication.error} retry={publication.refetch} onSuccess={setMessage}/>
+      <ReadOnlyNotice editable={q.canEdit} />
+      <PublicationPanel
+        assessment={a}
+        publication={publication.currentData}
+        canEdit={q.canEdit}
+        loading={
+          publication.isLoading ||
+          (publication.isFetching && !publication.currentData)
+        }
+        error={publication.error}
+        retry={publication.refetch}
+        onSuccess={setMessage}
+      />
       <Card>
         <SchemaEditor
           key={a.version}

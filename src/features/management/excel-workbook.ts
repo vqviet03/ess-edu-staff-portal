@@ -235,7 +235,9 @@ export async function readProfiles(
       errors.push({
         row: i,
         column: columns[group][0],
-        message: !recordId ? "UPDATE cần ID đã có." : "ID trùng trong file cập nhật.",
+        message: !recordId
+          ? "UPDATE cần ID đã có."
+          : "ID trùng trong file cập nhật.",
       });
     seen.add(recordId.toLowerCase());
     // Preserve physical Excel row number including blank gaps for preview error mapping.

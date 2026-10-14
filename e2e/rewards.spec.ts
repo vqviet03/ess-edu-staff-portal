@@ -284,14 +284,23 @@ test("teacher records past points and corrects them without losing original hist
   await expect(
     page.getByRole("button", { name: "Chỉnh sửa điểm đã ghi", exact: true }),
   ).toHaveCount(1);
-  await page.getByRole("button", { name: "Chỉnh sửa điểm đã ghi", exact: true }).click();
-  await correction.locator("label").filter({ hasText: /2 cúp$/ }).click();
+  await page
+    .getByRole("button", { name: "Chỉnh sửa điểm đã ghi", exact: true })
+    .click();
+  await correction
+    .locator("label")
+    .filter({ hasText: /2 cúp$/ })
+    .click();
   await correction.getByLabel("Lý do điều chỉnh").fill("Hủy lượt nhập nhầm");
-  await correction.getByRole("button", { name: "Lưu điều chỉnh", exact: true }).click();
+  await correction
+    .getByRole("button", { name: "Lưu điều chỉnh", exact: true })
+    .click();
   await expect(correction).toHaveCount(0);
   await expect.poll(() => f.entries.length).toBe(4);
   expect(f.entries.reduce((sum, e) => sum + e.amount, 0)).toBe(0);
-  await expect(page.getByRole("button", { name: "Chỉnh sửa điểm đã ghi", exact: true })).toHaveCount(0);
+  await expect(
+    page.getByRole("button", { name: "Chỉnh sửa điểm đã ghi", exact: true }),
+  ).toHaveCount(0);
 });
 test("teacher awards trophies, saves note, opens reward detail and does not poll", async ({
   page,
@@ -559,20 +568,23 @@ test("class activities paginate sequentially without skipping the second page", 
   const f = await rewardsFixture(page),
     student = seed().students["class-green"][0];
   f.entries.push(
-    ...Array.from({ length: 21 }, (_, i): RewardEntry => ({
-      id: `entry-${i}`,
-      kind: "EARN",
-      amount: 1,
-      note: `Hoạt động số ${i + 1}`,
-      date: vietnamToday(),
-      createdAt: new Date().toISOString(),
-      authorName: "Vũ Quốc Việt",
-      authorPublicId: "vq.viet",
-      reversesId: null,
-      studentId: student.id,
-      studentName: student.name,
-      nickname: student.nickname ?? "",
-    })),
+    ...Array.from(
+      { length: 21 },
+      (_, i): RewardEntry => ({
+        id: `entry-${i}`,
+        kind: "EARN",
+        amount: 1,
+        note: `Hoạt động số ${i + 1}`,
+        date: vietnamToday(),
+        createdAt: new Date().toISOString(),
+        authorName: "Vũ Quốc Việt",
+        authorPublicId: "vq.viet",
+        reversesId: null,
+        studentId: student.id,
+        studentName: student.name,
+        nickname: student.nickname ?? "",
+      }),
+    ),
   );
   await login(page);
   await page.goto(

@@ -15,7 +15,9 @@ export function createSocketSessionCheck(
     pending = (async () => {
       try {
         const result = await verify();
-        return currentToken() === token && !result.error && result.data !== undefined;
+        return (
+          currentToken() === token && !result.error && result.data !== undefined
+        );
       } catch {
         // Offline, timeout, 403 and server failures do not revoke the session.
         return false;

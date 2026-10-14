@@ -7,8 +7,20 @@ Chỉ MANAGER đang hoạt động được truy cập các endpoint `/v1/manage
 `GET /session-policy` trả `{data:{accountId,sessionLifetimeMinutes,sessionDuration,effectiveLifetimeMinutes,defaultLifetimeMinutes,serverNow,previewExpiresAt,activeSessionCount,managerProtected,version}}`.
 
 `PATCH /session-policy`:
+
 ```json
-{"sessionLifetimeMinutes":null,"sessionDuration":{"years":1,"months":2,"days":3,"hours":4,"minutes":5},"version":1,"reason":"Thời hạn cho lần đăng nhập tiếp theo"}
+{
+  "sessionLifetimeMinutes": null,
+  "sessionDuration": {
+    "years": 1,
+    "months": 2,
+    "days": 3,
+    "hours": 4,
+    "minutes": 5
+  },
+  "version": 1,
+  "reason": "Thời hạn cho lần đăng nhập tiếp theo"
+}
 ```
 
 Các ô là số nguyên không âm, tổng lớn hơn 0 và tối đa **10 năm theo lịch**, được kiểm tra ở backend. Cộng năm, tháng theo UTC (cuối tháng/năm nhuận được kẹp về ngày cuối hợp lệ), rồi ngày/giờ/phút. `effectiveLifetimeMinutes` là quy đổi tại `serverNow`, không phải một tháng cố định 30 ngày. UI hiển thị thời điểm dự kiến theo giờ Việt Nam; thời điểm thật được tính lại khi đăng nhập. `sessionDuration:null` và `sessionLifetimeMinutes:null` dùng mặc định `Jwt:LifetimeMinutes`. Client cũ vẫn gửi số phút nguyên, giới hạn thực tế cũng tối đa 10 năm; không gửi đồng thời hai kiểu thời hạn. Policy áp dụng chung mật khẩu/link và học sinh/Staff, không đổi hạn của JWT đã cấp. Session vẫn ở localStorage.
@@ -20,8 +32,26 @@ PATCH policy và POST revoke hỗ trợ queue hiện có: `Prefer: respond-async
 ## Lịch sử
 
 `GET /login-history?page=1&pageSize=5`:
+
 ```json
-{"data":{"items":[{"loggedInAt":"2026-10-05T09:00:00Z","expiresAt":"2027-10-05T09:00:00Z","revokedAt":null,"ipAddress":"192.0.2.10","device":"Điện thoại","browser":"Safari","operatingSystem":"iOS/iPadOS"}],"total":1,"page":1,"pageSize":5}}
+{
+  "data": {
+    "items": [
+      {
+        "loggedInAt": "2026-10-05T09:00:00Z",
+        "expiresAt": "2027-10-05T09:00:00Z",
+        "revokedAt": null,
+        "ipAddress": "192.0.2.10",
+        "device": "Điện thoại",
+        "browser": "Safari",
+        "operatingSystem": "iOS/iPadOS"
+      }
+    ],
+    "total": 1,
+    "page": 1,
+    "pageSize": 5
+  }
+}
 ```
 
 Chỉ ghi đăng nhập **thành công**, cả mật khẩu và link. Sắp mới nhất trước, page 1–100000, pageSize 1–100. Giữ thông tin sau logout/thu hồi để đối chiếu bảo mật. Metadata cũ trả null, không bịa thông tin. Không trả JWT, password, mã link, session secret hay raw User-Agent. Thời gian ISO UTC.

@@ -131,7 +131,8 @@ export function ExcelImport() {
         {message && <Alert severity="success">{message}</Alert>}
         {locked && (
           <Alert severity="info">
-            Chỉ xem: quyền giảng viên/phân công hoặc trạng thái bài chưa cho phép import.
+            Chỉ xem: quyền giảng viên/phân công hoặc trạng thái bài chưa cho
+            phép import.
           </Alert>
         )}
         <Card>
@@ -321,7 +322,13 @@ export function ExcelImport() {
                   <AccordionSummary expandIcon="↓">
                     <Typography>
                       {q.students.find((s) => s.id === change.studentId)?.name}{" "}
-                      · {publicId(q.students.find(s => s.id === change.studentId)?.publicId, q.students.find(s => s.id === change.studentId)?.studentCode)}
+                      ·{" "}
+                      {publicId(
+                        q.students.find((s) => s.id === change.studentId)
+                          ?.publicId,
+                        q.students.find((s) => s.id === change.studentId)
+                          ?.studentCode,
+                      )}
                     </Typography>
                   </AccordionSummary>
                   <AccordionDetails>

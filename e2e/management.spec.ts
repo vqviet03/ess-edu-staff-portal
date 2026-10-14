@@ -25,7 +25,9 @@ async function confirmPreview(
       !(await c.isChecked())
     )
       await c.check();
-  const reasonField = page.getByRole("textbox", { name: /Lý do thay đổi \(bắt buộc\)|Lý do \/ ghi chú/ });
+  const reasonField = page.getByRole("textbox", {
+    name: /Lý do thay đổi \(bắt buộc\)|Lý do \/ ghi chú/,
+  });
   await reasonField.fill(reason);
   await expect(button).toBeEnabled();
   await button.click();
@@ -36,19 +38,33 @@ test.beforeEach(async ({ page }) => {
   if (process.env.NEXT_PUBLIC_USE_MOCK !== "true")
     await installHttpFixture(page);
 });
-test("manager adjusts joining date from a class student menu and persists after reload", async ({ page }) => {
+test("manager adjusts joining date from a class student menu and persists after reload", async ({
+  page,
+}) => {
   await login(page);
   await go(page, "/manage/profile/?entity=classes&id=class-green&tab=profile");
-  await page.getByRole("button", { name: "Thao tác học sinh Hữu Văn", exact: true }).click();
-  await page.getByRole("menuitem", { name: "Chỉnh sửa ngày tham gia lớp", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Thao tác học sinh Hữu Văn", exact: true })
+    .click();
+  await page
+    .getByRole("menuitem", { name: "Chỉnh sửa ngày tham gia lớp", exact: true })
+    .click();
   const dialog = page.getByRole("dialog");
   await dialog.getByLabel("Ngày tham gia lớp").fill("2026-01-01");
-  await dialog.getByRole("button", { name: "Kiểm tra ảnh hưởng", exact: true }).click();
+  await dialog
+    .getByRole("button", { name: "Kiểm tra ảnh hưởng", exact: true })
+    .click();
   await confirmPreview(page, "Bổ sung ngày nhập học thực tế");
   await page.reload();
-  await page.getByRole("button", { name: "Thao tác học sinh Hữu Văn", exact: true }).click();
-  await page.getByRole("menuitem", { name: "Chỉnh sửa ngày tham gia lớp", exact: true }).click();
-  await expect(page.getByRole("dialog").getByLabel("Ngày tham gia lớp")).toHaveValue("2026-01-01");
+  await page
+    .getByRole("button", { name: "Thao tác học sinh Hữu Văn", exact: true })
+    .click();
+  await page
+    .getByRole("menuitem", { name: "Chỉnh sửa ngày tham gia lớp", exact: true })
+    .click();
+  await expect(
+    page.getByRole("dialog").getByLabel("Ngày tham gia lớp"),
+  ).toHaveValue("2026-01-01");
 });
 test("manager dashboard, navigation, readonly grades/schema, dark/mobile và deep links", async ({
   page,
@@ -84,7 +100,7 @@ test("manager dashboard, navigation, readonly grades/schema, dark/mobile và dee
     page.getByRole("button", { name: "Đánh dấu hoàn thành" }),
   ).toBeDisabled();
   await go(page, "/home/");
-  await page.getByRole("button", {name: "Giao diện", exact: true}).click();
+  await page.getByRole("button", { name: "Giao diện", exact: true }).click();
   await page.getByRole("menuitem", { name: "Tối", exact: true }).click();
   await page.screenshot({
     path: "test-results/management-overview-dark.png",
@@ -164,7 +180,9 @@ test("tạo học sinh cùng tài khoản PENDING, ID có thể sửa bởi qu�
   await expect(
     page.getByRole("dialog").getByLabel("ID", { exact: true }),
   ).toBeEnabled();
-  await expect(page.getByRole("dialog").getByRole("button", { name: "Kiểm tra trùng" })).toBeVisible();
+  await expect(
+    page.getByRole("dialog").getByRole("button", { name: "Kiểm tra trùng" }),
+  ).toBeVisible();
   await page.getByRole("button", { name: "Hủy", exact: true }).click();
   await page
     .getByRole("button", { name: "Tạo / cấp lại link kích hoạt" })
@@ -218,7 +236,7 @@ test("ngừng/khôi phục giảng viên rồi xác nhận phân công; cảnh b
   await page.getByRole("button", { name: "Kiểm tra & xem trước" }).click();
   await confirmPreview(page);
   await go(page, "/manage/profile/?entity=classes&id=class-single");
-  await page.getByRole("tab", {name:"Hồ sơ & quan hệ",exact:true}).click();
+  await page.getByRole("tab", { name: "Hồ sơ & quan hệ", exact: true }).click();
   await page
     .getByRole("button", { name: "Cập nhật phụ trách", exact: true })
     .first()

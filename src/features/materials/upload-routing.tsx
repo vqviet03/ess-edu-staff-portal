@@ -38,7 +38,9 @@ export function UploadRouting() {
       <Stack spacing={2}>
         <Typography variant="h6">Ổ nhận upload mặc định</Typography>
         <Typography variant="body2">
-          Avatar lưu trong Chung/Ảnh avatar; file bài đăng và phiên học lưu trong Chung/Bài đăng theo loại. Bình luận giữ External source. Quy tắc từng loại ưu tiên hơn Tất cả.
+          Avatar lưu trong Chung/Ảnh avatar; file bài đăng và phiên học lưu
+          trong Chung/Bài đăng theo loại. Bình luận giữ External source. Quy tắc
+          từng loại ưu tiên hơn Tất cả.
         </Typography>
         <Stack direction={{ xs: "column", md: "row" }} spacing={2}>
           <TextField
@@ -53,7 +55,8 @@ export function UploadRouting() {
           >
             {[
               ["comment", "Bình luận"],
-              ["assignment", "Đề bài tập"], ["submission", "Bài nộp học sinh"],
+              ["assignment", "Đề bài tập"],
+              ["submission", "Bài nộp học sinh"],
               ["session", "Phiên học"],
               ["library", "Kho tài liệu"],
               ["avatar", "Ảnh avatar"],
@@ -108,11 +111,23 @@ export function UploadRouting() {
             variant="contained"
             disabled={state.isLoading || !(storage || current?.storageId)}
             onClick={async () => {
-              if (!window.confirm("Đổi ổ mặc định cho các lượt upload mới? File cũ giữ nguyên.")) return;
+              if (
+                !window.confirm(
+                  "Đổi ổ mặc định cho các lượt upload mới? File cũ giữ nguyên.",
+                )
+              )
+                return;
               try {
-                await save({source,fileType:kind,storageId:storage || current!.storageId,version:current?.version ?? 1}).unwrap();
+                await save({
+                  source,
+                  fileType: kind,
+                  storageId: storage || current!.storageId,
+                  version: current?.version ?? 1,
+                }).unwrap();
                 setDirty(false);
-              } catch { /* Keep the selection for retry. */ }
+              } catch {
+                /* Keep the selection for retry. */
+              }
             }}
           >
             Lưu

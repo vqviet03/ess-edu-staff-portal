@@ -4,18 +4,18 @@ Dùng hệ thống JWT, school scope, RTK Query và envelope `{data:T}` hiện c
 
 ## Thread và liên hệ
 
-| Method | Endpoint | Kết quả / body |
-|---|---|---|
-| GET | `/classes/{classId}/threads?cursor=&limit=10` | `{items:Post[],nextCursor}`; gộp các phiên của lớp; học sinh chỉ thấy PUBLISHED |
-| GET | `/classes/{classId}/contacts` | `{items:[{id,name,email,phone}]}`; ID công khai, phân công ACTIVE và hồ sơ/tài khoản hoạt động |
-| GET / POST | `/posts/{postId}/comments` | danh sách phân trang / `{body,parentId?,materialIds?:string[]}` |
-| PATCH | `/comments/{commentId}` | `{body,version,materialIds?:string[]}`; chỉ tác giả sửa |
-| PUT / DELETE | `/posts/{postId}/reaction` | `{reaction:"LIKE"|"LOVE"|"CELEBRATE"}` / bỏ tương tác |
-| PUT | `/material-upload-routes` | manager: `{source:"comment"|"session"|"library",fileType:"all"|"image"|"audio"|"video"|"pdf"|"document"|"other",storageId,version?}` |
-| GET | `/material-upload-settings` | giới hạn; manager thêm `routes`, học sinh không nhận danh sách/địa chỉ storage |
-| POST | `/material-uploads/initiate` | UploadInput + `uploadSource:"comment"`, `sourcePostId`, optional `sourceSessionId` |
-| POST | `/material-uploads/{uploadId}/complete` | `{version}`; xác minh MIME, byte gốc và thumbnail trước AVAILABLE |
-| GET | `/materials/{materialId}/content?purpose=preview|download|thumbnail` | binary; **Bearer JWT bắt buộc**, không redirect storage |
+| Method       | Endpoint                                         | Kết quả / body                                                                                 |
+| ------------ | ------------------------------------------------ | ---------------------------------------------------------------------------------------------- | ---------- | ------------------------------------------------------- | ------- | ------- | ------- | ----- | ---------- | ---------------------------- |
+| GET          | `/classes/{classId}/threads?cursor=&limit=10`    | `{items:Post[],nextCursor}`; gộp các phiên của lớp; học sinh chỉ thấy PUBLISHED                |
+| GET          | `/classes/{classId}/contacts`                    | `{items:[{id,name,email,phone}]}`; ID công khai, phân công ACTIVE và hồ sơ/tài khoản hoạt động |
+| GET / POST   | `/posts/{postId}/comments`                       | danh sách phân trang / `{body,parentId?,materialIds?:string[]}`                                |
+| PATCH        | `/comments/{commentId}`                          | `{body,version,materialIds?:string[]}`; chỉ tác giả sửa                                        |
+| PUT / DELETE | `/posts/{postId}/reaction`                       | `{reaction:"LIKE"                                                                              | "LOVE"     | "CELEBRATE"}` / bỏ tương tác                            |
+| PUT          | `/material-upload-routes`                        | manager: `{source:"comment"                                                                    | "session"  | "library",fileType:"all"                                | "image" | "audio" | "video" | "pdf" | "document" | "other",storageId,version?}` |
+| GET          | `/material-upload-settings`                      | giới hạn; manager thêm `routes`, học sinh không nhận danh sách/địa chỉ storage                 |
+| POST         | `/material-uploads/initiate`                     | UploadInput + `uploadSource:"comment"`, `sourcePostId`, optional `sourceSessionId`             |
+| POST         | `/material-uploads/{uploadId}/complete`          | `{version}`; xác minh MIME, byte gốc và thumbnail trước AVAILABLE                              |
+| GET          | `/materials/{materialId}/content?purpose=preview | download                                                                                       | thumbnail` | binary; **Bearer JWT bắt buộc**, không redirect storage |
 
 Comment DTO thêm `attachments: MaterialFile[]`. Tối đa 20 file khác nhau; body có thể trống nếu có file. Bỏ `materialIds` khi PATCH giữ nguyên attachment; gửi `[]` gỡ liên kết. File mới phải do chính người bình luận upload vào đúng post, không cho gắn file kho/lớp khác để vượt quyền. Lỗi không xóa bản nháp. Học sinh không upload vào kho thông thường hoặc sửa post/schema/điểm.
 

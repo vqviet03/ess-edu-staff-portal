@@ -11,7 +11,13 @@ Việc dọn thực hiện trong transaction với lock theo người nhận, kh
 Manager gửi `POST /v1/manager/enrollments/preview` với:
 
 ```json
-{"classId":"ess20-a1","studentId":"hv.bon","status":"ACTIVE","version":2,"joinedOn":"2026-01-01"}
+{
+  "classId": "ess20-a1",
+  "studentId": "hv.bon",
+  "status": "ACTIVE",
+  "version": 2,
+  "joinedOn": "2026-01-01"
+}
 ```
 
 Sau khi kiểm tra ảnh hưởng, dùng endpoint commit preview hiện có với reason và xác nhận `RELATIONSHIP_IMPACT`. DTO enrollment trả thêm `joinedOn` (`YYYY-MM-DD`, múi giờ Việt Nam). Ngày cho phép hôm nay hoặc quá khứ tối đa 10 năm. Sửa ngày chỉ cập nhật giai đoạn hiện tại, giữ ID, các giai đoạn trước và điểm/lịch sử. Version cũ trả 409; ngày chồng giai đoạn cũ hoặc bỏ qua điểm danh/điểm động viên đã lưu bị chặn. Ghi danh đã `COMPLETED` được sửa ngày nhưng không mở lại bằng thao tác này. Teacher không có quyền sửa ghi danh.
@@ -21,7 +27,12 @@ Sau khi kiểm tra ảnh hưởng, dùng endpoint commit preview hiện có vớ
 Endpoint thêm điểm hiện có nhận `date` tùy chọn (mặc định hôm nay):
 
 ```json
-{"kind":"EARN","amount":3,"note":"Bon vừa đạt được thành tích mới","date":"2026-01-01"}
+{
+  "kind": "EARN",
+  "amount": 3,
+  "note": "Bon vừa đạt được thành tích mới",
+  "date": "2026-01-01"
+}
 ```
 
 Ngày quá khứ phải có điểm danh `PRESENT` hoặc `ABSENT` của đúng học sinh/lớp/ngày; không có trả `409 ATTENDANCE_REQUIRED`. Thưởng yêu cầu `PRESENT`; không tự tạo điểm danh quá khứ. Danh sách ngày cũ bao gồm học sinh thuộc giai đoạn ghi danh ngày đó, kể cả đã ngừng học hiện tại.
@@ -29,7 +40,11 @@ Ngày quá khứ phải có điểm danh `PRESENT` hoặc `ABSENT` của đúng 
 `POST /v1/classes/{classId}/students/{studentId}/rewards/{entryId}/correction`, header `Idempotency-Key: <UUID>`:
 
 ```json
-{"amount":2,"note":"Đối chiếu lại thành tích","reason":"Nhập nhầm số cúp"}
+{
+  "amount": 2,
+  "note": "Đối chiếu lại thành tích",
+  "reason": "Nhập nhầm số cúp"
+}
 ```
 
 Chỉ teacher còn được phép sửa lớp. Giữ nguyên ngày/kind của lượt gốc, ghi reversal và lượt thay thế trong cùng transaction; không sửa/xóa ledger gốc. Nhập 0 chỉ ghi reversal. Thưởng 0–5, vi phạm/tiêu dùng 0–100000; không vượt số dư được phép tiêu. Note/reason bắt buộc tối đa 2000 ký tự. Chỉ điều chỉnh lượt chưa đảo; lượt đã đảo trả `409 ALREADY_REVERSED`. DTO ledger thêm `isReversed` để UI ẩn thao tác sửa lượt cũ. Duplicate request cùng key/payload trả cùng kết quả, key khác payload trả `409 IDEMPOTENCY_CONFLICT`. Audit và notification theo cơ chế durable outbox hiện có, tổng và biểu đồ tính lại từ ledger.

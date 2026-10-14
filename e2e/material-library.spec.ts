@@ -675,12 +675,31 @@ test("PDF viewer loads its static worker and opens full-screen with vertical pag
     .click();
   const dialog = page.getByRole("dialog");
   await expect(dialog).toHaveClass(/MuiDialog-paperFullScreen/);
-  await expect(dialog.getByRole("document", {name:"Tài liệu PDF"})).toBeVisible();
-  await expect.poll(()=>dialog.locator("canvas").evaluate(node=>{const canvas=node as HTMLCanvasElement;return canvas.width>0&&Math.abs(canvas.width/canvas.height-2)<.02;})).toBe(true);
-  await expect(dialog.getByRole("button",{name:"Cuộn dọc",exact:true})).toHaveCount(0);
-  await expect(dialog.getByRole("button",{name:"Lật trang",exact:true})).toHaveCount(0);
-  await expect(dialog.getByRole("button",{name:"+",exact:true})).toHaveCount(0);
-  await dialog.getByRole("button",{name:"Đóng bản xem trước",exact:true}).click();
+  await expect(
+    dialog.getByRole("document", { name: "Tài liệu PDF" }),
+  ).toBeVisible();
+  await expect
+    .poll(() =>
+      dialog.locator("canvas").evaluate((node) => {
+        const canvas = node as HTMLCanvasElement;
+        return (
+          canvas.width > 0 && Math.abs(canvas.width / canvas.height - 2) < 0.02
+        );
+      }),
+    )
+    .toBe(true);
+  await expect(
+    dialog.getByRole("button", { name: "Cuộn dọc", exact: true }),
+  ).toHaveCount(0);
+  await expect(
+    dialog.getByRole("button", { name: "Lật trang", exact: true }),
+  ).toHaveCount(0);
+  await expect(
+    dialog.getByRole("button", { name: "+", exact: true }),
+  ).toHaveCount(0);
+  await dialog
+    .getByRole("button", { name: "Đóng bản xem trước", exact: true })
+    .click();
   await expect(
     page.getByRole("checkbox", { name: "Chọn Bài học a.pdf" }),
   ).not.toBeChecked();
@@ -1100,7 +1119,10 @@ test("pinned comments survive collapse; paging, likes, reply target and pin muta
   });
   await page.route(`${api}/comments/interaction-0/**`, async (r) => {
     const action = new URL(r.request().url()).pathname.split("/").at(-1);
-    if (action !== "like" && action !== "pin") { await r.fallback(); return; }
+    if (action !== "like" && action !== "pin") {
+      await r.fallback();
+      return;
+    }
     if (action === "like") {
       likes++;
       if (failLike) {

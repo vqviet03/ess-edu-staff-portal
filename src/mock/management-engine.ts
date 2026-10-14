@@ -1,8 +1,16 @@
-import {validateEnrollmentDates, type EnrollmentDates, type EnrollmentDatesRequest} from "@/features/management/enrollment-dates";
+import {
+  validateEnrollmentDates,
+  type EnrollmentDates,
+  type EnrollmentDatesRequest,
+} from "@/features/management/enrollment-dates";
 import { sessionExpiry } from "@/features/management/session-duration";
 import type { SessionDuration } from "@/features/management/session-duration";
 import { requestHeaders } from "@/api/headers";
-import { nameIdentifier, availableIdentifier, classPrefix } from "@/features/management/identifiers";
+import {
+  nameIdentifier,
+  availableIdentifier,
+  classPrefix,
+} from "@/features/management/identifiers";
 import type { FetchArgs } from "@reduxjs/toolkit/query";
 import type { Database } from "./fixtures";
 import { managementSeed } from "./management-fixtures";
@@ -249,24 +257,60 @@ function setEntity(
   if (i < 0) rows.push(record);
   else rows[i] = record;
 }
-function renameReferences(db: Database, entity: Entity, oldId: string, newId: string) {
+function renameReferences(
+  db: Database,
+  entity: Entity,
+  oldId: string,
+  newId: string,
+) {
   if (oldId === newId) return;
   const m = management(db);
   if (entity === "students" || entity === "teachers") {
-    for (const a of m.accounts) if (a.profileId === oldId && a.kind === (entity === "teachers" ? "STAFF" : "STUDENT")) { a.profileId = newId; if (a.loginId === oldId) { a.loginId = newId; a.version++; } }
-    for (const a of m.assignments) if (entity === "teachers" && a.teacherId === oldId) a.teacherId = newId;
-    for (const e of m.enrollments) if (entity === "students" && e.studentId === oldId) e.studentId = newId;
-    if (entity === "students") { for (const students of Object.values(db.students)) for (const s of students) if (s.id === oldId) s.id = newId; for (const rows of Object.values(db.results)) for (const r of rows) if (r.studentId === oldId) r.studentId = newId; }
-    if (entity === "teachers") for (const session of Object.values(db.tokens)) if (session.teacher.id === oldId) session.teacher.id = newId;
+    for (const a of m.accounts)
+      if (
+        a.profileId === oldId &&
+        a.kind === (entity === "teachers" ? "STAFF" : "STUDENT")
+      ) {
+        a.profileId = newId;
+        if (a.loginId === oldId) {
+          a.loginId = newId;
+          a.version++;
+        }
+      }
+    for (const a of m.assignments)
+      if (entity === "teachers" && a.teacherId === oldId) a.teacherId = newId;
+    for (const e of m.enrollments)
+      if (entity === "students" && e.studentId === oldId) e.studentId = newId;
+    if (entity === "students") {
+      for (const students of Object.values(db.students))
+        for (const s of students) if (s.id === oldId) s.id = newId;
+      for (const rows of Object.values(db.results))
+        for (const r of rows) if (r.studentId === oldId) r.studentId = newId;
+    }
+    if (entity === "teachers")
+      for (const session of Object.values(db.tokens))
+        if (session.teacher.id === oldId) session.teacher.id = newId;
   }
   if (entity === "classes") {
     for (const a of m.assignments) if (a.classId === oldId) a.classId = newId;
     for (const e of m.enrollments) if (e.classId === oldId) e.classId = newId;
     for (const s of db.sessions) if (s.classId === oldId) s.classId = newId;
-    if (db.students[oldId]) { db.students[newId] = db.students[oldId]; delete db.students[oldId]; }
-    for (const key of Object.keys(db.publications ?? {})) if (key.startsWith(oldId + ":")) { db.publications![newId + key.slice(oldId.length)] = db.publications![key]; delete db.publications![key]; }
+    if (db.students[oldId]) {
+      db.students[newId] = db.students[oldId];
+      delete db.students[oldId];
+    }
+    for (const key of Object.keys(db.publications ?? {}))
+      if (key.startsWith(oldId + ":")) {
+        db.publications![newId + key.slice(oldId.length)] =
+          db.publications![key];
+        delete db.publications![key];
+      }
   }
-  if (entity === "labels") for (const a of m.assignments) { if (a.labelId === oldId) a.labelId = newId; for (const h of a.history) if (h.labelId === oldId) h.labelId = newId; }
+  if (entity === "labels")
+    for (const a of m.assignments) {
+      if (a.labelId === oldId) a.labelId = newId;
+      for (const h of a.history) if (h.labelId === oldId) h.labelId = newId;
+    }
 }
 function effectivePatch(row: Record<string, unknown>, clear: string[] = []) {
   return Object.fromEntries(
@@ -471,8 +515,15 @@ export function buildPreview(
     );
   if (!inputRows.length || inputRows.length > 5000)
     reject(422, "INVALID_ROWS", "Cần từ 1 đến 5000 bản ghi.");
-  const ids = new Set<string>(), renamedIds = new Set<string>();
-  const used = new Set([...m.students.map((s) => s.id), ...m.teachers.map((t) => t.id), ...m.accounts.map((a) => a.loginId)].map((x) => x.toLowerCase()));
+  const ids = new Set<string>(),
+    renamedIds = new Set<string>();
+  const used = new Set(
+    [
+      ...m.students.map((s) => s.id),
+      ...m.teachers.map((t) => t.id),
+      ...m.accounts.map((a) => a.loginId),
+    ].map((x) => x.toLowerCase()),
+  );
   for (const [i, rawInput] of inputRows.entries()) {
     const row = Number(rawInput._excelRow) || i + 2;
     if (
@@ -486,16 +537,45 @@ export function buildPreview(
     )
       continue;
     const raw = obj(rawInput);
-    if (request.mode === "CREATE" && allocateIdentifiers && (entity === "students" || entity === "teachers")) {
+    if (
+      request.mode === "CREATE" &&
+      allocateIdentifiers &&
+      (entity === "students" || entity === "teachers")
+    ) {
       try {
         const requested = String(raw.id ?? "").trim();
-        raw.id = availableIdentifier(requested || nameIdentifier(String(raw.fullName ?? "")), used);
+        raw.id = availableIdentifier(
+          requested || nameIdentifier(String(raw.fullName ?? "")),
+          used,
+        );
         used.add(String(raw.id).toLowerCase());
-        if (requested && requested !== raw.id) preview.warnings.push(`Dòng ${row}: ID ${requested} → ${raw.id} để tránh trùng.`);
-      } catch (e) { preview.errors.push({ row, column: "id", message: e instanceof Error ? e.message : "ID không hợp lệ" }); continue; }
+        if (requested && requested !== raw.id)
+          preview.warnings.push(
+            `Dòng ${row}: ID ${requested} → ${raw.id} để tránh trùng.`,
+          );
+      } catch (e) {
+        preview.errors.push({
+          row,
+          column: "id",
+          message: e instanceof Error ? e.message : "ID không hợp lệ",
+        });
+        continue;
+      }
     }
-    if (request.mode === "CREATE" && allocateIdentifiers && entity === "classes" && !String(raw.id ?? "").trim()) {
-      m.lastClassNumber = Math.max(20, m.lastClassNumber ?? 20, ...m.classes.map((c) => Number(c.code.match(/^ess(\d+)(?:-|$)/i)?.[1] ?? 0))) + 1;
+    if (
+      request.mode === "CREATE" &&
+      allocateIdentifiers &&
+      entity === "classes" &&
+      !String(raw.id ?? "").trim()
+    ) {
+      m.lastClassNumber =
+        Math.max(
+          20,
+          m.lastClassNumber ?? 20,
+          ...m.classes.map((c) =>
+            Number(c.code.match(/^ess(\d+)(?:-|$)/i)?.[1] ?? 0),
+          ),
+        ) + 1;
       raw.id = `${m.settings?.classIdPrefix ?? "ess"}${m.lastClassNumber}`;
     }
     const recordId = String(raw.id ?? ""),
@@ -535,18 +615,49 @@ export function buildPreview(
       ...before,
       ...effectivePatch(raw, request.clearFields),
     };
-    if (entity === "classes" && ((!before && !String(raw.name ?? "").trim()) || Object.hasOwn(raw, "nameSuffix") && !Object.hasOwn(raw, "name"))) {
-      const prefix = before && "code" in before ? classPrefix(before.code) : recordId;
-      let suffix = String(raw.nameSuffix ?? raw.name ?? "").trim().replace(/^-/, "");
-      if (suffix.startsWith(prefix)) suffix = suffix.slice(prefix.length).replace(/^-/, "");
-      input.nameSuffix = suffix; input.name = prefix + (suffix ? "-" + suffix : ""); input.code = raw.code || input.name;
+    if (
+      entity === "classes" &&
+      ((!before && !String(raw.name ?? "").trim()) ||
+        (Object.hasOwn(raw, "nameSuffix") && !Object.hasOwn(raw, "name")))
+    ) {
+      const prefix =
+        before && "code" in before ? classPrefix(before.code) : recordId;
+      let suffix = String(raw.nameSuffix ?? raw.name ?? "")
+        .trim()
+        .replace(/^-/, "");
+      if (suffix.startsWith(prefix))
+        suffix = suffix.slice(prefix.length).replace(/^-/, "");
+      input.nameSuffix = suffix;
+      input.name = prefix + (suffix ? "-" + suffix : "");
+      input.code = raw.code || input.name;
     }
     if (entity === "classes" && !input.code) input.code = recordId;
     if (raw.newId !== undefined) {
-      const newId = String(raw.newId).trim(), taken = entity === "students" || entity === "teachers" ? used : new Set((m[entity] as ManagedRecord[]).map(r => r.id.toLowerCase()));
+      const newId = String(raw.newId).trim(),
+        taken =
+          entity === "students" || entity === "teachers"
+            ? used
+            : new Set(
+                (m[entity] as ManagedRecord[]).map((r) => r.id.toLowerCase()),
+              );
       taken.delete(recordId.toLowerCase());
-      if (!before || request.selection || entity === "accounts" || !/^[a-z0-9][a-z0-9_.-]{1,63}$/i.test(newId) || taken.has(newId.toLowerCase()) || renamedIds.has(newId.toLowerCase())) { preview.errors.push({ row, column: "id", message: "ID không hợp lệ hoặc đã tồn tại." }); continue; }
-      renamedIds.add(newId.toLowerCase()); input.id = newId;
+      if (
+        !before ||
+        request.selection ||
+        entity === "accounts" ||
+        !/^[a-z0-9][a-z0-9_.-]{1,63}$/i.test(newId) ||
+        taken.has(newId.toLowerCase()) ||
+        renamedIds.has(newId.toLowerCase())
+      ) {
+        preview.errors.push({
+          row,
+          column: "id",
+          message: "ID không hợp lệ hoặc đã tồn tại.",
+        });
+        continue;
+      }
+      renamedIds.add(newId.toLowerCase());
+      input.id = newId;
     }
     if (entity === "accounts" || entity === "teachers")
       input.roles = parseRoles(input.roles);
@@ -649,8 +760,12 @@ export function buildPreview(
     if (entity === "accounts") {
       const a = after as Account;
       // The dedicated policy API owns this field; profile/role edits must retain it.
-      a.sessionLifetimeMinutes = before && "roles" in before ? before.sessionLifetimeMinutes ?? null : null;
-      a.sessionDuration = before && "roles" in before ? before.sessionDuration ?? null : null;
+      a.sessionLifetimeMinutes =
+        before && "roles" in before
+          ? (before.sessionLifetimeMinutes ?? null)
+          : null;
+      a.sessionDuration =
+        before && "roles" in before ? (before.sessionDuration ?? null) : null;
       if (
         !m[a.kind === "STAFF" ? "teachers" : "students"].some(
           (p) => p.id === a.profileId,
@@ -827,7 +942,8 @@ export function buildPreview(
       affected.add(c.id);
   }
   preview.impacts = [...affected].map((classId) => {
-    const c = (m.classes.find((c) => c.id === classId) ?? management(future).classes.find((c) => c.id === classId))!,
+    const c = (m.classes.find((c) => c.id === classId) ??
+        management(future).classes.find((c) => c.id === classId))!,
       remaining = validTeachers(management(future), classId);
     return {
       classId,
@@ -911,7 +1027,10 @@ export function commitPreview(
     id: uid(),
     at: now(),
     actorId: staff.id,
-    action: item.extra?.kind === "enrollmentDates" ? "CORRECT_DATES" : item.extra?.kind ?? "PREVIEW_COMMIT",
+    action:
+      item.extra?.kind === "enrollmentDates"
+        ? "CORRECT_DATES"
+        : (item.extra?.kind ?? "PREVIEW_COMMIT"),
     entity: item.request.entity,
     ids: item.extra
       ? [
@@ -1141,7 +1260,6 @@ function relationshipPreview(
           "INVALID_JOINED_DATE",
           "Ngày tham gia phải đúng định dạng và tồn tại trên lịch.",
         );
-
     }
     if (
       data.status === "ACTIVE" &&
@@ -1293,38 +1411,79 @@ export function stats(db: Database, filter: StatsFilter) {
   };
 }
 
-function enrollmentDates(db: Database, classId: string, studentId: string): EnrollmentDates {
-  const enrollment = management(db).enrollments.find(e => e.classId === classId && e.studentId === studentId);
+function enrollmentDates(
+  db: Database,
+  classId: string,
+  studentId: string,
+): EnrollmentDates {
+  const enrollment = management(db).enrollments.find(
+    (e) => e.classId === classId && e.studentId === studentId,
+  );
   if (!enrollment) reject(404, "NOT_FOUND", "Không tìm thấy ghi danh.");
-  const day = (at: string) => new Intl.DateTimeFormat("en-CA", {timeZone: "Asia/Ho_Chi_Minh"}).format(new Date(at));
+  const day = (at: string) =>
+    new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Ho_Chi_Minh" }).format(
+      new Date(at),
+    );
   const history = enrollment.history.map((p, i) => ({
-    ...p, id: p.id ?? `${enrollment.id}:period:${i}`,
-    joinedOn: p.joinedOn ?? day(p.startAt), endedOn: p.endedOn ?? (p.endAt ? day(p.endAt) : null),
+    ...p,
+    id: p.id ?? `${enrollment.id}:period:${i}`,
+    joinedOn: p.joinedOn ?? day(p.startAt),
+    endedOn: p.endedOn ?? (p.endAt ? day(p.endAt) : null),
   }));
-  return {...enrollment, datesConfirmed: enrollment.datesConfirmed ?? false,
-    dateSource: enrollment.datesConfirmed ? "MANAGER_CONFIRMED" : "RECORDED_UNVERIFIED",
+  return {
+    ...enrollment,
+    datesConfirmed: enrollment.datesConfirmed ?? false,
+    dateSource: enrollment.datesConfirmed
+      ? "MANAGER_CONFIRMED"
+      : "RECORDED_UNVERIFIED",
     recordedAt: enrollment.recordedAt ?? enrollment.createdAt,
-    joinedOn: history.at(-1)?.joinedOn, endedOn: history.at(-1)?.endedOn, history};
+    joinedOn: history.at(-1)?.joinedOn,
+    endedOn: history.at(-1)?.endedOn,
+    history,
+  };
 }
 function checkEnrollmentDates(db: Database, input: unknown) {
   const request = obj(input) as unknown as EnrollmentDatesRequest;
   const before = enrollmentDates(db, request.classId, request.studentId);
-  if (before.version !== request.version) reject(409, "VERSION_CONFLICT", "Ghi danh đã thay đổi. Xem trước lại.");
-  if (!Array.isArray(request.periods) || request.periods.some(p => !p || typeof p.id !== "string" || typeof p.joinedOn !== "string" || !(p.endedOn === null || typeof p.endedOn === "string")))
+  if (before.version !== request.version)
+    reject(409, "VERSION_CONFLICT", "Ghi danh đã thay đổi. Xem trước lại.");
+  if (
+    !Array.isArray(request.periods) ||
+    request.periods.some(
+      (p) =>
+        !p ||
+        typeof p.id !== "string" ||
+        typeof p.joinedOn !== "string" ||
+        !(p.endedOn === null || typeof p.endedOn === "string"),
+    )
+  )
     reject(422, "INVALID_ENROLLMENT_PERIODS", "Các đợt ghi danh không hợp lệ.");
   const errors = validateEnrollmentDates(request.periods, before.history);
-  if (errors.length) reject(422, "INVALID_ENROLLMENT_PERIODS", errors.join(" "));
-  return {request, before};
+  if (errors.length)
+    reject(422, "INVALID_ENROLLMENT_PERIODS", errors.join(" "));
+  return { request, before };
 }
-function applyEnrollmentDates(db: Database, input: Record<string, unknown>, reason: string) {
-  const {request, before} = checkEnrollmentDates(db, input);
-  const e = management(db).enrollments.find(e => e.id === before.id)!;
+function applyEnrollmentDates(
+  db: Database,
+  input: Record<string, unknown>,
+  reason: string,
+) {
+  const { request, before } = checkEnrollmentDates(db, input);
+  const e = management(db).enrollments.find((e) => e.id === before.id)!;
   e.history = before.history.map((h, i) => {
     const p = request.periods[i];
     const start = new Date(`${p.joinedOn}T00:00:00+07:00`).toISOString();
-    return {...h, ...p, startAt: start,
-      endAt: p.endedOn ? new Date(Date.parse(`${p.endedOn}T00:00:00+07:00`) + 86400000 - 1).toISOString() : null,
-      reason};
+    return {
+      ...h,
+      ...p,
+      startAt: start,
+      endAt: p.endedOn
+        ? new Date(
+            Date.parse(`${p.endedOn}T00:00:00+07:00`) + 86400000 - 1,
+          ).toISOString()
+        : null,
+      reason,
+    };
   });
   e.joinedOn = request.periods.at(-1)!.joinedOn;
   e.endedOn = request.periods.at(-1)!.endedOn;
@@ -1355,42 +1514,165 @@ export async function managementRequest(
       accountStatus: params.get("accountStatus") ?? "",
       role: params.get("role") ?? "",
     };
-  const sessionMatch = path.match(/^\/manager\/accounts\/([^/]+)\/(session-policy|sessions\/revoke|login-history)$/);
+  const sessionMatch = path.match(
+    /^\/manager\/accounts\/([^/]+)\/(session-policy|sessions\/revoke|login-history)$/,
+  );
   if (sessionMatch) {
-    const a = m.accounts.find((a) => a.id === decodeURIComponent(sessionMatch[1]));
+    const a = m.accounts.find(
+      (a) => a.id === decodeURIComponent(sessionMatch[1]),
+    );
     if (!a) reject(404, "NOT_FOUND", "Không tìm thấy tài khoản.");
-    const activeTokens = () => Object.entries(db.tokens).filter(([, s]) => a.kind === "STAFF" && s.teacher.id === a.profileId && Date.parse(s.expiresAt) > Date.now());
-    const studentSessions = () => (m.studentSessions ?? []).filter((s) => a.kind === "STUDENT" && s.accountId === a.id && !s.revokedAt && Date.parse(s.expiresAt) > Date.now());
-    const policy = () => { const serverNow = now(), previewExpiresAt = sessionExpiry(serverNow, a.sessionDuration, a.sessionLifetimeMinutes ?? 60); return { accountId: a.id, defaultLifetimeMinutes: 60, sessionDuration: a.sessionDuration ?? null, serverNow, previewExpiresAt, sessionLifetimeMinutes: a.sessionLifetimeMinutes ?? null, effectiveLifetimeMinutes: (Date.parse(previewExpiresAt) - Date.parse(serverNow)) / 60000, activeSessionCount: activeTokens().length + studentSessions().length, managerProtected: a.kind === "STAFF" && a.roles.includes("MANAGER"), version: a.version }; };
+    const activeTokens = () =>
+      Object.entries(db.tokens).filter(
+        ([, s]) =>
+          a.kind === "STAFF" &&
+          s.teacher.id === a.profileId &&
+          Date.parse(s.expiresAt) > Date.now(),
+      );
+    const studentSessions = () =>
+      (m.studentSessions ?? []).filter(
+        (s) =>
+          a.kind === "STUDENT" &&
+          s.accountId === a.id &&
+          !s.revokedAt &&
+          Date.parse(s.expiresAt) > Date.now(),
+      );
+    const policy = () => {
+      const serverNow = now(),
+        previewExpiresAt = sessionExpiry(
+          serverNow,
+          a.sessionDuration,
+          a.sessionLifetimeMinutes ?? 60,
+        );
+      return {
+        accountId: a.id,
+        defaultLifetimeMinutes: 60,
+        sessionDuration: a.sessionDuration ?? null,
+        serverNow,
+        previewExpiresAt,
+        sessionLifetimeMinutes: a.sessionLifetimeMinutes ?? null,
+        effectiveLifetimeMinutes:
+          (Date.parse(previewExpiresAt) - Date.parse(serverNow)) / 60000,
+        activeSessionCount: activeTokens().length + studentSessions().length,
+        managerProtected: a.kind === "STAFF" && a.roles.includes("MANAGER"),
+        version: a.version,
+      };
+    };
     if (sessionMatch[2] === "login-history" && method === "GET") {
-      const page = Number(params.get("page") ?? 1), pageSize = Number(params.get("pageSize") ?? 10);
-      if (!Number.isInteger(page) || page < 1 || page > 100000 || !Number.isInteger(pageSize) || pageSize < 1 || pageSize > 100) reject(400, "VALIDATION_ERROR", "Phân trang không hợp lệ.");
-      const history = (m.loginHistory ?? []).filter((s) => s.accountId === a.id).sort((left, right) => Date.parse(right.loggedInAt) - Date.parse(left.loggedInAt));
-      return envelope({ items: history.slice((page - 1) * pageSize, page * pageSize).map((entry) => ({ loggedInAt: entry.loggedInAt, expiresAt: entry.expiresAt, revokedAt: entry.revokedAt, ipAddress: entry.ipAddress, device: entry.device, browser: entry.browser, operatingSystem: entry.operatingSystem })), total: history.length, page, pageSize });
+      const page = Number(params.get("page") ?? 1),
+        pageSize = Number(params.get("pageSize") ?? 10);
+      if (
+        !Number.isInteger(page) ||
+        page < 1 ||
+        page > 100000 ||
+        !Number.isInteger(pageSize) ||
+        pageSize < 1 ||
+        pageSize > 100
+      )
+        reject(400, "VALIDATION_ERROR", "Phân trang không hợp lệ.");
+      const history = (m.loginHistory ?? [])
+        .filter((s) => s.accountId === a.id)
+        .sort(
+          (left, right) =>
+            Date.parse(right.loggedInAt) - Date.parse(left.loggedInAt),
+        );
+      return envelope({
+        items: history
+          .slice((page - 1) * pageSize, page * pageSize)
+          .map((entry) => ({
+            loggedInAt: entry.loggedInAt,
+            expiresAt: entry.expiresAt,
+            revokedAt: entry.revokedAt,
+            ipAddress: entry.ipAddress,
+            device: entry.device,
+            browser: entry.browser,
+            operatingSystem: entry.operatingSystem,
+          })),
+        total: history.length,
+        page,
+        pageSize,
+      });
     }
-    if (sessionMatch[2] === "session-policy" && method === "GET") return envelope(policy());
-    if (!(sessionMatch[2] === "session-policy" && method === "PATCH") && !(sessionMatch[2] === "sessions/revoke" && method === "POST")) reject(405, "METHOD_NOT_ALLOWED", "Phương thức không hợp lệ.");
-    const b = obj(req.body), reason = typeof b.reason === "string" ? b.reason.trim() : "";
-    if (!reason || reason.length > 500) reject(422, "VALIDATION_ERROR", "Nhập lý do từ 1 đến 500 ký tự.");
+    if (sessionMatch[2] === "session-policy" && method === "GET")
+      return envelope(policy());
+    if (
+      !(sessionMatch[2] === "session-policy" && method === "PATCH") &&
+      !(sessionMatch[2] === "sessions/revoke" && method === "POST")
+    )
+      reject(405, "METHOD_NOT_ALLOWED", "Phương thức không hợp lệ.");
+    const b = obj(req.body),
+      reason = typeof b.reason === "string" ? b.reason.trim() : "";
+    if (!reason || reason.length > 500)
+      reject(422, "VALIDATION_ERROR", "Nhập lý do từ 1 đến 500 ký tự.");
     const revoke = sessionMatch[2] === "sessions/revoke";
-    if (revoke && policy().managerProtected) reject(403, "MANAGER_PROTECTED", "Không được buộc hết phiên tài khoản có vai trò MANAGER.");
-    if (b.version !== a.version) reject(409, "VERSION_CONFLICT", "Dữ liệu đã thay đổi. Tải lại để xem phiên bản mới.");
+    if (revoke && policy().managerProtected)
+      reject(
+        403,
+        "MANAGER_PROTECTED",
+        "Không được buộc hết phiên tài khoản có vai trò MANAGER.",
+      );
+    if (b.version !== a.version)
+      reject(
+        409,
+        "VERSION_CONFLICT",
+        "Dữ liệu đã thay đổi. Tải lại để xem phiên bản mới.",
+      );
     let revokedSessions = 0;
     if (revoke) {
-      const tokens = activeTokens(), students = studentSessions();
+      const tokens = activeTokens(),
+        students = studentSessions();
       revokedSessions = tokens.length + students.length;
       for (const [token] of tokens) delete db.tokens[token];
       for (const s of students) s.revokedAt = now();
-      for (const entry of m.loginHistory ?? []) if (entry.accountId === a.id && !entry.revokedAt && Date.parse(entry.expiresAt) > Date.now()) entry.revokedAt = now();
+      for (const entry of m.loginHistory ?? [])
+        if (
+          entry.accountId === a.id &&
+          !entry.revokedAt &&
+          Date.parse(entry.expiresAt) > Date.now()
+        )
+          entry.revokedAt = now();
     } else {
-      const lifetime = b.sessionLifetimeMinutes ?? null, duration = b.sessionDuration ?? null;
-      if (lifetime !== null && duration !== null) reject(422, "VALIDATION_ERROR", "Chỉ chọn một cách đặt thời hạn phiên.");
-      try { sessionExpiry(now(), duration as SessionDuration | null, lifetime as number | undefined ?? 60); } catch (error) { reject(422, "VALIDATION_ERROR", error instanceof Error ? error.message : "Thời hạn không hợp lệ."); }
-      a.sessionLifetimeMinutes = lifetime as number | null; a.sessionDuration = duration as SessionDuration | null;
+      const lifetime = b.sessionLifetimeMinutes ?? null,
+        duration = b.sessionDuration ?? null;
+      if (lifetime !== null && duration !== null)
+        reject(
+          422,
+          "VALIDATION_ERROR",
+          "Chỉ chọn một cách đặt thời hạn phiên.",
+        );
+      try {
+        sessionExpiry(
+          now(),
+          duration as SessionDuration | null,
+          (lifetime as number | undefined) ?? 60,
+        );
+      } catch (error) {
+        reject(
+          422,
+          "VALIDATION_ERROR",
+          error instanceof Error ? error.message : "Thời hạn không hợp lệ.",
+        );
+      }
+      a.sessionLifetimeMinutes = lifetime as number | null;
+      a.sessionDuration = duration as SessionDuration | null;
     }
-    a.version++; a.updatedAt = now(); m.revision++;
-    m.audit.unshift({ id: uid(), at: now(), actorId: staff.id, action: revoke ? "REVOKE_SESSIONS" : "UPDATE_SESSION_POLICY", entity: "accounts", ids: [a.id], reason, changes: [{ id: a.id, fields: [revoke ? "sessions" : "sessionLifetimeMinutes"] }] });
-    save(db); return envelope(revoke ? { revokedSessions, policy: policy() } : policy());
+    a.version++;
+    a.updatedAt = now();
+    m.revision++;
+    m.audit.unshift({
+      id: uid(),
+      at: now(),
+      actorId: staff.id,
+      action: revoke ? "REVOKE_SESSIONS" : "UPDATE_SESSION_POLICY",
+      entity: "accounts",
+      ids: [a.id],
+      reason,
+      changes: [
+        { id: a.id, fields: [revoke ? "sessions" : "sessionLifetimeMinutes"] },
+      ],
+    });
+    save(db);
+    return envelope(revoke ? { revokedSessions, policy: policy() } : policy());
   }
   if (path === "/manager/dashboard")
     return envelope(
@@ -1401,13 +1683,37 @@ export async function managementRequest(
         status: filter.status ?? "",
       }),
     );
-  if (path === "/manager/identifiers/suggest" || path === "/manager/identifiers/check") {
-    const b = obj(req.body), entity = String(b.entity) as Entity;
-    if (!["students", "teachers", "classes", "labels"].includes(entity)) reject(400, "INVALID_ENTITY", "Nhóm không hợp lệ.");
-    const requestedId = String(b.id ?? "").trim() || (entity === "classes" ? `${m.settings?.classIdPrefix ?? "ess"}${Math.max(20, m.lastClassNumber ?? 20, ...m.classes.map(c => Number(c.id.match(/[0-9]+/)?.[0] ?? 0))) + 1}` : nameIdentifier(String(b.fullName ?? "")));
-    const used = new Set((entity === "classes" || entity === "labels" ? m[entity].map(r => r.id) : [...m.students.map(s => s.id), ...m.teachers.map(t => t.id), ...m.accounts.map(a => a.loginId)]).map(x => x.toLowerCase()));
-    if (b.excludeId) { used.delete(String(b.excludeId).toLowerCase()); }
-    return envelope({ id: availableIdentifier(requestedId, used), isAvailable: !used.has(requestedId.toLowerCase()), requestedId });
+  if (
+    path === "/manager/identifiers/suggest" ||
+    path === "/manager/identifiers/check"
+  ) {
+    const b = obj(req.body),
+      entity = String(b.entity) as Entity;
+    if (!["students", "teachers", "classes", "labels"].includes(entity))
+      reject(400, "INVALID_ENTITY", "Nhóm không hợp lệ.");
+    const requestedId =
+      String(b.id ?? "").trim() ||
+      (entity === "classes"
+        ? `${m.settings?.classIdPrefix ?? "ess"}${Math.max(20, m.lastClassNumber ?? 20, ...m.classes.map((c) => Number(c.id.match(/[0-9]+/)?.[0] ?? 0))) + 1}`
+        : nameIdentifier(String(b.fullName ?? "")));
+    const used = new Set(
+      (entity === "classes" || entity === "labels"
+        ? m[entity].map((r) => r.id)
+        : [
+            ...m.students.map((s) => s.id),
+            ...m.teachers.map((t) => t.id),
+            ...m.accounts.map((a) => a.loginId),
+          ]
+      ).map((x) => x.toLowerCase()),
+    );
+    if (b.excludeId) {
+      used.delete(String(b.excludeId).toLowerCase());
+    }
+    return envelope({
+      id: availableIdentifier(requestedId, used),
+      isAvailable: !used.has(requestedId.toLowerCase()),
+      requestedId,
+    });
   }
   if (path === "/manager/selection/count") {
     const b = obj(req.body),
@@ -1421,28 +1727,71 @@ export async function managementRequest(
   if (path === "/manager/warnings") return envelope(warningClasses(db));
   if (path === "/manager/audit") {
     const page = Math.max(1, Number(params.get("page")) || 1),
-      pageSize = Math.min(100, Math.max(1, Number(params.get("pageSize")) || 20)),
-      items = m.audit.map(e => { const person = m.teachers.find(t => t.id === e.actorId) ?? m.students.find(s => s.id === e.actorId); return { ...e, actorUserId: e.actorUserId ?? person?.id, actorLoginId: e.actorLoginId ?? m.accounts.find(a => a.profileId === e.actorId)?.loginId, actorName: e.actorName ?? person?.fullName ?? "Hệ thống" }; }).filter(
-        (e) =>
-          !params.get("search") ||
-          `${e.action} ${e.ids} ${e.actorId} ${e.actorName} ${e.actorLoginId}`.includes(params.get("search")!),
-      );
+      pageSize = Math.min(
+        100,
+        Math.max(1, Number(params.get("pageSize")) || 20),
+      ),
+      items = m.audit
+        .map((e) => {
+          const person =
+            m.teachers.find((t) => t.id === e.actorId) ??
+            m.students.find((s) => s.id === e.actorId);
+          return {
+            ...e,
+            actorUserId: e.actorUserId ?? person?.id,
+            actorLoginId:
+              e.actorLoginId ??
+              m.accounts.find((a) => a.profileId === e.actorId)?.loginId,
+            actorName: e.actorName ?? person?.fullName ?? "Hệ thống",
+          };
+        })
+        .filter(
+          (e) =>
+            !params.get("search") ||
+            `${e.action} ${e.ids} ${e.actorId} ${e.actorName} ${e.actorLoginId}`.includes(
+              params.get("search")!,
+            ),
+        );
     return envelope({
-      items: items.slice((page - 1) * pageSize, page * pageSize), page, pageSize,
+      items: items.slice((page - 1) * pageSize, page * pageSize),
+      page,
+      pageSize,
       total: items.length,
     });
   }
   if (path === "/manager/enrollments/dates" && method === "GET")
-    return envelope(enrollmentDates(db, params.get("classId") ?? "", params.get("studentId") ?? ""));
+    return envelope(
+      enrollmentDates(
+        db,
+        params.get("classId") ?? "",
+        params.get("studentId") ?? "",
+      ),
+    );
   if (path === "/manager/enrollments/dates/preview" && method === "POST") {
-    const {request} = checkEnrollmentDates(db, req.body);
+    const { request } = checkEnrollmentDates(db, req.body);
     const p: BulkPreview = {
-      previewId: uid(), version: 1, count: 1, scope: "Ngày ghi danh thực tế",
-      changes: [], impacts: [], warnings: [], errors: [], requiredConfirmations: ["ENROLLMENT_DATES"],
+      previewId: uid(),
+      version: 1,
+      count: 1,
+      scope: "Ngày ghi danh thực tế",
+      changes: [],
+      impacts: [],
+      warnings: [],
+      errors: [],
+      requiredConfirmations: ["ENROLLMENT_DATES"],
       expiresAt: new Date(Date.now() + 600000).toISOString(),
     };
-    m.previews[p.previewId] = {preview: p, request: {entity: "classes"}, revision: m.revision, actorId: staff.id,
-      extra: {kind: "enrollmentDates", id: request.classId, data: {...request}}};
+    m.previews[p.previewId] = {
+      preview: p,
+      request: { entity: "classes" },
+      revision: m.revision,
+      actorId: staff.id,
+      extra: {
+        kind: "enrollmentDates",
+        id: request.classId,
+        data: { ...request },
+      },
+    };
     save(db);
     return envelope(p);
   }

@@ -13,7 +13,10 @@ function channel(token: string) {
   }
   return value;
 }
-export function connectOperationChannel(token: string, send: (id: string) => void) {
+export function connectOperationChannel(
+  token: string,
+  send: (id: string) => void,
+) {
   const value = channel(token);
   value.send = send;
   for (const id of value.waiting.keys()) send(id);
@@ -24,11 +27,22 @@ export function connectOperationChannel(token: string, send: (id: string) => voi
 }
 export function receiveOperation(token: string, operation: Operation) {
   if (operation.status === "IN_PROGRESS") return;
-  for (const resolve of channels.get(token)?.waiting.get(operation.operationId) ?? []) resolve(operation);
+  for (const resolve of channels
+    .get(token)
+    ?.waiting.get(operation.operationId) ?? [])
+    resolve(operation);
 }
-export function waitForOperation(token: string, id: string, signal: AbortSignal, timeout = 120000): Promise<Operation> {
+export function waitForOperation(
+  token: string,
+  id: string,
+  signal: AbortSignal,
+  timeout = 120000,
+): Promise<Operation> {
   return new Promise((resolve, reject) => {
-    if (signal.aborted) { reject(new Error("Đã ngừng theo dõi tác vụ.")); return; }
+    if (signal.aborted) {
+      reject(new Error("Đã ngừng theo dõi tác vụ."));
+      return;
+    }
     const value = channel(token);
     const listeners = value.waiting.get(id) ?? new Set();
     const finish = (operation?: Operation) => {
@@ -38,7 +52,12 @@ export function waitForOperation(token: string, id: string, signal: AbortSignal,
       if (!listeners.size) value.waiting.delete(id);
       if (!value.waiting.size && !value.send) channels.delete(token);
       if (operation) resolve(operation);
-      else reject(new Error("Chưa nhận được kết quả qua socket. Tác vụ đã gửi vẫn được xử lý; kiểm tra trạng thái trước khi gửi lại."));
+      else
+        reject(
+          new Error(
+            "Chưa nhận được kết quả qua socket. Tác vụ đã gửi vẫn được xử lý; kiểm tra trạng thái trước khi gửi lại.",
+          ),
+        );
     };
     const abort = () => finish();
     const timer = setTimeout(abort, timeout);

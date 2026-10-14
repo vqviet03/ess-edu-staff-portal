@@ -187,13 +187,11 @@ test("import nguyên tử khi version đổi; idempotency không cập nhật ha
   const db = h.db(),
     a = db.assessments[0],
     rows = db.results[a.id],
-    changes = rows
-      .slice(0, 2)
-      .map((r) => ({
-        studentId: r.studentId,
-        before: structuredClone(r),
-        after: { ...structuredClone(r), overallAdvice: "Mới" },
-      }));
+    changes = rows.slice(0, 2).map((r) => ({
+      studentId: r.studentId,
+      before: structuredClone(r),
+      after: { ...structuredClone(r), overallAdvice: "Mới" },
+    }));
   const p: ImportPreview = {
     previewId: "p",
     expiresAt: new Date(Date.now() + 60000).toISOString(),
@@ -301,7 +299,17 @@ test("mock mode không gọi API thật và dữ liệu rỗng được hỗ tr�
   const db = h.db();
   db.classes = [];
   h.write(db);
-  h.runtime.getState = () => ({auth: {session: {accessToken: "demo-test", expiresAt: new Date(Date.now() + 60000).toISOString(), teacher}, status: "authenticated", message: null}});
+  h.runtime.getState = () => ({
+    auth: {
+      session: {
+        accessToken: "demo-test",
+        expiresAt: new Date(Date.now() + 60000).toISOString(),
+        teacher,
+      },
+      status: "authenticated",
+      message: null,
+    },
+  });
   const query = createAppBaseQuery({
     mock: true,
     mockAdapter: async (args) =>

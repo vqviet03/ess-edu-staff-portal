@@ -42,7 +42,7 @@ test("ba tab, tải phiên/học sinh khi mở và menu không điều hướng 
     page.getByRole("tab", { name: "Thread", exact: true }),
   ).toHaveAttribute("aria-selected", "true");
   await expect(
-    page.getByRole("button", { name: "Tạo bài đăng",exact:true }),
+    page.getByRole("button", { name: "Tạo bài đăng", exact: true }),
   ).toBeVisible();
   expect(
     requests.filter((p) =>

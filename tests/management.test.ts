@@ -115,35 +115,129 @@ function harness(initial = seed()) {
   };
 }
 test("đổi ID quản lý giữ enrollment/phân công, check trùng; tên lớp nhập tự do", async () => {
-  const h = harness(); await h.login();
+  const h = harness();
+  await h.login();
   const before = h.db().management!;
-  const student = before.students[0], teacher = before.teachers.find(t => t.id === "GV0001")!, label = before.labels[0], room = before.classes.find(c => c.id === "class-green")!;
-  for (const [entity, row, newId] of [["students", student, "student.new"], ["teachers", teacher, "teacher.new"], ["labels", label, "label.new"], ["classes", room, "class.new"]] as const) {
-    const check = await h.data<{ isAvailable: boolean }>("/manager/identifiers/check", "POST", { entity, id: newId, excludeId: row.id }); assert(check.isAvailable);
-    const preview = await h.preview(entity, [{ id: row.id, newId, version: row.version }]); assert.equal(preview.errors.length, 0, JSON.stringify(preview.errors)); assert.equal(preview.count, 1); await h.commit(preview);
-    assert(h.db().management![entity].some(r => r.id === newId)); assert(!h.db().management![entity].some(r => r.id === row.id));
+  const student = before.students[0],
+    teacher = before.teachers.find((t) => t.id === "GV0001")!,
+    label = before.labels[0],
+    room = before.classes.find((c) => c.id === "class-green")!;
+  for (const [entity, row, newId] of [
+    ["students", student, "student.new"],
+    ["teachers", teacher, "teacher.new"],
+    ["labels", label, "label.new"],
+    ["classes", room, "class.new"],
+  ] as const) {
+    const check = await h.data<{ isAvailable: boolean }>(
+      "/manager/identifiers/check",
+      "POST",
+      { entity, id: newId, excludeId: row.id },
+    );
+    assert(check.isAvailable);
+    const preview = await h.preview(entity, [
+      { id: row.id, newId, version: row.version },
+    ]);
+    assert.equal(preview.errors.length, 0, JSON.stringify(preview.errors));
+    assert.equal(preview.count, 1);
+    await h.commit(preview);
+    assert(h.db().management![entity].some((r) => r.id === newId));
+    assert(!h.db().management![entity].some((r) => r.id === row.id));
   }
-  const after = h.db().management!; assert(after.enrollments.some(e => e.studentId === "student.new" && e.classId === "class.new")); assert(after.assignments.some(a => a.teacherId === "teacher.new" && a.classId === "class.new"));
-  const edit = await h.preview("classes", [{ id: "class.new", name: "Tiếng Anh hè", code: "SUMMER", version: 2 }]); assert.equal(edit.errors.length, 0); await h.commit(edit); assert.equal(h.db().management!.classes.find(c => c.id === "class.new")?.name, "Tiếng Anh hè");
-  const duplicate = await h.preview("students", [{ id: "student.new", newId: "teacher.new", version: 2 }]); assert(duplicate.errors.length);
+  const after = h.db().management!;
+  assert(
+    after.enrollments.some(
+      (e) => e.studentId === "student.new" && e.classId === "class.new",
+    ),
+  );
+  assert(
+    after.assignments.some(
+      (a) => a.teacherId === "teacher.new" && a.classId === "class.new",
+    ),
+  );
+  const edit = await h.preview("classes", [
+    { id: "class.new", name: "Tiếng Anh hè", code: "SUMMER", version: 2 },
+  ]);
+  assert.equal(edit.errors.length, 0);
+  await h.commit(edit);
+  assert.equal(
+    h.db().management!.classes.find((c) => c.id === "class.new")?.name,
+    "Tiếng Anh hè",
+  );
+  const duplicate = await h.preview("students", [
+    { id: "student.new", newId: "teacher.new", version: 2 },
+  ]);
+  assert(duplicate.errors.length);
 });
 test("audit phân trang đúng phạm vi và có tên/ID người thao tác", async () => {
-  const initial = seed(); initial.management = managementSeed(initial);
-  for (let i = 0; i < 25; i++) initial.management.audit.push({ id: String(i), at: new Date().toISOString(), actorId: "MG0001", entity: "materials", action: "DELETE", ids: ["f"], reason: "", changes: [] });
-  const h = harness(initial); await h.login();
-  const first = await h.data<{ items: import("../src/features/management/models").AuditEvent[]; total: number }>("/manager/audit?page=1&pageSize=10&search=Nguyễn Mai");
-  const second = await h.data<typeof first>("/manager/audit?page=2&pageSize=10&search=Nguyễn Mai");
-  assert.equal(first.total, 25); assert.equal(first.items.length, 10); assert.equal(first.items[0].actorUserId, "MG0001"); assert(first.items[0].actorName?.includes("Nguyễn Mai")); assert(!first.items.some(a => second.items.some(b => a.id === b.id)));
+  const initial = seed();
+  initial.management = managementSeed(initial);
+  for (let i = 0; i < 25; i++)
+    initial.management.audit.push({
+      id: String(i),
+      at: new Date().toISOString(),
+      actorId: "MG0001",
+      entity: "materials",
+      action: "DELETE",
+      ids: ["f"],
+      reason: "",
+      changes: [],
+    });
+  const h = harness(initial);
+  await h.login();
+  const first = await h.data<{
+    items: import("../src/features/management/models").AuditEvent[];
+    total: number;
+  }>("/manager/audit?page=1&pageSize=10&search=Nguyễn Mai");
+  const second = await h.data<typeof first>(
+    "/manager/audit?page=2&pageSize=10&search=Nguyễn Mai",
+  );
+  assert.equal(first.total, 25);
+  assert.equal(first.items.length, 10);
+  assert.equal(first.items[0].actorUserId, "MG0001");
+  assert(first.items[0].actorName?.includes("Nguyễn Mai"));
+  assert(!first.items.some((a) => second.items.some((b) => a.id === b.id)));
 });
 test("tên / tiền tố chỉ áp dụng sau quản lý khác đồng ý, không cho tự duyệt", async () => {
-  const h = harness(); await h.login();
-  const p = await h.data<{ id: string; status: string }>("/manager/settings/proposals", "POST", { appName: "Leaf", classIdPrefix: "leaf", version: 1, reason: "Tên mới" }); assert.equal(p.status, "PENDING");
-  const own = await h.request(`/manager/settings/proposals/${p.id}/decision`, "POST", { decision: "APPROVED", version: 1 }); assert.equal(own.error?.status, 403);
-  assert.equal((await h.data<import("../src/features/settings/models").ApplicationSettings>("/application-settings")).appName, "ESS");
+  const h = harness();
+  await h.login();
+  const p = await h.data<{ id: string; status: string }>(
+    "/manager/settings/proposals",
+    "POST",
+    { appName: "Leaf", classIdPrefix: "leaf", version: 1, reason: "Tên mới" },
+  );
+  assert.equal(p.status, "PENDING");
+  const own = await h.request(
+    `/manager/settings/proposals/${p.id}/decision`,
+    "POST",
+    { decision: "APPROVED", version: 1 },
+  );
+  assert.equal(own.error?.status, 403);
+  assert.equal(
+    (
+      await h.data<
+        import("../src/features/settings/models").ApplicationSettings
+      >("/application-settings")
+    ).appName,
+    "ESS",
+  );
   await h.login("BOTH0001");
-  const decided = await h.data<{ status: string }>(`/manager/settings/proposals/${p.id}/decision`, "POST", { decision: "APPROVED", version: 1 }); assert.equal(decided.status, "APPLIED");
-  const settings = await h.data<import("../src/features/settings/models").ApplicationSettings>("/application-settings"); assert.equal(settings.appName, "Leaf"); assert.equal(settings.version, 2);
-  const check = await h.data<{ id: string }>("/manager/identifiers/suggest", "POST", { entity: "classes" }); assert(check.id.startsWith("leaf"));
+  const decided = await h.data<{ status: string }>(
+    `/manager/settings/proposals/${p.id}/decision`,
+    "POST",
+    { decision: "APPROVED", version: 1 },
+  );
+  assert.equal(decided.status, "APPLIED");
+  const settings = await h.data<
+    import("../src/features/settings/models").ApplicationSettings
+  >("/application-settings");
+  assert.equal(settings.appName, "Leaf");
+  assert.equal(settings.version, 2);
+  const check = await h.data<{ id: string }>(
+    "/manager/identifiers/suggest",
+    "POST",
+    { entity: "classes" },
+  );
+  assert(check.id.startsWith("leaf"));
 });
 test("ma trận quyền: role, trạng thái, workspace và phân công của chính lớp đều bắt buộc", () => {
   const base: Teacher = {
@@ -835,12 +929,22 @@ test("ngày tham gia: preview/commit cập nhật giai đoạn hiện tại, gi�
   const stale = await h.request("/manager/enrollments/preview", "POST", body);
   assert(stale.error);
   for (const day of ["1990-01-01", "2099-01-01"]) {
-    const current = h.db().management!.enrollments.find((e) => e.id === original.id)!;
-    const next = await h.data<BulkPreview>("/manager/enrollments/preview", "POST", {
-      ...body, version: current.version, joinedOn: day,
-    });
+    const current = h
+      .db()
+      .management!.enrollments.find((e) => e.id === original.id)!;
+    const next = await h.data<BulkPreview>(
+      "/manager/enrollments/preview",
+      "POST",
+      {
+        ...body,
+        version: current.version,
+        joinedOn: day,
+      },
+    );
     await h.commit(next);
-    const saved = h.db().management!.enrollments.find((e) => e.id === original.id)!;
+    const saved = h
+      .db()
+      .management!.enrollments.find((e) => e.id === original.id)!;
     assert.equal(saved.joinedOn, day);
     assert.equal(saved.history.length, original.history.length);
     assert.equal(saved.status, original.status);

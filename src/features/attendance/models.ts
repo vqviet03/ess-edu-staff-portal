@@ -1,4 +1,11 @@
-export type AttendanceStatus = "UNSET" | "PRESENT" | "ABSENT" | "REPLACED" | "HOLIDAY" | "PLANNED" | "CANCELLED";
+export type AttendanceStatus =
+  | "UNSET"
+  | "PRESENT"
+  | "ABSENT"
+  | "REPLACED"
+  | "HOLIDAY"
+  | "PLANNED"
+  | "CANCELLED";
 export type ReasonKind = "MAKEUP" | "SUPPLEMENTAL" | "OTHER";
 export interface AttendanceStats {
   present: number;

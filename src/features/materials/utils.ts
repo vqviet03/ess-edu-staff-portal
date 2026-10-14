@@ -21,7 +21,8 @@ export function fileKind(mime: string) {
 export function bytes(value: number) {
   if (value < 1024) return `${value} B`;
   const unit = value < 1024 ** 2 ? "KiB" : value < 1024 ** 3 ? "MiB" : "GiB";
-  const divisor = unit === "KiB" ? 1024 : unit === "MiB" ? 1024 ** 2 : 1024 ** 3;
+  const divisor =
+    unit === "KiB" ? 1024 : unit === "MiB" ? 1024 ** 2 : 1024 ** 3;
   return `${(value / divisor).toLocaleString("vi-VN", { maximumFractionDigits: 1 })} ${unit}`;
 }
 export function defaultArea(mime: string): Area {
@@ -93,8 +94,20 @@ export function validateUpload(file: File, max: number) {
   return null;
 }
 
-export function downloadName(file:{displayName:string;mimeType:string}){
- const extension:Record<string,string>={"image/avif":"avif","image/webp":"webp","image/jpeg":"jpg","image/png":"png","image/gif":"gif"};
- const suffix=extension[file.mimeType];if(!suffix||file.displayName.toLowerCase().endsWith("."+suffix)||suffix==="jpg"&&/\.jpeg$/i.test(file.displayName))return file.displayName;
- return file.displayName.replace(/\.[^.]+$/,"")+"."+suffix;
+export function downloadName(file: { displayName: string; mimeType: string }) {
+  const extension: Record<string, string> = {
+    "image/avif": "avif",
+    "image/webp": "webp",
+    "image/jpeg": "jpg",
+    "image/png": "png",
+    "image/gif": "gif",
+  };
+  const suffix = extension[file.mimeType];
+  if (
+    !suffix ||
+    file.displayName.toLowerCase().endsWith("." + suffix) ||
+    (suffix === "jpg" && /\.jpeg$/i.test(file.displayName))
+  )
+    return file.displayName;
+  return file.displayName.replace(/\.[^.]+$/, "") + "." + suffix;
 }

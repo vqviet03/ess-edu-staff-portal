@@ -7,7 +7,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import {PwaRuntime} from "@/features/pwa/runtime";
+import { PwaRuntime } from "@/features/pwa/runtime";
 import { Provider } from "react-redux";
 import { setupListeners } from "@reduxjs/toolkit/query";
 import { AppRouterCacheProvider } from "@mui/material-nextjs/v16-appRouter";
@@ -81,17 +81,26 @@ export function Providers({ children }: { children: ReactNode }) {
           components: {
             MuiButton: {
               defaultProps: { disableElevation: true, size: "small" },
-              styleOverrides: { root: { borderRadius: 8, "@media (pointer: coarse)": {minHeight:44} } },
+              styleOverrides: {
+                root: {
+                  borderRadius: 8,
+                  "@media (pointer: coarse)": { minHeight: 44 },
+                },
+              },
             },
             MuiIconButton: {
-              defaultProps: {size:"small"},
-              styleOverrides: { root: {"@media (pointer: coarse)": { minWidth:44,minHeight:44 }} },
+              defaultProps: { size: "small" },
+              styleOverrides: {
+                root: {
+                  "@media (pointer: coarse)": { minWidth: 44, minHeight: 44 },
+                },
+              },
             },
             MuiTextField: { defaultProps: { size: "small", fullWidth: true } },
-            MuiFormControl: {defaultProps:{size:"small"}},
-            MuiSelect: {defaultProps:{size:"small"}},
-            MuiInputBase: {defaultProps:{size:"small"}},
-            MuiChip: {defaultProps:{size:"small"}},
+            MuiFormControl: { defaultProps: { size: "small" } },
+            MuiSelect: { defaultProps: { size: "small" } },
+            MuiInputBase: { defaultProps: { size: "small" } },
+            MuiChip: { defaultProps: { size: "small" } },
             MuiOutlinedInput: {
               styleOverrides: { root: { borderRadius: 8 } },
             },
@@ -125,8 +134,12 @@ export function Providers({ children }: { children: ReactNode }) {
               styleOverrides: { root: { height: 7, borderRadius: 10 } },
             },
             MuiCheckbox: {
-              defaultProps: {size:"small"},
-              styleOverrides: { root: {"@media (pointer: coarse)": { minWidth:44,minHeight:44 }} },
+              defaultProps: { size: "small" },
+              styleOverrides: {
+                root: {
+                  "@media (pointer: coarse)": { minWidth: 44, minHeight: 44 },
+                },
+              },
             },
           },
         },
@@ -140,11 +153,14 @@ export function Providers({ children }: { children: ReactNode }) {
         <Preferences.Provider value={{ mode, setMode }}>
           <ThemeProvider theme={theme}>
             <CssBaseline />
-            <PwaRuntime/><AuthRuntime />
+            <PwaRuntime />
+            <AuthRuntime />
             <WorkspaceRuntime />
             <OperationsRuntime />
             <UnsavedRuntime />
-            <AppDisplayProvider storageKey="ess.staff.zoom">{children}</AppDisplayProvider>
+            <AppDisplayProvider storageKey="ess.staff.zoom">
+              {children}
+            </AppDisplayProvider>
           </ThemeProvider>
         </Preferences.Provider>
       </AppRouterCacheProvider>

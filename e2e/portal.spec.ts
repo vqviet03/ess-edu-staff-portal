@@ -1,7 +1,10 @@
 import { test, expect, type Page } from "@playwright/test";
 import { Workbook } from "exceljs";
 import { installHttpFixture } from "./support/http-fixture";
-test.beforeEach(async ({page}) => { if (process.env.NEXT_PUBLIC_USE_MOCK !== "true") await installHttpFixture(page); });
+test.beforeEach(async ({ page }) => {
+  if (process.env.NEXT_PUBLIC_USE_MOCK !== "true")
+    await installHttpFixture(page);
+});
 const context =
   "classId=class-green&sessionId=session-3&assessmentId=assessment-seven";
 async function login(page: Page) {
@@ -31,10 +34,12 @@ test("đăng nhập, reload, theme, deep links và 401", async ({ page }) => {
   await expect(
     page.getByRole("heading", { name: "Lớp học của tôi" }),
   ).toBeVisible();
-  await page.getByRole("button", {name: "Giao diện", exact: true}).click();
+  await page.getByRole("button", { name: "Giao diện", exact: true }).click();
   await page.getByRole("menuitem", { name: "Tối", exact: true }).click();
   await page.reload();
-  await expect(page.getByRole("button", {name: "Giao diện", exact: true})).toHaveAttribute("data-mode", "dark");
+  await expect(
+    page.getByRole("button", { name: "Giao diện", exact: true }),
+  ).toHaveAttribute("data-mode", "dark");
   for (const route of [
     "class/?classId=class-green",
     "session/?classId=class-green&sessionId=session-3",
@@ -91,8 +96,15 @@ test("sửa học sinh, tạo phiên và bài 2 kỹ năng; phiên mới không 
   await login(page);
   await page.goto("class/?classId=class-green");
   await page.getByRole("tab", { name: "Hồ sơ & quan hệ", exact: true }).click();
-  await page.getByRole("button", { name: "Thao tác học sinh Hữu Văn", exact: true }).click();
-  await page.getByRole("menuitem", { name: "Chỉnh sửa thông tin học sinh", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Thao tác học sinh Hữu Văn", exact: true })
+    .click();
+  await page
+    .getByRole("menuitem", {
+      name: "Chỉnh sửa thông tin học sinh",
+      exact: true,
+    })
+    .click();
   await page.getByLabel("Biệt danh").fill("Bon mới");
   await page.getByRole("button", { name: "Lưu học sinh" }).click();
   await expect(

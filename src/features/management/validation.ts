@@ -219,7 +219,16 @@ export const fields: Record<Entity, string[]> = {
     "notes",
   ],
   teachers: ["fullName", "id", "email", "phone", "roles", "status", "notes"],
-  classes: ["id", "nameSuffix", "name", "code", "schedule", "totalUnits", "status", "notes"],
+  classes: [
+    "id",
+    "nameSuffix",
+    "name",
+    "code",
+    "schedule",
+    "totalUnits",
+    "status",
+    "notes",
+  ],
   accounts: ["id", "loginId", "kind", "profileId", "roles", "status"],
   labels: ["id", "name", "status", "notes"],
 };

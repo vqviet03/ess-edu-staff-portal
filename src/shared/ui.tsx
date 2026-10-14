@@ -1,5 +1,5 @@
 "use client";
-import {AppIcon} from "@/features/pwa/app-icon";
+import { AppIcon } from "@/features/pwa/app-icon";
 import { Suspense, useEffect, type ReactNode } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -172,8 +172,9 @@ export function Shell({ children }: { children: ReactNode }) {
     pathname = usePathname();
   const { settings } = useApplicationSettings();
   useEffect(() => {
-    document.title = (settings.portals?.staff?.name||settings.appName) + " · Staff Portal";
-  }, [settings.appName,settings.portals?.staff?.name]);
+    document.title =
+      (settings.portals?.staff?.name || settings.appName) + " · Staff Portal";
+  }, [settings.appName, settings.portals?.staff?.name]);
   const auth = useAppSelector((s) => s.auth),
     dispatch = useAppDispatch(),
     router = useRouter();
@@ -305,7 +306,7 @@ export function Shell({ children }: { children: ReactNode }) {
             <Suspense>
               <Sidebar
                 manager={workspace.selected === "manager"}
-                appName={settings.portals?.staff?.name||settings.appName}
+                appName={settings.portals?.staff?.name || settings.appName}
               />
             </Suspense>
           )}
@@ -339,7 +340,8 @@ export function Shell({ children }: { children: ReactNode }) {
                   textDecoration: "none",
                 }}
               >
-                <AppIcon/>{settings.portals?.staff?.name||settings.appName}
+                <AppIcon />
+                {settings.portals?.staff?.name || settings.appName}
               </Typography>
               {headerControls}
             </Stack>
@@ -354,7 +356,7 @@ export function Shell({ children }: { children: ReactNode }) {
             >
               {useMock
                 ? "Bản demo · Dữ liệu giả lập được lưu trên thiết bị này."
-                : `${settings.portals?.staff?.name||settings.appName} · Cổng thông tin giảng viên`}
+                : `${settings.portals?.staff?.name || settings.appName} · Cổng thông tin giảng viên`}
             </Typography>
           </Box>
         </Box>

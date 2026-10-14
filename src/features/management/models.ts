@@ -43,8 +43,21 @@ export interface Account extends Versioned {
   sessionLifetimeMinutes?: number | null;
   sessionDuration?: SessionDuration | null;
 }
-export interface LoginHistoryEntry { loggedInAt: string; expiresAt: string; revokedAt: string | null; ipAddress: string | null; device: string | null; browser: string | null; operatingSystem: string | null }
-export interface LoginHistory { items: LoginHistoryEntry[]; total: number; page: number; pageSize: number }
+export interface LoginHistoryEntry {
+  loggedInAt: string;
+  expiresAt: string;
+  revokedAt: string | null;
+  ipAddress: string | null;
+  device: string | null;
+  browser: string | null;
+  operatingSystem: string | null;
+}
+export interface LoginHistory {
+  items: LoginHistoryEntry[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
 export interface AccountSessionPolicy {
   sessionDuration: SessionDuration | null;
   defaultLifetimeMinutes: number;

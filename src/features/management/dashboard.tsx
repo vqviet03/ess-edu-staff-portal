@@ -109,7 +109,10 @@ function Dashboard() {
               setExporting(true);
               const { statsWorkbook } = await import("./excel-workbook"),
                 { download } = await import("@/features/excel/workbook");
-              download(await statsWorkbook(stats, filter), `${exportPrefix()}_thong_ke.xlsx`);
+              download(
+                await statsWorkbook(stats, filter),
+                `${exportPrefix()}_thong_ke.xlsx`,
+              );
             } catch (e) {
               setError(errorMessage(e));
             } finally {

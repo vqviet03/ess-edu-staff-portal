@@ -1,7 +1,7 @@
 "use client";
-import {PortalPoliciesSettings} from "./portal-policies";
-import {PortalBrandingEditor} from "./portal-branding";
-import {defaultBranding} from "@/features/pwa/models";
+import { PortalPoliciesSettings } from "./portal-policies";
+import { PortalBrandingEditor } from "./portal-branding";
+import { defaultBranding } from "@/features/pwa/models";
 import { NotificationRetentionSettings } from "./notification-retention";
 import { publicId } from "@/shared/public-id";
 import Box from "@mui/material/Box";
@@ -13,57 +13,302 @@ import Chip from "@mui/material/Chip";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
-import { useDecideSettingsMutation, useProposeSettingsMutation, useSettingsProposalsQuery } from "@/api/settings-api";
+import {
+  useDecideSettingsMutation,
+  useProposeSettingsMutation,
+  useSettingsProposalsQuery,
+} from "@/api/settings-api";
 import { Card, Feedback, Title } from "@/shared/ui";
 import { useUnsaved } from "@/shared/unsaved";
 import { useAppSelector } from "@/store";
 import { ManagerOnly } from "@/features/management/shared";
 import { useApplicationSettings } from "./hooks";
 import type { ApplicationSettings } from "./models";
-export function SettingsPage() { return <ManagerOnly><SettingsContent /></ManagerOnly>; }
+export function SettingsPage() {
+  return (
+    <ManagerOnly>
+      <SettingsContent />
+    </ManagerOnly>
+  );
+}
 function SettingsContent() {
-  const { settings, query } = useApplicationSettings(), proposals = useSettingsProposalsQuery(undefined, { skip: !query.data || settings.schemaReady === false }), actor = useAppSelector(s => s.auth.session?.teacher.id);
-  return <><Title title="Cấu hình ứng dụng" subtitle="Đề xuất đổi tên và tiền tố gợi ý lớp. Các quản lý khác đồng ý trước khi áp dụng; ID lớp đã có được giữ nguyên." />
-    <Feedback loading={query.isLoading} error={query.error} retry={() => void query.refetch()} />
-    {query.data && settings.schemaReady === false && <Alert severity="warning">Cấu hình hệ thống chưa sẵn sàng. Cần chạy migration Core 022 qua job backend trước khi gửi đề xuất. Các màn hình khác vẫn dùng tên mặc định.</Alert>}
-    {query.data && settings.schemaReady !== false && <SettingsForm key={settings.version} settings={settings} />}
-    <NotificationRetentionSettings/><PortalPoliciesSettings/>
-    <Typography component="h2" variant="h6" sx={{ my: 2 }}>Đề xuất & xác nhận</Typography>
-    <Feedback loading={proposals.isLoading} error={proposals.error} retry={() => void proposals.refetch()} />
-    <Stack spacing={2}>{proposals.currentData?.items.map(p => <ProposalCard key={p.id + ":" + p.version} proposal={p} actor={actor} />)}</Stack>
-    {proposals.currentData && !proposals.currentData.items.length && <Feedback empty="Chưa có đề xuất." />}
-  </>;
+  const { settings, query } = useApplicationSettings(),
+    proposals = useSettingsProposalsQuery(undefined, {
+      skip: !query.data || settings.schemaReady === false,
+    }),
+    actor = useAppSelector((s) => s.auth.session?.teacher.id);
+  return (
+    <>
+      <Title
+        title="Cấu hình ứng dụng"
+        subtitle="Đề xuất đổi tên và tiền tố gợi ý lớp. Các quản lý khác đồng ý trước khi áp dụng; ID lớp đã có được giữ nguyên."
+      />
+      <Feedback
+        loading={query.isLoading}
+        error={query.error}
+        retry={() => void query.refetch()}
+      />
+      {query.data && settings.schemaReady === false && (
+        <Alert severity="warning">
+          Cấu hình hệ thống chưa sẵn sàng. Cần chạy migration Core 022 qua job
+          backend trước khi gửi đề xuất. Các màn hình khác vẫn dùng tên mặc
+          định.
+        </Alert>
+      )}
+      {query.data && settings.schemaReady !== false && (
+        <SettingsForm key={settings.version} settings={settings} />
+      )}
+      <NotificationRetentionSettings />
+      <PortalPoliciesSettings />
+      <Typography component="h2" variant="h6" sx={{ my: 2 }}>
+        Đề xuất & xác nhận
+      </Typography>
+      <Feedback
+        loading={proposals.isLoading}
+        error={proposals.error}
+        retry={() => void proposals.refetch()}
+      />
+      <Stack spacing={2}>
+        {proposals.currentData?.items.map((p) => (
+          <ProposalCard
+            key={p.id + ":" + p.version}
+            proposal={p}
+            actor={actor}
+          />
+        ))}
+      </Stack>
+      {proposals.currentData && !proposals.currentData.items.length && (
+        <Feedback empty="Chưa có đề xuất." />
+      )}
+    </>
+  );
 }
 function SettingsForm({ settings }: { settings: ApplicationSettings }) {
-  const [portals,setPortals]=useState(settings.portals??{student:{...defaultBranding},staff:{...defaultBranding}});
-  const [name, setName] = useState(settings.appName), [prefix, setPrefix] = useState(settings.classIdPrefix), [reason, setReason] = useState(""), [success, setSuccess] = useState("");
+  const [portals, setPortals] = useState(
+    settings.portals ?? {
+      student: { ...defaultBranding },
+      staff: { ...defaultBranding },
+    },
+  );
+  const [name, setName] = useState(settings.appName),
+    [prefix, setPrefix] = useState(settings.classIdPrefix),
+    [reason, setReason] = useState(""),
+    [success, setSuccess] = useState("");
   const [save, state] = useProposeSettingsMutation();
-  const dirty = name !== settings.appName || prefix !== settings.classIdPrefix || JSON.stringify(portals)!==JSON.stringify(settings.portals??{student:{...defaultBranding},staff:{...defaultBranding}});
+  const dirty =
+    name !== settings.appName ||
+    prefix !== settings.classIdPrefix ||
+    JSON.stringify(portals) !==
+      JSON.stringify(
+        settings.portals ?? {
+          student: { ...defaultBranding },
+          staff: { ...defaultBranding },
+        },
+      );
   useUnsaved(dirty && !success);
-  return <Card><Stack component="form" spacing={2} onSubmit={async e => {
-    e.preventDefault(); if (!window.confirm("Gửi đề xuất cho tất cả quản lý khác? Chỉ khi đủ đồng ý mới áp dụng. Nếu bạn là quản lý duy nhất, cấu hình sẽ được áp dụng sau xác nhận này.")) return;
-    try { const r = await save({ portals, appName: name.trim(), classIdPrefix: prefix, version: settings.version, reason, confirmSolo: true }).unwrap(); setSuccess(r.status === "APPLIED" ? "Đã áp dụng cấu hình." : "Đã gửi đề xuất, đang chờ các quản lý khác đồng ý."); } catch {}
-  }}>
-    <TextField label="Tên ứng dụng" value={name} onChange={e => { setName(e.target.value); setSuccess(""); }} slotProps={{ htmlInput: { maxLength: 80 } }} required />
-    <TextField label="Tiền tố gợi ý ID lớp" value={prefix} onChange={e => { setPrefix(e.target.value); setSuccess(""); }} error={!/^[a-z][a-z0-9-]{1,15}$/.test(prefix)} helperText={`2–16 ký tự; chữ thường, số, -. Ví dụ lớp mới: ${prefix}21. Có thể sửa ID khi tạo lớp.`} required />
-    {(["student","staff"] as const).map(portal=><PortalBrandingEditor key={portal} label={portal==="student"?"Ứng dụng học sinh":"Staff Portal"} value={portals[portal]} onChange={value=>{setPortals(p=>({...p,[portal]:value}));setSuccess("");}}/>)}
-    <TextField label="Lý do thay đổi" value={reason} onChange={e => setReason(e.target.value)} multiline required slotProps={{ htmlInput: { maxLength: 2000 } }} />
-    <Alert severity="info">Mọi quản lý khác đang hoạt động phải đồng ý. Đề xuất hết hạn sau 7 ngày; thay đổi danh sách quản lý hoặc phiên bản cấu hình yêu cầu gửi đề xuất mới.</Alert>
-    <Feedback error={state.error} />{success && <Alert severity="success">{success}</Alert>}
-    <Button type="submit" variant="contained" loading={state.isLoading} disabled={!dirty || !name.trim() || !reason.trim() || !/^[a-z][a-z0-9-]{1,15}$/.test(prefix)}>Gửi đề xuất thay đổi</Button>
-  </Stack></Card>;
+  return (
+    <Card>
+      <Stack
+        component="form"
+        spacing={2}
+        onSubmit={async (e) => {
+          e.preventDefault();
+          if (
+            !window.confirm(
+              "Gửi đề xuất cho tất cả quản lý khác? Chỉ khi đủ đồng ý mới áp dụng. Nếu bạn là quản lý duy nhất, cấu hình sẽ được áp dụng sau xác nhận này.",
+            )
+          )
+            return;
+          try {
+            const r = await save({
+              portals,
+              appName: name.trim(),
+              classIdPrefix: prefix,
+              version: settings.version,
+              reason,
+              confirmSolo: true,
+            }).unwrap();
+            setSuccess(
+              r.status === "APPLIED"
+                ? "Đã áp dụng cấu hình."
+                : "Đã gửi đề xuất, đang chờ các quản lý khác đồng ý.",
+            );
+          } catch {}
+        }}
+      >
+        <TextField
+          label="Tên ứng dụng"
+          value={name}
+          onChange={(e) => {
+            setName(e.target.value);
+            setSuccess("");
+          }}
+          slotProps={{ htmlInput: { maxLength: 80 } }}
+          required
+        />
+        <TextField
+          label="Tiền tố gợi ý ID lớp"
+          value={prefix}
+          onChange={(e) => {
+            setPrefix(e.target.value);
+            setSuccess("");
+          }}
+          error={!/^[a-z][a-z0-9-]{1,15}$/.test(prefix)}
+          helperText={`2–16 ký tự; chữ thường, số, -. Ví dụ lớp mới: ${prefix}21. Có thể sửa ID khi tạo lớp.`}
+          required
+        />
+        {(["student", "staff"] as const).map((portal) => (
+          <PortalBrandingEditor
+            key={portal}
+            label={portal === "student" ? "Ứng dụng học sinh" : "Staff Portal"}
+            value={portals[portal]}
+            onChange={(value) => {
+              setPortals((p) => ({ ...p, [portal]: value }));
+              setSuccess("");
+            }}
+          />
+        ))}
+        <TextField
+          label="Lý do thay đổi"
+          value={reason}
+          onChange={(e) => setReason(e.target.value)}
+          multiline
+          required
+          slotProps={{ htmlInput: { maxLength: 2000 } }}
+        />
+        <Alert severity="info">
+          Mọi quản lý khác đang hoạt động phải đồng ý. Đề xuất hết hạn sau 7
+          ngày; thay đổi danh sách quản lý hoặc phiên bản cấu hình yêu cầu gửi
+          đề xuất mới.
+        </Alert>
+        <Feedback error={state.error} />
+        {success && <Alert severity="success">{success}</Alert>}
+        <Button
+          type="submit"
+          variant="contained"
+          loading={state.isLoading}
+          disabled={
+            !dirty ||
+            !name.trim() ||
+            !reason.trim() ||
+            !/^[a-z][a-z0-9-]{1,15}$/.test(prefix)
+          }
+        >
+          Gửi đề xuất thay đổi
+        </Button>
+      </Stack>
+    </Card>
+  );
 }
-function ProposalCard({ proposal: p, actor }: { proposal: import("./models").SettingsProposal; actor?: string }) {
+function ProposalCard({
+  proposal: p,
+  actor,
+}: {
+  proposal: import("./models").SettingsProposal;
+  actor?: string;
+}) {
   const [decide, state] = useDecideSettingsMutation();
-  const canDecide = p.status === "PENDING" && p.proposedBy !== actor && p.requiredManagers.some(m => m.id === actor) && !p.approvals.includes(actor ?? "");
-  return <Card><Stack spacing={1}>
-    <Typography variant="h6">{p.appName} · tiền tố {p.classIdPrefix}</Typography>
-    {p.portals&&(["student","staff"] as const).map(portal=>{const b=p.portals![portal];return <Stack key={portal} direction="row" sx={{alignItems:"center",gap:1,bgcolor:b.background,color:b.foreground,p:1,borderRadius:1}}>{b.iconSvg?<Box component="img" src={`data:image/svg+xml,${encodeURIComponent(b.iconSvg)}`} width={40} height={40} alt=""/>:<MenuBook/>}<Typography>{portal==="student"?"Học sinh":"Staff"}: {b.name||p.appName}</Typography></Stack>})}
-    <Chip label={{ PENDING: "Chờ xác nhận", EXPIRED: "Hết hạn", APPLIED: "Đã áp dụng", REJECTED: "Đã từ chối" }[p.status]} sx={{ alignSelf: "start" }} />
-    <Typography>Đề xuất bởi {p.proposerName ?? "Quản lý"} · {p.reason}</Typography>
-    <Typography variant="body2">{p.approvals.length}/{p.requiredManagers.length} quản lý khác đã đồng ý · Hết hạn {new Date(p.expiresAt).toLocaleString("vi-VN")}</Typography>
-    {p.requiredManagers.map(m => <Typography key={m.id} variant="body2">{m.name} ({publicId(m.userId)}) · {p.approvals.includes(m.id) ? "Đã đồng ý" : "Chưa đồng ý"}</Typography>)}
-    <Feedback error={state.error} />
-    {canDecide && <Stack direction="row" spacing={1}>{(["APPROVED", "REJECTED"] as const).map(decision => <Button key={decision} loading={state.isLoading} variant={decision === "APPROVED" ? "contained" : "outlined"} onClick={async () => { if (!window.confirm(decision === "APPROVED" ? "Đồng ý áp dụng tên / tiền tố khi đủ xác nhận?" : "Từ chối đề xuất này?")) return; try { await decide({ id: p.id, version: p.version, decision }).unwrap(); } catch {} }}>{decision === "APPROVED" ? "Đồng ý" : "Từ chối"}</Button>)}</Stack>}
-  </Stack></Card>;
+  const canDecide =
+    p.status === "PENDING" &&
+    p.proposedBy !== actor &&
+    p.requiredManagers.some((m) => m.id === actor) &&
+    !p.approvals.includes(actor ?? "");
+  return (
+    <Card>
+      <Stack spacing={1}>
+        <Typography variant="h6">
+          {p.appName} · tiền tố {p.classIdPrefix}
+        </Typography>
+        {p.portals &&
+          (["student", "staff"] as const).map((portal) => {
+            const b = p.portals![portal];
+            return (
+              <Stack
+                key={portal}
+                direction="row"
+                sx={{
+                  alignItems: "center",
+                  gap: 1,
+                  bgcolor: b.background,
+                  color: b.foreground,
+                  p: 1,
+                  borderRadius: 1,
+                }}
+              >
+                {b.iconSvg ? (
+                  <Box
+                    component="img"
+                    src={`data:image/svg+xml,${encodeURIComponent(b.iconSvg)}`}
+                    width={40}
+                    height={40}
+                    alt=""
+                  />
+                ) : (
+                  <MenuBook />
+                )}
+                <Typography>
+                  {portal === "student" ? "Học sinh" : "Staff"}:{" "}
+                  {b.name || p.appName}
+                </Typography>
+              </Stack>
+            );
+          })}
+        <Chip
+          label={
+            {
+              PENDING: "Chờ xác nhận",
+              EXPIRED: "Hết hạn",
+              APPLIED: "Đã áp dụng",
+              REJECTED: "Đã từ chối",
+            }[p.status]
+          }
+          sx={{ alignSelf: "start" }}
+        />
+        <Typography>
+          Đề xuất bởi {p.proposerName ?? "Quản lý"} · {p.reason}
+        </Typography>
+        <Typography variant="body2">
+          {p.approvals.length}/{p.requiredManagers.length} quản lý khác đã đồng
+          ý · Hết hạn {new Date(p.expiresAt).toLocaleString("vi-VN")}
+        </Typography>
+        {p.requiredManagers.map((m) => (
+          <Typography key={m.id} variant="body2">
+            {m.name} ({publicId(m.userId)}) ·{" "}
+            {p.approvals.includes(m.id) ? "Đã đồng ý" : "Chưa đồng ý"}
+          </Typography>
+        ))}
+        <Feedback error={state.error} />
+        {canDecide && (
+          <Stack direction="row" spacing={1}>
+            {(["APPROVED", "REJECTED"] as const).map((decision) => (
+              <Button
+                key={decision}
+                loading={state.isLoading}
+                variant={decision === "APPROVED" ? "contained" : "outlined"}
+                onClick={async () => {
+                  if (
+                    !window.confirm(
+                      decision === "APPROVED"
+                        ? "Đồng ý áp dụng tên / tiền tố khi đủ xác nhận?"
+                        : "Từ chối đề xuất này?",
+                    )
+                  )
+                    return;
+                  try {
+                    await decide({
+                      id: p.id,
+                      version: p.version,
+                      decision,
+                    }).unwrap();
+                  } catch {}
+                }}
+              >
+                {decision === "APPROVED" ? "Đồng ý" : "Từ chối"}
+              </Button>
+            ))}
+          </Stack>
+        )}
+      </Stack>
+    </Card>
+  );
 }

@@ -48,10 +48,13 @@ const describeChange = (value: unknown): string => {
   if (value === null || typeof value !== "object") return showValue(value);
   if (Array.isArray(value)) return value.map(describeChange).join("\n");
   const item = value as Record<string, unknown>;
-  if ("joinedOn" in item) return `${item.joinedOn} → ${item.endedOn ?? "Đang học"} · ${showValue(item.status)}`;
+  if ("joinedOn" in item)
+    return `${item.joinedOn} → ${item.endedOn ?? "Đang học"} · ${showValue(item.status)}`;
   if ("count" in item) return `${item.count} bản ghi cần đối chiếu`;
-  return Object.entries(item).filter(([key]) => !/id$/i.test(key))
-    .map(([key, item]) => `${fieldNames[key] ?? key}: ${describeChange(item)}`).join("\n");
+  return Object.entries(item)
+    .filter(([key]) => !/id$/i.test(key))
+    .map(([key, item]) => `${fieldNames[key] ?? key}: ${describeChange(item)}`)
+    .join("\n");
 };
 export const showValue = (value: unknown): string =>
   value === null || value === "" || value === undefined
@@ -90,8 +93,10 @@ export function PreviewPanel({
     ASSIGNMENT_IMPACT:
       "Tôi xác nhận kết thúc các phân công hiện tại bị ảnh hưởng",
     INCOMPLETE_CLASS: "Tôi xác nhận ngoại lệ hoàn thành lớp chưa đủ Unit",
-    ENROLLMENT_DATES: "Tôi xác nhận ngày nhập học / nghỉ học thực tế của toàn bộ các đợt",
-    OUTSIDE_ENROLLMENT_HISTORY: "Tôi xác nhận giữ dữ liệu học tập ngoài thời gian đã sửa để đối chiếu; điểm danh ngoài khoảng không tính vào thống kê học sinh",
+    ENROLLMENT_DATES:
+      "Tôi xác nhận ngày nhập học / nghỉ học thực tế của toàn bộ các đợt",
+    OUTSIDE_ENROLLMENT_HISTORY:
+      "Tôi xác nhận giữ dữ liệu học tập ngoài thời gian đã sửa để đối chiếu; điểm danh ngoài khoảng không tính vào thống kê học sinh",
     RELATIONSHIP_IMPACT:
       "Tôi xác nhận thay đổi phân công / ghi danh và lưu lịch sử",
   };
@@ -102,7 +107,12 @@ export function PreviewPanel({
         Chưa ghi dữ liệu.
       </Alert>
       {error && <Alert severity="error">{error}</Alert>}
-      {state.isLoading && <Alert severity="info">Tác vụ đang xử lý. Hệ thống sẽ thông báo và tự cập nhật dữ liệu khi hoàn tất.</Alert>}
+      {state.isLoading && (
+        <Alert severity="info">
+          Tác vụ đang xử lý. Hệ thống sẽ thông báo và tự cập nhật dữ liệu khi
+          hoàn tất.
+        </Alert>
+      )}
       {preview.warnings.map((w, i) => (
         <Alert key={i} severity="warning">
           {w}
@@ -286,7 +296,9 @@ export function PreviewPanel({
             }
           }}
         >
-          {state.isLoading ? "Đang xử lý…" : `Xác nhận cập nhật ${preview.count} bản ghi`}
+          {state.isLoading
+            ? "Đang xử lý…"
+            : `Xác nhận cập nhật ${preview.count} bản ghi`}
         </Button>
       </Stack>
     </Stack>

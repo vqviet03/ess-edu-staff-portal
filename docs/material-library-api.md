@@ -30,40 +30,52 @@ Profile/folder/post/comment/notification DELETEs are **soft**. File DELETE/appro
 
 ## Endpoints
 
-| Method | Path | Request / response |
-|---|---|---|
-| GET | /material-folders?parentId=&search=&scope=current\|all | `{items:Folder[],nextCursor:null}` (bounded 500 nodes per request) |
-| GET | /material-folders/id/path | `{items:Folder[],nextCursor:null}` root-to-folder breadcrumb, scoped to school |
-| POST/PATCH | /material-folders[/id] | `{name,parentId,kind:PROGRAM\|LEVEL\|CUSTOM,version}` → Folder |
-| DELETE | /material-folders/id | `{version,reason}` |
-| GET | /materials?folderId=&search=&scope=&type=&sort=&cursor=&limit= | CursorPage<File>; type pdf/image/audio/video/other; sort name/name-desc/newest/size |
-| GET/PATCH | /materials/id | File / `{displayName,version}` |
-| POST | /materials/bulk-move | `{ids,folderId,versions:{[id]:version}}`, atomic max 100 |
-| GET | /materials/id/access-url?purpose=preview\|download | `{url,expiresAt}`; no persistent signed URL |
-| GET | /materials/id/audit-logs?page=&pageSize= | manager, paged audit + total + actor public/login ID and name |
-| GET/DELETE | /materials/id/deletion-impact / /materials/id | manager, usages / `{version,reason,linkAction}` physical purge queue |
-| POST | /materials/id/deletion-requests | `{reason,version}` |
-| GET | /material-deletion-requests | requests (own for teacher) + file + active post/session usages |
-| POST | /material-deletion-requests/id/decision | `{decision:APPROVED\|REJECTED,reason,linkAction,version}` |
-| GET | /material-upload-settings | maxUploadBytes, largeFileWarningBytes, areas; all Staff |
-| POST | /material-uploads/initiate | UploadInput → UploadTicket |
-| POST/DELETE | /material-uploads/id/complete / /material-uploads/id | `{version}`; completion is idempotent, cancellation retains reservation |
-| GET | /storages / /storage-alerts | manager, total/used/reserved/remaining bytes, percentage, threshold status |
-| GET/POST | /sessions/id/posts | CursorPage<Post> / PostInput |
-| GET/PATCH/DELETE | /posts/id | Post / PostInput / `{version,reason}` |
-| PUT/DELETE | /posts/id/reaction | `{reaction:LIKE\|LOVE\|CELEBRATE}` / remove; one per user |
-| GET/POST | /posts/id/comments | CursorPage<Comment> / `{body,parentId?,version?,materialIds?}` |
-| PATCH/DELETE | /comments/id | `{body,version,materialIds?}` / `{version,reason}` |
-| GET | /notifications?type=&isRead=&cursor=&limit= | CursorPage<Notification> + unreadCount |
-| PATCH/DELETE | /notifications/id | `{isRead,version}` / `{version}` |
-| POST | /notifications/read-all | marks currently accessible notifications read |
+| Method           | Path                                                           | Request / response                                                                  |
+| ---------------- | -------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| GET              | /material-folders?parentId=&search=&scope=current\|all         | `{items:Folder[],nextCursor:null}` (bounded 500 nodes per request)                  |
+| GET              | /material-folders/id/path                                      | `{items:Folder[],nextCursor:null}` root-to-folder breadcrumb, scoped to school      |
+| POST/PATCH       | /material-folders[/id]                                         | `{name,parentId,kind:PROGRAM\|LEVEL\|CUSTOM,version}` → Folder                      |
+| DELETE           | /material-folders/id                                           | `{version,reason}`                                                                  |
+| GET              | /materials?folderId=&search=&scope=&type=&sort=&cursor=&limit= | CursorPage<File>; type pdf/image/audio/video/other; sort name/name-desc/newest/size |
+| GET/PATCH        | /materials/id                                                  | File / `{displayName,version}`                                                      |
+| POST             | /materials/bulk-move                                           | `{ids,folderId,versions:{[id]:version}}`, atomic max 100                            |
+| GET              | /materials/id/access-url?purpose=preview\|download             | `{url,expiresAt}`; no persistent signed URL                                         |
+| GET              | /materials/id/audit-logs?page=&pageSize=                       | manager, paged audit + total + actor public/login ID and name                       |
+| GET/DELETE       | /materials/id/deletion-impact / /materials/id                  | manager, usages / `{version,reason,linkAction}` physical purge queue                |
+| POST             | /materials/id/deletion-requests                                | `{reason,version}`                                                                  |
+| GET              | /material-deletion-requests                                    | requests (own for teacher) + file + active post/session usages                      |
+| POST             | /material-deletion-requests/id/decision                        | `{decision:APPROVED\|REJECTED,reason,linkAction,version}`                           |
+| GET              | /material-upload-settings                                      | maxUploadBytes, largeFileWarningBytes, areas; all Staff                             |
+| POST             | /material-uploads/initiate                                     | UploadInput → UploadTicket                                                          |
+| POST/DELETE      | /material-uploads/id/complete / /material-uploads/id           | `{version}`; completion is idempotent, cancellation retains reservation             |
+| GET              | /storages / /storage-alerts                                    | manager, total/used/reserved/remaining bytes, percentage, threshold status          |
+| GET/POST         | /sessions/id/posts                                             | CursorPage<Post> / PostInput                                                        |
+| GET/PATCH/DELETE | /posts/id                                                      | Post / PostInput / `{version,reason}`                                               |
+| PUT/DELETE       | /posts/id/reaction                                             | `{reaction:LIKE\|LOVE\|CELEBRATE}` / remove; one per user                           |
+| GET/POST         | /posts/id/comments                                             | CursorPage<Comment> / `{body,parentId?,version?,materialIds?}`                      |
+| PATCH/DELETE     | /comments/id                                                   | `{body,version,materialIds?}` / `{version,reason}`                                  |
+| GET              | /notifications?type=&isRead=&cursor=&limit=                    | CursorPage<Notification> + unreadCount                                              |
+| PATCH/DELETE     | /notifications/id                                              | `{isRead,version}` / `{version}`                                                    |
+| POST             | /notifications/read-all                                        | marks currently accessible notifications read                                       |
 
 CursorPage = `{items:T[],nextCursor:string|null,total?,unreadCount?}`. Pagination is bounded (files 40, tree files 30, feed 10, comments 20); changing cursor swaps the page instead of mounting unbounded DOM. Tree loads each branch only upon expansion. Name search is debounced and currentData prevents stale-filter rendering. Bulk file selection survives navigation via stable ID; picker excludes folders.
 
 UploadInput example:
+
 ```json
-{"originalName":"Unit 1.pdf","mimeType":"application/pdf","sizeBytes":400000,"storageId":"CURRICULUM","folderId":null,"uploadSource":"session","sourceSessionId":"00000000-0000-0000-0000-000000000001","thumbnailMime":"image/webp","thumbnailBytes":9000}
+{
+  "originalName": "Unit 1.pdf",
+  "mimeType": "application/pdf",
+  "sizeBytes": 400000,
+  "storageId": "CURRICULUM",
+  "folderId": null,
+  "uploadSource": "session",
+  "sourceSessionId": "00000000-0000-0000-0000-000000000001",
+  "thumbnailMime": "image/webp",
+  "thumbnailBytes": 9000
+}
 ```
+
 Optional sourcePostId must belong to sourceSessionId. UploadTicket = `{uploadId,uploadUrl,thumbnailUploadUrl,method:"PUT",headers,expiresAt,version}`. UploadSource library, session or comment; comment destination is server-selected. Original name, author/upload provenance, object key are immutable; first direct-upload attachment records its sourcePostId. File DTO has id/originalName/displayName/mimeType/sizeBytes/thumbnailUrl/folderId/authorId/authorName/uploadedBy/uploadSource/sourceSessionId/sourcePostId/status/createdAt/updatedAt/version and manager-only storage fields.
 
 PostInput = `{title,body,status:DRAFT|PUBLISHED,version,attachments:[{materialId,group:LESSON|GUIDE|AUDIO}]}`. Plain multiline text, no HTML execution. Post includes author/publisher names, reaction counts/current reaction, commentCount and attachments with availability. Deleted ancestors/comments don't expose deleted content.

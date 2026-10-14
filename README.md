@@ -21,13 +21,13 @@ npm run dev
 
 ## API thật
 
-| Biến công khai | Mặc định / ý nghĩa |
-|---|---|
-| NEXT_PUBLIC_API_BASE_URL | URL Cloud Run đã có trong `.env.example`; root tự thêm `/v1` |
-| NEXT_PUBLIC_API_TIMEOUT_MS | `15000`, thời gian chờ request |
-| NEXT_PUBLIC_BASE_PATH | Trống local/root; `/ess-edu-staff-portal` cho project Pages |
+| Biến công khai             | Mặc định / ý nghĩa                                           |
+| -------------------------- | ------------------------------------------------------------ |
+| NEXT_PUBLIC_API_BASE_URL   | URL Cloud Run đã có trong `.env.example`; root tự thêm `/v1` |
+| NEXT_PUBLIC_API_TIMEOUT_MS | `15000`, thời gian chờ request                               |
+| NEXT_PUBLIC_BASE_PATH      | Trống local/root; `/ess-edu-staff-portal` cho project Pages  |
 
-Đổi `.env.local`, build lại; không sửa component. Production build thiếu/sai URL, mode hoặc timeout bị từ chối; không fallback mock. HTTP chỉ dùng localhost khi phát triển. Backend ESS đã hỗ trợ auth, giảng viên, quản lý và access theo lớp; mọi request vẫn cần kiểm tra quyền ở backend. Không đưa JWT signing key, mật khẩu DB hoặc secret vào NEXT_PUBLIC_*.
+Đổi `.env.local`, build lại; không sửa component. Production build thiếu/sai URL, mode hoặc timeout bị từ chối; không fallback mock. HTTP chỉ dùng localhost khi phát triển. Backend ESS đã hỗ trợ auth, giảng viên, quản lý và access theo lớp; mọi request vẫn cần kiểm tra quyền ở backend. Không đưa JWT signing key, mật khẩu DB hoặc secret vào NEXT*PUBLIC*\*.
 
 Đăng nhập mới xóa RTK Query cache để không giữ dữ liệu phiên trước. JWT cũ từ mock hoặc backend khác bị xóa khi khôi phục phiên; reload xác minh `/auth/me`. Logout gọi `POST /auth/logout` thu hồi session trên backend rồi xóa session và RTK Query cache; mạng lỗi vẫn đăng xuất tại browser. Login/link không gửi JWT cũ; phản hồi 401 đến muộn không xóa phiên mới. Models lưu thêm `teacherCode`, `roles`, `permissions` do backend trả, sẵn sàng cho tài khoản MANAGER/TEACHER cùng dùng portal.
 
@@ -90,19 +90,18 @@ Backend test phải cho phép CORS `http://127.0.0.1:4173`, có seed `GV000001 /
 
 `src/features/{auth,classes,students,sessions,assessments,scores,excel}`, `types`, `api`, `store`, `mock`, `theme`, `shared`, `utils`. Model, fixtures, adapter, endpoints và UI tách riêng. `tests/` kiểm tra công thức/null/0/schema/version/mode/import nguyên tử; `e2e/` kiểm tra thao tác trình duyệt/static/mobile. [API contract](docs/api-contract.md) mô tả nghiệp vụ giảng viên; [contract quản lý](docs/management-api-contract.md) mô tả API quản lý của backend ESS.
 
-
 ## Quản lý trong cùng ESS Staff Portal
 
 Không tạo app/auth/deployment riêng. Thiết kế [Figma](https://www.figma.com/design/FbROYl4kQMTW4XbvvShuWV?node-id=2-3004); sidebar xanh pastel, dashboard, bảng desktop/card mobile, sáng/tối/theo hệ thống. Chỉ tài khoản có cả TEACHER và MANAGER thấy switch; lựa chọn hợp lệ nhớ theo ID. Quản lý chỉ xem learning; sửa phiên/schema/điểm phải ở không gian Giảng viên và có phân công hợp lệ trong chính lớp ACTIVE.
 
 Các fixtures sau chỉ phục vụ unit test, không đăng nhập vào ứng dụng API thật (tất cả mật khẩu thử nghiệm `Demo123!`):
 
-| ID | Vai trò | Link đăng nhập demo dùng một lần |
-|---|---|---|
-| GV0001 | TEACHER | `/login/link/#code=teacher-demo` |
-| MG0001 | MANAGER | `/login/link/#code=manager-demo` |
-| BOTH0001 | TEACHER + MANAGER | `/login/link/#code=dual-demo` |
-| GV0002 | TEACHER (người phụ trách thứ hai) | Đăng nhập ID/password |
+| ID       | Vai trò                           | Link đăng nhập demo dùng một lần |
+| -------- | --------------------------------- | -------------------------------- |
+| GV0001   | TEACHER                           | `/login/link/#code=teacher-demo` |
+| MG0001   | MANAGER                           | `/login/link/#code=manager-demo` |
+| BOTH0001 | TEACHER + MANAGER                 | `/login/link/#code=dual-demo`    |
+| GV0002   | TEACHER (người phụ trách thứ hai) | Đăng nhập ID/password            |
 
 Thêm basePath repo trước route khi chạy Pages. Reset demo giữ cơ chế cũ, xóa dữ liệu demo và đăng xuất; dữ liệu mock mutations lưu localStorage. Đây là dữ liệu công khai giả lập. Account tạo mới PENDING không nhận mật khẩu demo; cấp link kích hoạt tại profile rồi đặt mật khẩu. Mock chỉ lưu hash demo cho mật khẩu mới, không mật khẩu rõ. Backend thật phải hash bằng cơ chế phù hợp và lưu code dạng digest.
 
@@ -198,17 +197,16 @@ Production vẫn dùng RTK Query/API thật và static export như cấu hình h
 
 Biểu đồ Unit, chênh lệch và điểm tích luỹ dùng Apache ECharts 6 (Apache-2.0, không cần license thương mại), tải theo màn hình báo cáo. Zoom/pan và slider là `dataZoom` native trên trục X: khung biểu đồ/trục Y luôn cố định, mặc định hiển thị các mốc mới nhất theo chiều rộng. Kéo biểu đồ/slider để xem lịch sử; chụm hai ngón hoặc Ctrl + lăn chuột để zoom, Shift + lăn chuột để pan. Icon −/+ thu/phóng, icon khung xem toàn bộ, icon cuối về dữ liệu mới nhất. Khi focus biểu đồ: ←/→ pan, +/− zoom, End về mới nhất. Trục ngày giữ khoảng cách thời gian thực và tooltip ngày/tháng/năm; ô null không thành 0. Giữ đủ 7 kỹ năng, 8 biểu đồ chênh lệch và 4 đường điểm tích luỹ, màu/chú thích/nút ẩn hiện theo giao diện MUI. Đường cong monotone-X đi qua điểm, không vượt giá trị hai đầu đoạn. Pan/zoom/ẩn hiện không gọi API và không có interval. GitHub Pages vẫn static export; không thay đổi cấu hình backend hoặc deployment.
 
-
 ## Lịch ngoại lệ, thông báo và thành viên
 
 Xem [hướng dẫn chức năng và API](docs/calendar-notifications-presence.md). Bản này cần migrations mới của backend trước khi dùng. Không có polling presence/notifications hoặc worker quét DB; tab ẩn đóng socket.
-
 
 ## Hồ sơ, avatar và thông báo
 
 Trang `/profile/` sửa thông tin cá nhân, đổi ID đăng nhập yêu cầu mật khẩu hiện tại; email/số điện thoại cá nhân là alias đăng nhập. Avatar dùng MUI và màu pastel hoặc upload ảnh qua API có xác thực. Xem [hướng dẫn và API](docs/personal-profile-notifications.md). Yêu cầu backend đã áp dụng migration Core 020, Materials 009, Notifications 004. Không thêm dependency hoặc polling.
 
 ### Xác minh phiên khi socket lỗi
+
 Socket đóng `1008/UNAUTHORIZED` không tự đăng xuất. Client gọi `/auth/me` qua RTK Query một lần, dùng chung request đang chạy. Chỉ HTTP 401 mới xóa phiên/cache; 403, lỗi mạng và 5xx giữ phiên. Nếu xác minh thành công, nối lại socket tối đa một lần trong vòng đời phiên/socket. Không polling, không retry timer; socket cũ không ảnh hưởng phiên mới.
 
 ## Tên miền riêng
@@ -224,7 +222,6 @@ Xem [hướng dẫn bài tập/API thật](docs/assignments.md): soạn form, l�
 Giao diện bài tập: đối chiếu frame desktop/mobile, theme và icon được ghi trong [docs/assignment-design.md](docs/assignment-design.md). Route `/assignment-report/` dùng query parameters và vẫn hỗ trợ static export.
 
 Liên kết qua đăng nhập, chia sẻ theo portal và preview toàn màn hình: [hướng dẫn](docs/post-links-preview.md).
-
 
 ### Post, ảnh và ứng dụng trên màn hình chính
 
