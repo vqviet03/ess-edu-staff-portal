@@ -9,6 +9,8 @@
 - `/student/info/`, `/student/report/`, `/student/assignments/`, `/student/rewards/`
 - `/manage/profile/thread/`, `/manage/profile/progress/`, `/manage/profile/profile/`, `/manage/profile/attendance/`, `/manage/profile/rewards/`
 
+The assessment creation dialog is URL-owned (`createAssessment=1`), so opening it from the materials page survives the transition to the assessments page. Sidebar active state includes nested pages.
+
 Existing root URLs and `?tab=` links remain valid, including notification/deep links. Selecting a main tab navigates to its static page and retains context query parameters. On nested pages, the route determines the selected tab. Small selections such as Unit, date range, folder, wizard step and file preview are view state, rather than separate pages.
 
 ## Back behavior

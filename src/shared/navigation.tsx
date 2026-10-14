@@ -189,7 +189,9 @@ export function Sidebar({
                     "/manage/list/",
                     "/manage/profile/",
                     "/manage/excel/",
-                  ].includes(pathname) && params.get("entity") === item.entity
+                    "/manage/grid/",
+                  ].some((parent) => pathname.startsWith(parent)) &&
+                  params.get("entity") === item.entity
                 : pathname === item.href ||
                   (item.href === "/home/" &&
                     [
@@ -203,7 +205,7 @@ export function Sidebar({
                       "/reports/",
                       "/assignment/",
                       "/assignment-report/",
-                    ].includes(pathname));
+                    ].some((parent) => pathname.startsWith(parent)));
               const Icon = item.icon;
               return (
                 <Tooltip

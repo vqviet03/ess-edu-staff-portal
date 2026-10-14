@@ -5,8 +5,8 @@ import { SessionFeed } from "@/features/materials/feed";
 import Box from "@mui/material/Box";
 import Tabs from "@mui/material/Tabs";
 import Tab from "@mui/material/Tab";
-import { useRef, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useState } from "react";
+import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import Alert from "@mui/material/Alert";
 import Button from "@mui/material/Button";
 import Dialog from "@mui/material/Dialog";
@@ -52,9 +52,22 @@ export function SessionDetail() {
     list = useAssessmentsQuery(sessionId, {
       skip: !ready || tab !== "assessments",
     });
-  const scrollPositions = useRef<Record<string, number>>({});
+  const router = useRouter(),
+    pathname = usePathname();
+  const creating = params.get("createAssessment") === "1";
+  const setCreating = (open: boolean) => {
+    const search = new URLSearchParams(params.toString());
+    if (open) {
+      if (!confirmLeave()) return;
+      search.delete("tab");
+      search.set("createAssessment", "1");
+      router.push(`/session/assessments/?${search}`, { scroll: false });
+    } else {
+      search.delete("createAssessment");
+      router.replace(`${pathname}?${search}`, { scroll: false });
+    }
+  };
   const [editing, setEditing] = useState(false),
-    [creating, setCreating] = useState(false),
     [message, setMessage] = useState(""),
     [create, state] = useCreateAssessmentMutation();
   if (!ready) return <Feedback empty="Thiếu classId hoặc sessionId." />;
@@ -117,7 +130,6 @@ export function SessionDetail() {
               disabled={!permissions.editLearning}
               variant="contained"
               onClick={() => {
-                setTab("assessments");
                 setCreating(true);
               }}
             >
@@ -129,11 +141,7 @@ export function SessionDetail() {
       <Tabs
         value={tab}
         onChange={(_, value: "materials" | "assessments") => {
-          scrollPositions.current[tab] = window.scrollY;
           setTab(value);
-          requestAnimationFrame(() =>
-            window.scrollTo({ top: scrollPositions.current[value] ?? 0 }),
-          );
         }}
         aria-label="Nội dung phiên học"
         sx={{ mb: 2 }}
