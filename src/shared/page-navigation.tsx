@@ -51,7 +51,7 @@ export function usePageBack(fallback: string) {
     const previous = safeReturnTo(history.state?.[entryKey]);
     // UnsavedRuntime validates native popstate once, just like the browser Back button.
     if (previous) router.back();
-    else if (confirmLeave()) router.replace(fallback);
+    else if (confirmLeave()) router.push(fallback);
   };
 }
 /** Small view state belongs in the URL, not in a second copy of local state. */
