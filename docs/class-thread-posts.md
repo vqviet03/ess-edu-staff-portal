@@ -29,7 +29,7 @@ Tạo/cập nhật:
   "status": "PUBLISHED",
   "postType": "SESSION_MATERIAL",
   "sessionId": "uuid-cua-phien-trong-lop",
-  "attachments": [{"materialId":"uuid-cua-file","group":"LESSON"}],
+  "attachments": [{ "materialId": "uuid-cua-file", "group": "LESSON" }],
   "version": 1
 }
 ```
@@ -51,7 +51,7 @@ DTO bổ sung `postType`, `sessionName`, `className`, `editedAt`, `canEdit`, `ca
 ## Triển khai
 
 1. Build image backend của PR này.
-2. Job migration hiện có: chọn image mới, giữ command/owner secret production **ConnectionStrings__MaterialsMigration**, chạy argument **--migrate-materials**. Migration mới **006_materials.sql** cho phép post không gắn phiên, thêm post_type/edited_at; giữ mọi bài và file cũ. Job idempotent qua migration history, không seed/reset dữ liệu.
+2. Job migration hiện có: chọn image mới, giữ command/owner secret production **ConnectionStrings\_\_MaterialsMigration**, chạy argument **--migrate-materials**. Migration mới **006_materials.sql** cho phép post không gắn phiên, thêm post_type/edited_at; giữ mọi bài và file cũ. Job idempotent qua migration history, không seed/reset dữ liệu.
 3. Sau khi job thành công, deploy backend image mới rồi merge/deploy các frontend từ dev khi đã review.
 
 Không cần biến Cloud Run, queue Cloud Tasks, Pub/Sub, JWT hoặc storage mới. Không tự chạy migration khi HTTP API khởi động. PR không tự chạy migration trên production hoặc merge.

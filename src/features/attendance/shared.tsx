@@ -82,7 +82,13 @@ export function AttendanceMetric({
 }
 export function AttendanceBadge({ status }: { status: string }) {
   const color =
-    status === "HOLIDAY" ? "orange" : status === "ABSENT" ? "red" : ["UNSET","PLANNED","CANCELLED"].includes(status) ? "blue" : "green";
+    status === "HOLIDAY"
+      ? "orange"
+      : status === "ABSENT"
+        ? "red"
+        : ["UNSET", "PLANNED", "CANCELLED"].includes(status)
+          ? "blue"
+          : "green";
   return (
     <Box
       component="span"
@@ -191,13 +197,13 @@ export function AttendanceCalendar({
         {cells.map((date) => {
           const item = byDate.get(date),
             color =
-              item?.isHoliday || item?.status==="HOLIDAY"
+              item?.isHoliday || item?.status === "HOLIDAY"
                 ? "orange"
                 : item?.status === "ABSENT"
-                ? "red"
-                : item?.status === "UNSET" && date <= today
-                  ? "blue"
-                  : "green";
+                  ? "red"
+                  : item?.status === "UNSET" && date <= today
+                    ? "blue"
+                    : "green";
           return (
             <Tooltip
               key={date}
@@ -231,21 +237,28 @@ export function AttendanceCalendar({
                   {Number(date.slice(-2))}
                 </Typography>
                 <Typography sx={{ fontSize: 10, color: "var(--att-muted)" }}>
-                  {item?.isPinned
-                    ? <PushPin aria-label="Lịch dự kiến đã ghim" sx={{fontSize:13,color:"var(--att-blue)"}}/>
-                    : item?.isHoliday ? "Nghỉ" : date === today
-                    ? "Nay"
-                    : item?.replaced
-                      ? "Bù"
-                      : item?.reasonKind
-                        ? "+"
-                        : item?.status === "SAVED" ||
-                            item?.status === "PRESENT" ||
-                            item?.status === "ABSENT"
-                          ? "•"
-                          : item?.scheduled
-                            ? "Lịch"
-                            : ""}
+                  {item?.isPinned ? (
+                    <PushPin
+                      aria-label="Lịch dự kiến đã ghim"
+                      sx={{ fontSize: 13, color: "var(--att-blue)" }}
+                    />
+                  ) : item?.isHoliday ? (
+                    "Nghỉ"
+                  ) : date === today ? (
+                    "Nay"
+                  ) : item?.replaced ? (
+                    "Bù"
+                  ) : item?.reasonKind ? (
+                    "+"
+                  ) : item?.status === "SAVED" ||
+                    item?.status === "PRESENT" ||
+                    item?.status === "ABSENT" ? (
+                    "•"
+                  ) : item?.scheduled ? (
+                    "Lịch"
+                  ) : (
+                    ""
+                  )}
                 </Typography>
               </ButtonBase>
             </Tooltip>
@@ -253,7 +266,8 @@ export function AttendanceCalendar({
         })}
       </Box>
       <Typography sx={{ fontSize: 12, color: "var(--att-muted)", mt: 1.5 }}>
-        Xanh: có mặt / theo lịch · Đỏ: vắng · Vàng: nghỉ học · Ghim: lịch dự kiến
+        Xanh: có mặt / theo lịch · Đỏ: vắng · Vàng: nghỉ học · Ghim: lịch dự
+        kiến
       </Typography>
       <Typography sx={{ fontSize: 12, color: "var(--att-muted)", mt: 1 }}>
         Ngày tương lai chỉ xem, không điểm danh.

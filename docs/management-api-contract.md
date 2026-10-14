@@ -26,17 +26,17 @@ Tương thích backend ESS cũ: login/exchange và bearer validation của backe
 
 Model đầy đủ ở `src/features/management/models.ts`. Mọi entity có `{id,version,createdAt,updatedAt}`.
 
-| Entity | Thuộc tính |
-|---|---|
-| Student | fullName, nickname, dateOfBirth, parentContact, notes, status ACTIVE/PAUSED/INACTIVE |
-| Staff profile | fullName, email, phone, notes, status ACTIVE/PAUSED/INACTIVE |
-| Class | code, name, schedule, notes, totalUnits, status DRAFT/ACTIVE/PAUSED/COMPLETED/INACTIVE, studentCount, completedUnits |
-| Account | loginId duy nhất (không phân biệt hoa/thường), profileId, kind STUDENT/STAFF, roles[], status PENDING/ACTIVE/LOCKED |
-| AssignmentLabel | name, notes, status ACTIVE/INACTIVE |
-| TeacherClassAssignment | classId, teacherId, labelId, status ACTIVE/ENDED/COMPLETED, startAt, endAt, requiresReconfirmation, history[] |
-| AssignmentPeriod | startAt, endAt, status, labelId, reason |
-| Enrollment | classId, studentId, status ACTIVE/ENDED/COMPLETED, history[{startAt,endAt,status,reason}] |
-| AuditEvent | at, actorId, action, entity, ids[], reason, changes[{id,fields[]}] |
+| Entity                 | Thuộc tính                                                                                                           |
+| ---------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| Student                | fullName, nickname, dateOfBirth, parentContact, notes, status ACTIVE/PAUSED/INACTIVE                                 |
+| Staff profile          | fullName, email, phone, notes, status ACTIVE/PAUSED/INACTIVE                                                         |
+| Class                  | code, name, schedule, notes, totalUnits, status DRAFT/ACTIVE/PAUSED/COMPLETED/INACTIVE, studentCount, completedUnits |
+| Account                | loginId duy nhất (không phân biệt hoa/thường), profileId, kind STUDENT/STAFF, roles[], status PENDING/ACTIVE/LOCKED  |
+| AssignmentLabel        | name, notes, status ACTIVE/INACTIVE                                                                                  |
+| TeacherClassAssignment | classId, teacherId, labelId, status ACTIVE/ENDED/COMPLETED, startAt, endAt, requiresReconfirmation, history[]        |
+| AssignmentPeriod       | startAt, endAt, status, labelId, reason                                                                              |
+| Enrollment             | classId, studentId, status ACTIVE/ENDED/COMPLETED, history[{startAt,endAt,status,reason}]                            |
+| AuditEvent             | at, actorId, action, entity, ids[], reason, changes[{id,fields[]}]                                                   |
 
 Một account liên kết một profile đúng loại; profile không bị đổi loại/liên kết qua edit thông thường. Student account có roles=[] và không vào Staff. Tạo account phải PENDING; profile mới có thể tạo cùng account bằng `createAccount:true`. Staff profile roles trong bảng/form được áp dụng vào account liên kết; không có account thì chọn roles lúc tạo account riêng. Không tự tạo phân công/enrollment từ profile/import.
 
@@ -44,43 +44,97 @@ Một account liên kết một profile đúng loại; profile không bị đổ
 
 Mọi endpoint `/manager/*` yêu cầu MANAGER, tài khoản/hồ sơ ACTIVE. Frontend dùng **cùng createApi/baseQuery**, không có auth/fetch thứ hai.
 
-| Method | URL | Input / response data |
-|---|---|---|
-| GET | /manager/dashboard?from=&to=&classId=&status= | DashboardStats (bên dưới) |
-| GET | /manager/warnings | Impact[] lớp ACTIVE không có giảng viên hợp lệ |
-| GET | /manager/{entity}?search=&status=&classId=&accountStatus=&role=&page=&pageSize= | `{items:Entity[],total,page,pageSize}`; entity students/teachers/classes/accounts/labels |
-| GET | /manager/{entity}/{id} | `{record,accounts,classes,assignments,enrollments,labels,teachers,students}` |
-| POST | /manager/selection/count | `{entity,selection}` → `{count}`; số chọn chính xác khi excluded IDs thay đổi |
-| POST | /manager/changes/preview | PreviewRequest → BulkPreview; dùng cho create/update/bulk/status/restore |
-| POST | /manager/changes/commit | CommitRequest + Idempotency-Key → `{updated}` |
-| GET | /manager/assignments?classId=&teacherId= | TeacherClassAssignment[] |
-| POST | /manager/assignments/preview | `{classId,teacherId,labelId,status,version?}` → BulkPreview |
-| POST | /manager/enrollments/preview | `{classId,studentId,status:"ACTIVE"|"ENDED",version?}` → BulkPreview |
-| POST | /manager/accounts/{id}/activation | `{code,expiresAt,kind}`; vô hiệu hóa link cũ |
-| POST | /auth/activate | public `{code,password}` → `{activated:true}`; không gửi bearer cũ |
-| GET | /manager/{students|teachers}/excel/template | binary .xlsx, template trống |
-| POST | /manager/{students|teachers}/excel/export | `{selection}` → binary .xlsx; Schema ghi scope/số lượng |
-| POST | /manager/{students|teachers}/excel/preview | multipart `file`, `mode=CREATE|UPDATE`, `clearFields` dấu phẩy → ImportPreview (= BulkPreview) |
-| GET | /manager/audit?page=&pageSize=&search= | `{items:AuditEvent[],total,page,pageSize}`; mặc định 20 items, actorUserId/actorLoginId/actorName |
+| Method | URL                                                                             | Input / response data                                                                             |
+| ------ | ------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- | ------------------------------------------------------- | --------------------------------------------------------------- |
+| GET    | /manager/dashboard?from=&to=&classId=&status=                                   | DashboardStats (bên dưới)                                                                         |
+| GET    | /manager/warnings                                                               | Impact[] lớp ACTIVE không có giảng viên hợp lệ                                                    |
+| GET    | /manager/{entity}?search=&status=&classId=&accountStatus=&role=&page=&pageSize= | `{items:Entity[],total,page,pageSize}`; entity students/teachers/classes/accounts/labels          |
+| GET    | /manager/{entity}/{id}                                                          | `{record,accounts,classes,assignments,enrollments,labels,teachers,students}`                      |
+| POST   | /manager/selection/count                                                        | `{entity,selection}` → `{count}`; số chọn chính xác khi excluded IDs thay đổi                     |
+| POST   | /manager/changes/preview                                                        | PreviewRequest → BulkPreview; dùng cho create/update/bulk/status/restore                          |
+| POST   | /manager/changes/commit                                                         | CommitRequest + Idempotency-Key → `{updated}`                                                     |
+| GET    | /manager/assignments?classId=&teacherId=                                        | TeacherClassAssignment[]                                                                          |
+| POST   | /manager/assignments/preview                                                    | `{classId,teacherId,labelId,status,version?}` → BulkPreview                                       |
+| POST   | /manager/enrollments/preview                                                    | `{classId,studentId,status:"ACTIVE"                                                               | "ENDED",version?}` → BulkPreview                        |
+| POST   | /manager/accounts/{id}/activation                                               | `{code,expiresAt,kind}`; vô hiệu hóa link cũ                                                      |
+| POST   | /auth/activate                                                                  | public `{code,password}` → `{activated:true}`; không gửi bearer cũ                                |
+| GET    | /manager/{students                                                              | teachers}/excel/template                                                                          | binary .xlsx, template trống                            |
+| POST   | /manager/{students                                                              | teachers}/excel/export                                                                            | `{selection}` → binary .xlsx; Schema ghi scope/số lượng |
+| POST   | /manager/{students                                                              | teachers}/excel/preview                                                                           | multipart `file`, `mode=CREATE                          | UPDATE`, `clearFields` dấu phẩy → ImportPreview (= BulkPreview) |
+| GET    | /manager/audit?page=&pageSize=&search=                                          | `{items:AuditEvent[],total,page,pageSize}`; mặc định 20 items, actorUserId/actorLoginId/actorName |
 
 Tạo/sửa từng hồ sơ, đổi trạng thái, bulk và import cùng preview/commit. Không tạo PATCH status bypass. Form edit gửi version hiện tại. Quan hệ đã tồn tại yêu cầu version của quan hệ; phân công lại dùng ID ổn định và thêm history. Label inactive không gắn mới; giữ nhãn các giai đoạn lịch sử.
 
 ### Preview/commit
 
 ```json
-{"entity":"teachers","selection":{"mode":"FILTER","filter":{"status":"ACTIVE","classId":"class-green"},"excludedIds":["GV0002"]},"patch":{"status":"INACTIVE","notes":"Nghỉ giảng dạy"},"mode":"UPDATE","clearFields":[]}
+{
+  "entity": "teachers",
+  "selection": {
+    "mode": "FILTER",
+    "filter": { "status": "ACTIVE", "classId": "class-green" },
+    "excludedIds": ["GV0002"]
+  },
+  "patch": { "status": "INACTIVE", "notes": "Nghỉ giảng dạy" },
+  "mode": "UPDATE",
+  "clearFields": []
+}
 ```
 
 Hoặc `selection:{mode:"IDS",ids:[...]}`. Thêm/sửa từng dòng:
 
 ```json
-{"entity":"students","mode":"CREATE","rows":[{"id":"HVNEW01","fullName":"Nguyễn An","nickname":"Bon","dateOfBirth":"2016-05-12","parentContact":"0900000000","status":"ACTIVE","notes":"","createAccount":true}]}
+{
+  "entity": "students",
+  "mode": "CREATE",
+  "rows": [
+    {
+      "id": "HVNEW01",
+      "fullName": "Nguyễn An",
+      "nickname": "Bon",
+      "dateOfBirth": "2016-05-12",
+      "parentContact": "0900000000",
+      "status": "ACTIVE",
+      "notes": "",
+      "createAccount": true
+    }
+  ]
+}
 ```
 
 Preview:
 
 ```json
-{"data":{"previewId":"opaque-id","version":1,"count":1,"scope":"Toàn bộ kết quả bộ lọc (server chốt tại preview)","changes":[{"entity":"teachers","id":"GV0001","before":{"id":"GV0001","status":"ACTIVE","version":1},"after":{"id":"GV0001","status":"INACTIVE","version":2},"row":2}],"impacts":[{"classId":"class-single","className":"Starters 02","remainingTeachers":[],"afterUnstaffed":true,"message":"Giữ nội dung học tập và lịch sử."}],"errors":[],"warnings":[],"requiredConfirmations":["STATUS_IMPACT","ASSIGNMENT_IMPACT"],"expiresAt":"2026-10-04T10:10:00Z"}}
+{
+  "data": {
+    "previewId": "opaque-id",
+    "version": 1,
+    "count": 1,
+    "scope": "Toàn bộ kết quả bộ lọc (server chốt tại preview)",
+    "changes": [
+      {
+        "entity": "teachers",
+        "id": "GV0001",
+        "before": { "id": "GV0001", "status": "ACTIVE", "version": 1 },
+        "after": { "id": "GV0001", "status": "INACTIVE", "version": 2 },
+        "row": 2
+      }
+    ],
+    "impacts": [
+      {
+        "classId": "class-single",
+        "className": "Starters 02",
+        "remainingTeachers": [],
+        "afterUnstaffed": true,
+        "message": "Giữ nội dung học tập và lịch sử."
+      }
+    ],
+    "errors": [],
+    "warnings": [],
+    "requiredConfirmations": ["STATUS_IMPACT", "ASSIGNMENT_IMPACT"],
+    "expiresAt": "2026-10-04T10:10:00Z"
+  }
+}
 ```
 
 `before/after` trên là ví dụ rút gọn; response thật chứa đầy đủ model. Commit:
@@ -100,12 +154,12 @@ Confirmations: STATUS_IMPACT, ASSIGNMENT_IMPACT, INCOMPLETE_CLASS, RELATIONSHIP_
 
 ### Lifecycle lớp và khôi phục
 
-* completedUnits = distinct unitNumber của phiên COMPLETED theo lớp; totalUnits >= Unit cao nhất của mọi phiên đã dùng (kể cả DRAFT). Giảm mẫu số có preview tiến độ trước/sau.
-* COMPLETED chuyển assignment ACTIVE → COMPLETED; lịch sử ENDED/COMPLETED khác giữ nguyên. Hoàn thành chưa đủ Unit cần INCOMPLETE_CLASS + lý do. Enrollment ACTIVE của lớp chuyển COMPLETED.
-* PAUSED khóa sửa và đánh dấu assignment đang ACTIVE cần xác nhận lại. Mở lại ACTIVE không tự khôi phục quyền: `assignmentConfirmed=false` đến khi quản lý xác nhận phân công riêng.
-* INACTIVE là thao tác mềm, kết thúc assignment ACTIVE; giữ hồ sơ/lịch sử/điểm. COMPLETED/INACTIVE mở lại cũng cần phân công riêng.
-* Restore profile ACTIVE không tự khôi phục assignment/enrollment. Ghi danh lại giữ ID quan hệ và thêm giai đoạn; điểm/báo cáo cũ không mất. Cảnh báo ACTIVE chưa có người chỉ hết khi có assignment ACTIVE, confirmed, profile/account ACTIVE và TEACHER hoặc lớp ra khỏi ACTIVE.
-* `GET /classes/{id}/students?includeHistory=true` phục vụ bảng/form đọc điểm lịch sử (cả học sinh đã ngừng/ghi danh đã kết thúc); danh sách lớp hiện tại mặc định chỉ ACTIVE. Dòng lịch sử chỉ xem. Backend cũng chặn ghi điểm cho enrollment/profile không còn hoạt động.
+- completedUnits = distinct unitNumber của phiên COMPLETED theo lớp; totalUnits >= Unit cao nhất của mọi phiên đã dùng (kể cả DRAFT). Giảm mẫu số có preview tiến độ trước/sau.
+- COMPLETED chuyển assignment ACTIVE → COMPLETED; lịch sử ENDED/COMPLETED khác giữ nguyên. Hoàn thành chưa đủ Unit cần INCOMPLETE_CLASS + lý do. Enrollment ACTIVE của lớp chuyển COMPLETED.
+- PAUSED khóa sửa và đánh dấu assignment đang ACTIVE cần xác nhận lại. Mở lại ACTIVE không tự khôi phục quyền: `assignmentConfirmed=false` đến khi quản lý xác nhận phân công riêng.
+- INACTIVE là thao tác mềm, kết thúc assignment ACTIVE; giữ hồ sơ/lịch sử/điểm. COMPLETED/INACTIVE mở lại cũng cần phân công riêng.
+- Restore profile ACTIVE không tự khôi phục assignment/enrollment. Ghi danh lại giữ ID quan hệ và thêm giai đoạn; điểm/báo cáo cũ không mất. Cảnh báo ACTIVE chưa có người chỉ hết khi có assignment ACTIVE, confirmed, profile/account ACTIVE và TEACHER hoặc lớp ra khỏi ACTIVE.
+- `GET /classes/{id}/students?includeHistory=true` phục vụ bảng/form đọc điểm lịch sử (cả học sinh đã ngừng/ghi danh đã kết thúc); danh sách lớp hiện tại mặc định chỉ ACTIVE. Dòng lịch sử chỉ xem. Backend cũng chặn ghi điểm cho enrollment/profile không còn hoạt động.
 
 ## Dashboard/statistics
 
@@ -128,17 +182,17 @@ CREATE không chấp nhận ID đã có; UPDATE yêu cầu ID đã có. Ô trố
 
 ## Lỗi và vận hành
 
-| HTTP | Code ví dụ | Xử lý |
-|---|---|---|
-| 400 | INVALID_BODY / INVALID_CODE | Request/mã sai |
-| 401 | UNAUTHORIZED / TOKEN_EXPIRED / ACCOUNT_LOCKED | Xóa browser session + toàn RTK cache, login |
-| 403 | FORBIDDEN / STAFF_REQUIRED | Không có quyền, giữ session |
-| 404 | NOT_FOUND / PREVIEW_NOT_FOUND | Không tồn tại hoặc ngoài tenant; không lộ thông tin |
-| 409 | VERSION_CONFLICT / IDEMPOTENCY_CONFLICT | Tải lại/preview mới; không tự ghi đè |
-| 410 | PREVIEW_EXPIRED / CODE_USED / ACTIVATION_EXPIRED | Cấp link / tạo preview mới |
-| 422 | VALIDATION_ERROR / CONFIRM_REQUIRED / REASON_REQUIRED / INVALID_TEMPLATE | Giữ form, chỉ lỗi rõ |
-| 429 | RATE_LIMITED | Hiển thị thử lại, backend Retry-After |
-| 500 | INTERNAL_ERROR | Lỗi chung, không lộ DB/secrets |
+| HTTP | Code ví dụ                                                               | Xử lý                                               |
+| ---- | ------------------------------------------------------------------------ | --------------------------------------------------- |
+| 400  | INVALID_BODY / INVALID_CODE                                              | Request/mã sai                                      |
+| 401  | UNAUTHORIZED / TOKEN_EXPIRED / ACCOUNT_LOCKED                            | Xóa browser session + toàn RTK cache, login         |
+| 403  | FORBIDDEN / STAFF_REQUIRED                                               | Không có quyền, giữ session                         |
+| 404  | NOT_FOUND / PREVIEW_NOT_FOUND                                            | Không tồn tại hoặc ngoài tenant; không lộ thông tin |
+| 409  | VERSION_CONFLICT / IDEMPOTENCY_CONFLICT                                  | Tải lại/preview mới; không tự ghi đè                |
+| 410  | PREVIEW_EXPIRED / CODE_USED / ACTIVATION_EXPIRED                         | Cấp link / tạo preview mới                          |
+| 422  | VALIDATION_ERROR / CONFIRM_REQUIRED / REASON_REQUIRED / INVALID_TEMPLATE | Giữ form, chỉ lỗi rõ                                |
+| 429  | RATE_LIMITED                                                             | Hiển thị thử lại, backend Retry-After               |
+| 500  | INTERNAL_ERROR                                                           | Lỗi chung, không lộ DB/secrets                      |
 
 CORS allow origin `https://vqviet03.github.io` (không có path repo), headers Authorization, Content-Type, Idempotency-Key; methods GET/POST/PATCH/PUT/OPTIONS. Expose Content-Disposition cho tải .xlsx, Retry-After. JWT issuer/audience/signature/exp kiểm phía backend. Activation/exchange code ngẫu nhiên crypto, chỉ lưu digest, TTL ngắn, consume một lần trong transaction; không log code/password/token. Đặt lại mật khẩu thu hồi phiên cũ. Backend cần index/unique tenant+ID/loginId, unique teacherId+classId/enrollment studentId+classId, history append-only và audit.
 

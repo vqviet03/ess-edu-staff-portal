@@ -1,8 +1,12 @@
 "use client";
-import {ClassNotificationSettings} from "@/features/notifications/class-settings";
-import {ClassPresenceContext,ClassMembersButton} from "@/features/presence/roster";
+import { ClassNotificationSettings } from "@/features/notifications/class-settings";
+import {
+  ClassPresenceContext,
+  ClassMembersButton,
+} from "@/features/presence/roster";
 import dynamic from "next/dynamic";
 import { useState } from "react";
+import { useSectionTab } from "@/shared/page-navigation";
 import { useSearchParams } from "next/navigation";
 import Box from "@mui/material/Box";
 import Snackbar from "@mui/material/Snackbar";
@@ -130,7 +134,11 @@ function TeacherClassDashboard({
 }) {
   const query = useClassQuery(id),
     permissions = useClassCapabilities(id),
-    [tab, setTab] = useState(initialTab);
+    [tab, setTab] = useSectionTab(
+      "class",
+      ["thread", "progress", "profile", "attendance"] as const,
+      initialTab,
+    );
   if (
     permissions.loading ||
     query.isLoading ||
@@ -162,15 +170,22 @@ function TeacherClassDashboard({
       <Title
         title={c.name}
         subtitle={`${c.code} · ${c.studentCount} học sinh`}
-        actions={<NavButton href="/home/">← Danh sách lớp</NavButton>}
+        actions={
+          <NavButton back href="/home/">
+            ← Danh sách lớp
+          </NavButton>
+        }
       />
       <ClassRewardActions
         classId={c.id}
         name={c.name}
         editable={permissions.editLearning}
       />
-      <ClassPresenceContext classId={c.id}/>
-      <Stack direction="row"><ClassMembersButton classId={c.id}/><ClassNotificationSettings classId={c.id}/></Stack>
+      <ClassPresenceContext classId={c.id} />
+      <Stack direction="row">
+        <ClassMembersButton classId={c.id} />
+        <ClassNotificationSettings classId={c.id} />
+      </Stack>
       <ClassDetailTabs
         attendance={<AttendancePanel classId={c.id} />}
         value={tab}

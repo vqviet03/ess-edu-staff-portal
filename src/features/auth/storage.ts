@@ -21,12 +21,33 @@ export function expired(session: AuthSession) {
 }
 export function readSession(): AuthSession | null {
   try {
-    const raw = localStorage.getItem(SESSION_KEY) ?? sessionStorage.getItem(SESSION_KEY);
+    const raw =
+      localStorage.getItem(SESSION_KEY) ?? sessionStorage.getItem(SESSION_KEY);
     if (!raw) return null;
-    const s = JSON.parse(raw) as AuthSession & {apiMock?: boolean; apiBaseUrl?: string};
-    const valid = typeof s?.accessToken === "string" && s.accessToken.length > 0 && typeof s.expiresAt === "string" && typeof s.teacher?.id === "string" && s.teacher.id.length > 0 && typeof s.teacher.name === "string";
-    const correctBackend = s?.apiMock === undefined || (s.apiMock === apiConfiguration.mock && s.apiBaseUrl === apiConfiguration.baseUrl);
-    if (valid && correctBackend && (apiConfiguration.mock || !s.accessToken.startsWith("demo-")) && !expired(s)) { writeSession(s); return s; }
+    const s = JSON.parse(raw) as AuthSession & {
+      apiMock?: boolean;
+      apiBaseUrl?: string;
+    };
+    const valid =
+      typeof s?.accessToken === "string" &&
+      s.accessToken.length > 0 &&
+      typeof s.expiresAt === "string" &&
+      typeof s.teacher?.id === "string" &&
+      s.teacher.id.length > 0 &&
+      typeof s.teacher.name === "string";
+    const correctBackend =
+      s?.apiMock === undefined ||
+      (s.apiMock === apiConfiguration.mock &&
+        s.apiBaseUrl === apiConfiguration.baseUrl);
+    if (
+      valid &&
+      correctBackend &&
+      (apiConfiguration.mock || !s.accessToken.startsWith("demo-")) &&
+      !expired(s)
+    ) {
+      writeSession(s);
+      return s;
+    }
     writeSession(null);
     return null;
   } catch {
@@ -38,8 +59,20 @@ export function readSession(): AuthSession | null {
 }
 export function writeSession(session: AuthSession | null) {
   try {
-    if (session) localStorage.setItem(SESSION_KEY, JSON.stringify({...session, apiMock: apiConfiguration.mock, apiBaseUrl: apiConfiguration.baseUrl}));
+    if (session)
+      localStorage.setItem(
+        SESSION_KEY,
+        JSON.stringify({
+          ...session,
+          apiMock: apiConfiguration.mock,
+          apiBaseUrl: apiConfiguration.baseUrl,
+        }),
+      );
     else localStorage.removeItem(SESSION_KEY);
-  } catch { /* The active session stays in Redux if persistent storage is unavailable. */ }
-  try { sessionStorage.removeItem(SESSION_KEY); } catch {}
+  } catch {
+    /* The active session stays in Redux if persistent storage is unavailable. */
+  }
+  try {
+    sessionStorage.removeItem(SESSION_KEY);
+  } catch {}
 }

@@ -1,5 +1,5 @@
 "use client";
-import {NotificationContent} from "@/features/notifications/content";
+import { NotificationContent } from "@/features/notifications/content";
 import { useState } from "react";
 import Stack from "@mui/material/Stack";
 import Paper from "@mui/material/Paper";
@@ -63,9 +63,24 @@ export function DeletionPage() {
           <Stack spacing={2}>
             <Typography variant="h6">{d.file.displayName}</Typography>
             <Typography>Lý do: {d.request.reason}</Typography>
-            <Chip label={d.request.status} /><Typography variant="body2">Tài liệu: {d.file.status === "DELETED" ? "Đã xóa khỏi storage" : d.file.status === "DELETING" ? "Đang chờ server xóa file và thumbnail" : "Đang lưu trữ"}</Typography>
+            <Chip label={d.request.status} />
+            <Typography variant="body2">
+              Tài liệu:{" "}
+              {d.file.status === "DELETED"
+                ? "Đã xóa khỏi storage"
+                : d.file.status === "DELETING"
+                  ? "Đang chờ server xóa file và thumbnail"
+                  : "Đang lưu trữ"}
+            </Typography>
             <Typography>{d.usages.length} bài đăng đang sử dụng:</Typography>
-            {d.purge?.lastError && <Alert severity="warning">Storage chưa xóa thành công ({d.purge.lastError}). Server đã thử {d.purge.attempts} lần; lần kế tiếp sau {new Date(d.purge.nextAttemptAt).toLocaleString("vi-VN")}. Dung lượng chưa được giải phóng.</Alert>}
+            {d.purge?.lastError && (
+              <Alert severity="warning">
+                Storage chưa xóa thành công ({d.purge.lastError}). Server đã thử{" "}
+                {d.purge.attempts} lần; lần kế tiếp sau{" "}
+                {new Date(d.purge.nextAttemptAt).toLocaleString("vi-VN")}. Dung
+                lượng chưa được giải phóng.
+              </Alert>
+            )}
             {d.usages.map((p) => (
               <NavButton
                 key={p.id}
@@ -130,15 +145,17 @@ export function DeletionPage() {
                             linkAction:
                               linkAction[d.request.id] ?? "KEEP_UNAVAILABLE",
                           }).unwrap();
-                          setSuccess(value === "APPROVED" ? "Đã duyệt. Server sẽ xóa file và thumbnail rồi gửi thông báo." : "Đã từ chối.");
+                          setSuccess(
+                            value === "APPROVED"
+                              ? "Đã duyệt. Server sẽ xóa file và thumbnail rồi gửi thông báo."
+                              : "Đã từ chối.",
+                          );
                         } catch (e) {
                           setError(e);
                         }
                       }}
                     >
-                      {value === "APPROVED"
-                        ? "Duyệt xóa file thật"
-                        : "Từ chối"}
+                      {value === "APPROVED" ? "Duyệt xóa file thật" : "Từ chối"}
                     </Button>
                   ))}
                 </Stack>
@@ -151,7 +168,9 @@ export function DeletionPage() {
   );
 }
 export const notificationTypes: Record<string, string> = {
-  ASSIGNMENT: "Bài tập mới", SUBMISSION: "Nộp bài tập", ASSIGNMENT_RESULT: "Kết quả bài tập",
+  ASSIGNMENT: "Bài tập mới",
+  SUBMISSION: "Nộp bài tập",
+  ASSIGNMENT_RESULT: "Kết quả bài tập",
   MATERIAL: "Tài liệu / bài đăng",
   SOCIAL: "Bình luận / tương tác",
   REPLY: "Trả lời bình luận",
@@ -169,11 +188,26 @@ export function NotificationsPage() {
     [type, setType] = useState(""),
     [read, setRead] = useState(""),
     [cursor, setCursor] = useState<string>(),
-    filter = { type, isRead: read === "" ? undefined : read === "true", cursor },
+    filter = {
+      type,
+      isRead: read === "" ? undefined : read === "true",
+      cursor,
+    },
     filtered = !!type || !!read || !!cursor,
     subscribed = useNotificationsQuery(filter, { skip: !filtered }),
     cached = libraryApi.endpoints.notifications.useQueryState(filter),
-    q = filtered ? subscribed : { ...cached, refetch: () => dispatch(libraryApi.endpoints.notifications.initiate(filter, { forceRefetch: true, subscribe: false })) },
+    q = filtered
+      ? subscribed
+      : {
+          ...cached,
+          refetch: () =>
+            dispatch(
+              libraryApi.endpoints.notifications.initiate(filter, {
+                forceRefetch: true,
+                subscribe: false,
+              }),
+            ),
+        },
     [change] = useChangeNotificationMutation(),
     [all] = useReadNotificationsMutation(),
     [error, setError] = useState<unknown>();
@@ -182,20 +216,22 @@ export function NotificationsPage() {
       <Title
         title="Thông báo"
         subtitle={`${q.currentData?.unreadCount ?? 0} chưa đọc`}
-        actions={<Stack direction="row" spacing={1}>
-          <Button onClick={() => void q.refetch()}>Tải lại</Button>
-          <Button
-            onClick={async () => {
-              try {
-                await all().unwrap();
-              } catch (e) {
-                setError(e);
-              }
-            }}
-          >
-            Đọc tất cả
-          </Button>
-        </Stack>}
+        actions={
+          <Stack direction="row" spacing={1}>
+            <Button onClick={() => void q.refetch()}>Tải lại</Button>
+            <Button
+              onClick={async () => {
+                try {
+                  await all().unwrap();
+                } catch (e) {
+                  setError(e);
+                }
+              }}
+            >
+              Đọc tất cả
+            </Button>
+          </Stack>
+        }
       />
       <Stack direction="row" spacing={1}>
         <TextField
@@ -249,7 +285,7 @@ export function NotificationsPage() {
         >
           <Stack spacing={1}>
             <Typography sx={{ fontWeight: n.isRead ? 400 : 700 }}>
-              <NotificationContent notice={n}/>
+              <NotificationContent notice={n} />
             </Typography>
             <Typography variant="caption">
               {notificationTypes[n.type]} ·{" "}
@@ -278,7 +314,14 @@ export function NotificationsPage() {
                 {n.isRead ? "Đánh dấu chưa đọc" : "Đánh dấu đã đọc"}
               </Button>
               <Button
-                disabled={!n.isRead && (n.priority==="IMPORTANT" || ["APPROVAL", "CONSENT"].includes(n.type) || n.type === "SYSTEM" && n.title === "Đề xuất đổi tên ứng dụng / tiền tố lớp cần bạn đồng ý")}
+                disabled={
+                  !n.isRead &&
+                  (n.priority === "IMPORTANT" ||
+                    ["APPROVAL", "CONSENT"].includes(n.type) ||
+                    (n.type === "SYSTEM" &&
+                      n.title ===
+                        "Đề xuất đổi tên ứng dụng / tiền tố lớp cần bạn đồng ý"))
+                }
                 onClick={async () => {
                   try {
                     await change({

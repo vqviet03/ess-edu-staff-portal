@@ -29,6 +29,7 @@ export function UnsavedRuntime() {
       const link = (e.target as Element)?.closest("a");
       if (
         link?.href &&
+        !link.hasAttribute("data-navigation-back") &&
         link.target !== "_blank" &&
         !link.hasAttribute("download") &&
         new URL(link.href).origin === location.origin &&

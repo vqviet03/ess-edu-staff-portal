@@ -26,44 +26,70 @@ Chart mặc định toàn bộ lịch sử (tối đa 10 năm), filter from/to; 
 
 Base `/v1`, Bearer, JSON `{data:T}` / `{error:{code,message}}` như contract hiện tại. ID lớp/học sinh staff nhận public ID hoặc UUID. Student classId UUID, lấy từ `/me/classes`.
 
-| Method | Route | Mục đích |
-|---|---|---|
-| GET | /classes/:classId/rewards?date=YYYY-MM-DD | Roster, totals/day, attendance, dayVersion, closed, highestToday |
-| PUT | /classes/:classId/rewards/attendance | Điểm danh/chốt ngày, version |
-| GET | /students/:studentId/reward-classes | Các lớp được phép xem của học sinh |
-| GET | /classes/:classId/students/:studentId/rewards?from=&to= | Tổng/today, chart, 20 hoạt động lớp gần nhất |
-| GET | /classes/:classId/students/:studentId/rewards/history?kind=&date=&page=1&pageSize=20 | Lịch sử học sinh |
-| GET | /classes/:classId/rewards/activities?date=&page=1&pageSize=20 | Hoạt động ngày lớp |
-| POST | /classes/:classId/students/:studentId/rewards | Cộng/trừ/tiêu dùng |
-| POST | /classes/:classId/students/:studentId/rewards/:entryId/reverse | Điều chỉnh, giữ entry gốc |
-| GET/PUT | /classes/:classId/schedule | Xem/lưu lịch |
-| GET | /me/reward-classes | Lớp reward của chính học sinh |
-| GET | /me/classes/:classId/rewards | Chi tiết quỹ chính học sinh |
-| GET | /me/classes/:classId/rewards/history | Lịch sử chính học sinh |
-| GET | /me/classes/:classId/rewards/activities | Hoạt động lớp mình |
-| GET | /me/classes/:classId/schedule | Lịch lớp mình |
+| Method  | Route                                                                                | Mục đích                                                         |
+| ------- | ------------------------------------------------------------------------------------ | ---------------------------------------------------------------- |
+| GET     | /classes/:classId/rewards?date=YYYY-MM-DD                                            | Roster, totals/day, attendance, dayVersion, closed, highestToday |
+| PUT     | /classes/:classId/rewards/attendance                                                 | Điểm danh/chốt ngày, version                                     |
+| GET     | /students/:studentId/reward-classes                                                  | Các lớp được phép xem của học sinh                               |
+| GET     | /classes/:classId/students/:studentId/rewards?from=&to=                              | Tổng/today, chart, 20 hoạt động lớp gần nhất                     |
+| GET     | /classes/:classId/students/:studentId/rewards/history?kind=&date=&page=1&pageSize=20 | Lịch sử học sinh                                                 |
+| GET     | /classes/:classId/rewards/activities?date=&page=1&pageSize=20                        | Hoạt động ngày lớp                                               |
+| POST    | /classes/:classId/students/:studentId/rewards                                        | Cộng/trừ/tiêu dùng                                               |
+| POST    | /classes/:classId/students/:studentId/rewards/:entryId/reverse                       | Điều chỉnh, giữ entry gốc                                        |
+| GET/PUT | /classes/:classId/schedule                                                           | Xem/lưu lịch                                                     |
+| GET     | /me/reward-classes                                                                   | Lớp reward của chính học sinh                                    |
+| GET     | /me/classes/:classId/rewards                                                         | Chi tiết quỹ chính học sinh                                      |
+| GET     | /me/classes/:classId/rewards/history                                                 | Lịch sử chính học sinh                                           |
+| GET     | /me/classes/:classId/rewards/activities                                              | Hoạt động lớp mình                                               |
+| GET     | /me/classes/:classId/schedule                                                        | Lịch lớp mình                                                    |
 
 GET schedule có from/to, mặc định hôm nay→60 ngày tới. GET rewards mặc định từ lịch/giao dịch/điểm danh đầu tiên đến hôm nay, không nhận to tương lai. PageSize 1..100; date ranges tối đa 10 năm. Không có DELETE ledger hoặc migration trong startup.
 
 Ví dụ POST (bắt buộc `Idempotency-Key: <UUID>`, dùng lại cùng key khi thử lại cùng dữ liệu):
+
 ```json
-{"kind":"EARN","amount":3}
+{ "kind": "EARN", "amount": 3 }
 ```
+
 ```json
-{"kind":"PENALTY","amount":1,"note":"Chưa tuân thủ hướng dẫn"}
+{ "kind": "PENALTY", "amount": 1, "note": "Chưa tuân thủ hướng dẫn" }
 ```
+
 ```json
-{"kind":"SPEND","amount":10,"note":"Đổi bộ sticker"}
+{ "kind": "SPEND", "amount": 10, "note": "Đổi bộ sticker" }
 ```
+
 Reverse body `{ "note":"Ghi nhầm, điều chỉnh" }`, cũng cần Idempotency-Key. Key unique theo school/actor; dùng cùng key cho dữ liệu khác =>409, callback/retry không ghi hai lần. Transactions dùng cùng school write lock với lifecycle để revoke assignment/profile không tranh chấp quyền tại commit. Unique reversesId ngăn đảo trùng.
 
 Điểm danh:
+
 ```json
-{"date":"2026-10-09","version":0,"close":true,"rows":[{"studentId":"<UUID>","status":"PRESENT"}]}
+{
+  "date": "2026-10-09",
+  "version": 0,
+  "close": true,
+  "rows": [{ "studentId": "<UUID>", "status": "PRESENT" }]
+}
 ```
+
 Lịch:
+
 ```json
-{"version":0,"effectiveFrom":"2026-10-09","configuration":{"mode":"FIXED","cycle":"WEEKLY","timeMode":"SHARED","startTime":"17:00","endTime":"18:30","slots":[{"day":1,"date":null,"startTime":null,"endTime":null},{"day":5,"date":null,"startTime":null,"endTime":null}]}}
+{
+  "version": 0,
+  "effectiveFrom": "2026-10-09",
+  "configuration": {
+    "mode": "FIXED",
+    "cycle": "WEEKLY",
+    "timeMode": "SHARED",
+    "startTime": "17:00",
+    "endTime": "18:30",
+    "slots": [
+      { "day": 1, "date": null, "startTime": null, "endTime": null },
+      { "day": 5, "date": null, "startTime": null, "endTime": null }
+    ]
+  }
+}
 ```
 
 Errors: 400 filter/range/key; 401 auth; 403 quyền/lớp chỉ xem; 404 hồ sơ/entry; 409 VERSION_CONFLICT/IDEMPOTENCY_CONFLICT/STUDENT_ABSENT/ALREADY_REVERSED/DAY_CLOSED; 422 validation/INVALID_EFFECTIVE_DATE/INSUFFICIENT_POINTS/ATTENDANCE_PENDING. Form giữ nội dung khi lỗi, không tự retry mutation.
@@ -75,9 +101,11 @@ Ledger, audit và SystemNotice cùng transaction. Audit/notice tạo durable Clo
 **Migration mới chỉ ở Core**: `015_class_rewards_schedule.sql`. Không sửa DB materials/security/notifications/storage. Không thêm biến môi trường, queue hay service account.
 
 Rollout: merge/deploy backend image mới trước → Cloud Run Jobs `ess-prod-migrate`, Edit image lấy từ revision backend mới, giữ command mặc định và argument `--migrate`. Giữ secret owner/direct production Core ở `ConnectionStrings__Migration` và `ConnectionStrings__Postgres`. Execute và kiểm tra log `Applied 015_class_rewards_schedule.sql`, task thành công. Query Neon Core production nếu cần:
+
 ```sql
 SELECT name, applied_at FROM schema_migrations WHERE name='015_class_rewards_schedule.sql';
 ```
+
 Sau đó merge FE PRs vào dev để Pages deploy. Migration không tạo/sửa điểm cũ và không cần đụng các secrets Cloud Tasks/PubSub đã cấu hình.
 
 ## Đối chiếu giao diện Figma

@@ -1,9 +1,10 @@
 "use client";
+import { DeadlineChip } from "./deadline-chip";
 import NextLink from "next/link";
-import {postShareUrl,currentPortalUrl} from "./share-links";
+import { postShareUrl, currentPortalUrl } from "./share-links";
 import { ContentViews } from "@/features/presence/views";
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import {ProfileAvatar} from "@/features/profile/avatar";
+import { ProfileAvatar } from "@/features/profile/avatar";
 import Box from "@mui/material/Box";
 import ButtonBase from "@mui/material/ButtonBase";
 import Chip from "@mui/material/Chip";
@@ -80,9 +81,13 @@ export function PostSurface({
     [error, setError] = useState<unknown>();
   const [download, downloadState] = useLazyContentQuery();
   async function copyLink(portalUrl: string) {
-    setMenu(null); setError(undefined);
-    try { await navigator.clipboard.writeText(postShareUrl(post,portalUrl)); }
-    catch (e) {setError(e);}
+    setMenu(null);
+    setError(undefined);
+    try {
+      await navigator.clipboard.writeText(postShareUrl(post, portalUrl));
+    } catch (e) {
+      setError(e);
+    }
   }
   const files = post.attachments
     .filter((a) => a.available && a.file)
@@ -113,342 +118,520 @@ export function PostSurface({
         "& .MuiTypography-root": { lineHeight: 1.55 },
       }}
     >
-      <Box data-testid="post-columns" sx={{display:"grid",gridTemplateColumns:"minmax(0,1fr)",gap:3,"@container (min-width: 900px)":draft?{}:{gridTemplateColumns:"minmax(0,2fr) minmax(0,1fr)",position:"relative",minHeight:320}}}>
-      <Stack data-testid="post-content" spacing={2} sx={{minWidth:0}}>
-        {!draft && <Box sx={{alignSelf:"flex-end"}}><ContentViews kind="POST" id={post.id}/></Box>}
-        <Stack direction="row" spacing={1.5} sx={{ alignItems: "flex-start" }}>
-          <ProfileAvatar name={post.authorName} value={post.authorAvatar} size={44}/>
-          <Box sx={{ flex: 1, minWidth: 0 }}>
-            <Typography
-              sx={{ fontSize: 14, fontWeight: 600, overflowWrap: "anywhere" }}
-            >
-              {post.authorName}
-            </Typography>
-            <Typography sx={{ fontSize: 12, color: "var(--post-muted)" }}>
-              Giảng viên ·{" "}
-              {new Date(post.createdAt).toLocaleString("vi-VN", {
-                day: "2-digit",
-                month: "2-digit",
-                hour: "2-digit",
-                minute: "2-digit",
-              })}
-            </Typography>
-            {post.editedAt && (
-              <Typography
-                variant="caption"
-                title={new Date(post.editedAt).toLocaleString("vi-VN")}
-                sx={{ color: "var(--post-muted)" }}
-              >
-                Đã chỉnh sửa
-              </Typography>
-            )}
-          </Box>
-          {headerActions}
+      <Box
+        data-testid="post-columns"
+        sx={{
+          display: "grid",
+          gridTemplateColumns: "minmax(0,1fr)",
+          gap: 3,
+          "@container (min-width: 900px)": draft
+            ? {}
+            : {
+                gridTemplateColumns: "minmax(0,2fr) minmax(0,1fr)",
+                position: "relative",
+                minHeight: 320,
+              },
+        }}
+      >
+        <Stack data-testid="post-content" spacing={2} sx={{ minWidth: 0 }}>
           {!draft && (
-            <>
-              <Tooltip title="Thao tác bài đăng">
-                <IconButton
-                  aria-label="Thao tác bài đăng"
-                  onClick={(e) => setMenu(e.currentTarget)}
+            <Box sx={{ alignSelf: "flex-end" }}>
+              <ContentViews kind="POST" id={post.id} />
+            </Box>
+          )}
+          <Stack
+            direction="row"
+            spacing={1.5}
+            sx={{ alignItems: "flex-start" }}
+          >
+            <ProfileAvatar
+              name={post.authorName}
+              value={post.authorAvatar}
+              size={44}
+            />
+            <Box sx={{ flex: 1, minWidth: 0 }}>
+              <Typography
+                sx={{ fontSize: 14, fontWeight: 600, overflowWrap: "anywhere" }}
+              >
+                {post.authorName}
+              </Typography>
+              <Typography sx={{ fontSize: 12, color: "var(--post-muted)" }}>
+                Giảng viên ·{" "}
+                {new Date(post.createdAt).toLocaleString("vi-VN", {
+                  day: "2-digit",
+                  month: "2-digit",
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}
+              </Typography>
+              {post.editedAt && (
+                <Typography
+                  variant="caption"
+                  title={new Date(post.editedAt).toLocaleString("vi-VN")}
                   sx={{ color: "var(--post-muted)" }}
                 >
-                  <MoreHoriz fontSize="small" />
-                </IconButton>
-              </Tooltip>
-              <Menu anchorEl={menu} open={!!menu} onClose={() => setMenu(null)}>
-                <Tooltip title="Sao chép liên kết học sinh" placement="right"><MenuItem aria-label="Sao chép liên kết học sinh" onClick={() => void copyLink(process.env.NEXT_PUBLIC_STUDENT_PORTAL_URL || "https://eeslern.com")}><School fontSize="small" /></MenuItem></Tooltip>
-                <Tooltip title="Sao chép liên kết staff" placement="right"><MenuItem aria-label="Sao chép liên kết staff" onClick={() => void copyLink(process.env.NEXT_PUBLIC_STAFF_PORTAL_URL || currentPortalUrl())}><Badge fontSize="small" /></MenuItem></Tooltip>
-                {onEdit && (
-                  <MenuItem
-                    onClick={() => {
-                      setMenu(null);
-                      onEdit();
-                    }}
+                  Đã chỉnh sửa
+                </Typography>
+              )}
+            </Box>
+            {headerActions}
+            {!draft && (
+              <>
+                <Tooltip title="Thao tác bài đăng">
+                  <IconButton
+                    aria-label="Thao tác bài đăng"
+                    onClick={(e) => setMenu(e.currentTarget)}
+                    sx={{ color: "var(--post-muted)" }}
                   >
-                    Sửa bài
-                  </MenuItem>
-                )}
-                {onDelete && (
-                  <MenuItem
-                    onClick={() => {
-                      setMenu(null);
-                      onDelete();
-                    }}
-                  >
-                    Xóa bài
-                  </MenuItem>
-                )}
-              </Menu>
-            </>
-          )}
-        </Stack>
-        {content ?? (
-          <Box>
-            <Stack
-              direction="row"
-              spacing={1}
-              useFlexGap
-              sx={{ mb: 1, flexWrap: "wrap" }}
-            >
-              <Chip
-                size="small"
-                label={[
-                  post.sessionName ||
-                    postTypeLabels[post.postType ?? "SESSION_MATERIAL"],
-                  post.className,
-                ]
-                  .filter(Boolean)
-                  .join(" · ")}
-                sx={{
-                  bgcolor: "var(--post-tint)",
-                  color: "var(--post-green)",
-                  fontSize: 11,
-                  fontWeight: 600,
-                  borderRadius: "7px",
-                }}
-              />
-              {post.status === "DRAFT" && <Chip size="small" label="Nháp" />}
-            </Stack>
-            <Typography
-              component="h2"
-              sx={{
-                display: "block", textDecoration: "none", color: "inherit", fontSize: 23,
-                fontWeight: 600,
-                mb: 1,
-                overflowWrap: "anywhere",
-              }}
-            >
-              {draft ? post.title : <NextLink style={{color:"inherit",textDecoration:"none",display:"block",overflow:detail?undefined:"hidden",textOverflow:detail?undefined:"ellipsis",whiteSpace:detail?undefined:"nowrap"}} title={post.title} href={`/post/?postId=${encodeURIComponent(post.id)}&classId=${encodeURIComponent(post.classId)}`}>{post.title}</NextLink>}
-            </Typography>
-            <PostBody body={post.body} detail={detail||draft} href={`/post/?postId=${encodeURIComponent(post.id)}&classId=${encodeURIComponent(post.classId)}`}/>
-          </Box>
-        )}
-        {files.filter((f) => f.mimeType.startsWith("image/")).length === 1 &&
-          (() => {
-            const file = files.find((f) => f.mimeType.startsWith("image/"))!;
-            return (
-              <ButtonBase
-                onClick={() => preview(file)}
-                aria-label={`Xem ${file.displayName}`}
-                sx={{
-                  display: "block",
-                  width: "100%",
-                  borderRadius: "14px",
-                  overflow: "hidden",
-                  bgcolor: "var(--post-soft)",
-                }}
-              >
-                <MaterialThumbnail id={file.id} natural />
-              </ButtonBase>
-            );
-          })()}
-        {!!post.attachments.filter(
-          (a) =>
-            !a.file?.mimeType.startsWith("audio/") &&
-            !(
-              a.file?.mimeType.startsWith("image/") &&
-              files.filter((f) => f.mimeType.startsWith("image/")).length === 1
-            ),
-        ).length && (
-          <Box
-            sx={{
-              display: "grid",
-              gridTemplateColumns: "repeat(2,minmax(0,1fr))",
-              gap: 1.5,
-            }}
-          >
-            {post.attachments
-              .filter(
-                (a) =>
-                  !a.file?.mimeType.startsWith("audio/") &&
-                  !(
-                    a.file?.mimeType.startsWith("image/") &&
-                    files.filter((f) => f.mimeType.startsWith("image/"))
-                      .length === 1
-                  ),
-              )
-              .map((a) => (
-                <Tooltip
-                  key={a.materialId}
-                  title={a.file?.displayName ?? "Tài liệu không còn khả dụng"}
+                    <MoreHoriz fontSize="small" />
+                  </IconButton>
+                </Tooltip>
+                <Menu
+                  anchorEl={menu}
+                  open={!!menu}
+                  onClose={() => setMenu(null)}
                 >
-                  <ButtonBase
-                    disabled={!a.available || !a.file}
-                    onClick={() => a.file && preview(a.file)}
-                    aria-label={`Xem ${a.file?.displayName ?? "Tài liệu không còn khả dụng"}`}
-                    sx={{
-                      display: "flex",
-                      flexDirection: "column",
-                      alignItems: "stretch",
-                      border: "1px solid var(--post-border)",
-                      borderRadius: "14px",
-                      overflow: "hidden",
-                      textAlign: "left",
-                      minWidth: 0,
-                    }}
-                  >
-                    <Box
-                      sx={{
-                        height: 130,
-                        bgcolor: "var(--post-soft)",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        overflow: "hidden",
+                  <Tooltip title="Sao chép liên kết học sinh" placement="right">
+                    <MenuItem
+                      aria-label="Sao chép liên kết học sinh"
+                      onClick={() =>
+                        void copyLink(
+                          process.env.NEXT_PUBLIC_STUDENT_PORTAL_URL ||
+                            "https://eeslern.com",
+                        )
+                      }
+                    >
+                      <School fontSize="small" />
+                    </MenuItem>
+                  </Tooltip>
+                  <Tooltip title="Sao chép liên kết staff" placement="right">
+                    <MenuItem
+                      aria-label="Sao chép liên kết staff"
+                      onClick={() =>
+                        void copyLink(
+                          process.env.NEXT_PUBLIC_STAFF_PORTAL_URL ||
+                            currentPortalUrl(),
+                        )
+                      }
+                    >
+                      <Badge fontSize="small" />
+                    </MenuItem>
+                  </Tooltip>
+                  {onEdit && (
+                    <MenuItem
+                      onClick={() => {
+                        setMenu(null);
+                        onEdit();
                       }}
                     >
-                      {a.file?.thumbnailUrl ? (
-                        <MaterialThumbnail id={a.file.id} fit="cover" fill />
-                      ) : (
-                        <Description
-                          sx={{ fontSize: 56, color: "var(--post-green)" }}
-                        />
-                      )}
-                    </Box>
-                    {!a.file?.mimeType.startsWith("image/") && (
-                      <Box sx={{ p: "13px", flex: 1 }}>
-                        <Typography
-                          sx={{
-                            fontSize: 13,
-                            fontWeight: 600,
-                            overflowWrap: "anywhere",
-                          }}
-                        >
-                          {a.file?.displayName ?? "Tài liệu không còn khả dụng"}
-                        </Typography>
-                        <Typography
-                          sx={{
-                            fontSize: 12,
-                            color: "var(--post-muted)",
-                            mt: 0.4,
-                          }}
-                        >
-                          {a.file
-                            ? `${fileKind(a.file.mimeType)} · ${bytes(a.file.sizeBytes)}`
-                            : "Đã ngừng sử dụng"}
-                        </Typography>
-                      </Box>
-                    )}
-                  </ButtonBase>
-                </Tooltip>
-              ))}
-          </Box>
-        )}
-        {files
-          .filter((f) => f.mimeType.startsWith("audio/"))
-          .map((f) => (
-            <InlineAudio key={f.id} file={f} />
-          ))}
-        {afterMedia}
-      </Stack>
-      <Stack data-testid="post-interactions" spacing={2} sx={{minWidth:0,"@container (min-width: 900px)":draft?{}:{position:"absolute",top:0,bottom:0,right:0,width:"calc((100% - 24px) / 3)",borderLeft:"1px solid var(--post-border)",pl:3,overflow:"hidden"}}}>
-        <Stack
-          direction="row"
-          sx={{ justifyContent: "space-between", color: "var(--post-muted)" }}
-        >
-          <ReactionCounts counts={post.reactions} />
-          {!post.assignment && (<Tooltip title={`${post.commentCount} bình luận`}>
-            <Stack direction="row" sx={{ gap: 0.5, alignItems: "center" }}>
-              <ChatBubble fontSize="small" />
-              <Typography sx={{ fontSize: 12 }}>{post.commentCount}</Typography>
-            </Stack>
-          </Tooltip>)}
-        </Stack>
-        <Divider sx={{ borderColor: "var(--post-border)" }} />
-        <Stack direction="row" sx={{ gap: 0.5, alignItems: "center" }}>
-          <ReactionButton
-            value={post.myReaction}
-            disabled={reacting || draft}
-            onChange={onReaction}
-          />
-          {!post.assignment && (<Tooltip title="Bình luận">
-            <IconButton
-              sx={{
-                flex: 1,
-                borderRadius: "12px",
-                minHeight: 32,
-                color: "var(--post-muted)",
-                bgcolor: commentOpen ? "var(--post-soft)" : undefined,
-              }}
-              disabled={draft}
-              onClick={openComments}
-              aria-label={`Bình luận (${post.commentCount})`}
-              aria-expanded={commentOpen}
-            >
-              <ChatBubble fontSize="small" />
-            </IconButton>
-          </Tooltip>)}
-          <Tooltip title="Tải tài liệu">
-            <span style={{ flex: 1, display: "flex" }}>
-              <IconButton
-                sx={{
-                  flex: 1,
-                  borderRadius: "12px",
-                  minHeight: 32,
-                  color: "var(--post-muted)",
-                }}
-                aria-label="Tải tài liệu"
-                disabled={draft || !files.length || downloadState.isFetching}
-                onClick={(e) => setDownloads(e.currentTarget)}
+                      Sửa bài
+                    </MenuItem>
+                  )}
+                  {onDelete && (
+                    <MenuItem
+                      onClick={() => {
+                        setMenu(null);
+                        onDelete();
+                      }}
+                    >
+                      Xóa bài
+                    </MenuItem>
+                  )}
+                </Menu>
+              </>
+            )}
+          </Stack>
+          {content ?? (
+            <Box>
+              <Stack
+                direction="row"
+                spacing={1}
+                useFlexGap
+                sx={{ mb: 1, flexWrap: "wrap" }}
               >
-                <Download fontSize="small" />
-              </IconButton>
-            </span>
-          </Tooltip>
-        </Stack>
-        <Menu
-          anchorEl={downloads}
-          open={!!downloads}
-          onClose={() => setDownloads(null)}
-        >
-          {files.map((f) => (
-            <MenuItem
-              key={f.id}
+                <Chip
+                  size="small"
+                  label={[
+                    post.sessionName ||
+                      postTypeLabels[post.postType ?? "SESSION_MATERIAL"],
+                    post.className,
+                  ]
+                    .filter(Boolean)
+                    .join(" · ")}
+                  sx={{
+                    bgcolor: "var(--post-tint)",
+                    color: "var(--post-green)",
+                    fontSize: 11,
+                    fontWeight: 600,
+                    borderRadius: "7px",
+                  }}
+                />
+                {post.status === "DRAFT" && <Chip size="small" label="Nháp" />}
+                {post.assignment && (
+                  <DeadlineChip deadline={post.assignment.deadline} />
+                )}
+              </Stack>
+              <Typography
+                component="h2"
+                sx={{
+                  display: "block",
+                  textDecoration: "none",
+                  color: "inherit",
+                  fontSize: 23,
+                  fontWeight: 600,
+                  mb: 1,
+                  overflowWrap: "anywhere",
+                }}
+              >
+                {draft ? (
+                  post.title
+                ) : (
+                  <NextLink
+                    style={{
+                      color: "inherit",
+                      textDecoration: "none",
+                      display: "block",
+                      overflow: detail ? undefined : "hidden",
+                      textOverflow: detail ? undefined : "ellipsis",
+                      whiteSpace: detail ? undefined : "nowrap",
+                    }}
+                    title={post.title}
+                    href={`/post/?postId=${encodeURIComponent(post.id)}&classId=${encodeURIComponent(post.classId)}`}
+                  >
+                    {post.title}
+                  </NextLink>
+                )}
+              </Typography>
+              <PostBody
+                body={post.body}
+                detail={detail || draft}
+                href={`/post/?postId=${encodeURIComponent(post.id)}&classId=${encodeURIComponent(post.classId)}`}
+              />
+            </Box>
+          )}
+          {files.filter((f) => f.mimeType.startsWith("image/")).length === 1 &&
+            (() => {
+              const file = files.find((f) => f.mimeType.startsWith("image/"))!;
+              return (
+                <ButtonBase
+                  onClick={() => preview(file)}
+                  aria-label={`Xem ${file.displayName}`}
+                  sx={{
+                    display: "block",
+                    width: "100%",
+                    borderRadius: "14px",
+                    overflow: "hidden",
+                    bgcolor: "var(--post-soft)",
+                  }}
+                >
+                  <MaterialThumbnail id={file.id} natural />
+                </ButtonBase>
+              );
+            })()}
+          {!!post.attachments.filter(
+            (a) =>
+              !a.file?.mimeType.startsWith("audio/") &&
+              !(
+                a.file?.mimeType.startsWith("image/") &&
+                files.filter((f) => f.mimeType.startsWith("image/")).length ===
+                  1
+              ),
+          ).length && (
+            <Box
               sx={{
-                maxWidth: 360,
-                whiteSpace: "normal",
-                overflowWrap: "anywhere",
-              }}
-              onClick={async () => {
-                setDownloads(null);
-                setError(undefined);
-                try {
-                  const v: unknown = await download({
-                    id: f.id,
-                    purpose: "download",
-                  }).unwrap();
-                  const url =
-                    typeof v === "string"
-                      ? v
-                      : v && typeof v === "object" && "url" in v
-                        ? String(v.url)
-                        : "";
-                  if (!url) throw new Error("Không tải được file.");
-                  const link = document.createElement("a");
-                  link.href = url;
-                  link.download = downloadName(f);
-                  link.click();
-                } catch (e) {
-                  setError(e);
-                }
+                display: "grid",
+                gridTemplateColumns: "repeat(2,minmax(0,1fr))",
+                gap: 1.5,
               }}
             >
-              {f.displayName}
-            </MenuItem>
-          ))}
-        </Menu>
-        <Feedback error={error} />
-        <Divider sx={{ borderColor: "var(--post-border)" }} />
-        <Box data-testid="post-comment-scroll" sx={{minHeight:0,"@container (min-width: 900px)":draft?{}:{flex:1,overflowY:"auto",overscrollBehavior:"contain",scrollbarGutter:"stable"}}}>{children}</Box>
-      </Stack>
+              {post.attachments
+                .filter(
+                  (a) =>
+                    !a.file?.mimeType.startsWith("audio/") &&
+                    !(
+                      a.file?.mimeType.startsWith("image/") &&
+                      files.filter((f) => f.mimeType.startsWith("image/"))
+                        .length === 1
+                    ),
+                )
+                .map((a) => (
+                  <Tooltip
+                    key={a.materialId}
+                    title={a.file?.displayName ?? "Tài liệu không còn khả dụng"}
+                  >
+                    <ButtonBase
+                      disabled={!a.available || !a.file}
+                      onClick={() => a.file && preview(a.file)}
+                      aria-label={`Xem ${a.file?.displayName ?? "Tài liệu không còn khả dụng"}`}
+                      sx={{
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: "stretch",
+                        border: "1px solid var(--post-border)",
+                        borderRadius: "14px",
+                        overflow: "hidden",
+                        textAlign: "left",
+                        minWidth: 0,
+                      }}
+                    >
+                      <Box
+                        sx={{
+                          height: 130,
+                          bgcolor: "var(--post-soft)",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          overflow: "hidden",
+                        }}
+                      >
+                        {a.file?.thumbnailUrl ? (
+                          <MaterialThumbnail id={a.file.id} fit="cover" fill />
+                        ) : (
+                          <Description
+                            sx={{ fontSize: 56, color: "var(--post-green)" }}
+                          />
+                        )}
+                      </Box>
+                      {!a.file?.mimeType.startsWith("image/") && (
+                        <Box sx={{ p: "13px", flex: 1 }}>
+                          <Typography
+                            sx={{
+                              fontSize: 13,
+                              fontWeight: 600,
+                              overflowWrap: "anywhere",
+                            }}
+                          >
+                            {a.file?.displayName ??
+                              "Tài liệu không còn khả dụng"}
+                          </Typography>
+                          <Typography
+                            sx={{
+                              fontSize: 12,
+                              color: "var(--post-muted)",
+                              mt: 0.4,
+                            }}
+                          >
+                            {a.file
+                              ? `${fileKind(a.file.mimeType)} · ${bytes(a.file.sizeBytes)}`
+                              : "Đã ngừng sử dụng"}
+                          </Typography>
+                        </Box>
+                      )}
+                    </ButtonBase>
+                  </Tooltip>
+                ))}
+            </Box>
+          )}
+          {files
+            .filter((f) => f.mimeType.startsWith("audio/"))
+            .map((f) => (
+              <InlineAudio key={f.id} file={f} />
+            ))}
+          {afterMedia}
+        </Stack>
+        <Stack
+          data-testid="post-interactions"
+          spacing={2}
+          sx={{
+            minWidth: 0,
+            "@container (min-width: 900px)": draft
+              ? {}
+              : {
+                  position: "absolute",
+                  top: 0,
+                  bottom: 0,
+                  right: 0,
+                  width: "calc((100% - 24px) / 3)",
+                  borderLeft: "1px solid var(--post-border)",
+                  pl: 3,
+                  overflow: "hidden",
+                },
+          }}
+        >
+          <Stack
+            direction="row"
+            sx={{ justifyContent: "space-between", color: "var(--post-muted)" }}
+          >
+            <ReactionCounts counts={post.reactions} />
+            {!post.assignment && (
+              <Tooltip title={`${post.commentCount} bình luận`}>
+                <Stack direction="row" sx={{ gap: 0.5, alignItems: "center" }}>
+                  <ChatBubble fontSize="small" />
+                  <Typography sx={{ fontSize: 12 }}>
+                    {post.commentCount}
+                  </Typography>
+                </Stack>
+              </Tooltip>
+            )}
+          </Stack>
+          <Divider sx={{ borderColor: "var(--post-border)" }} />
+          <Stack direction="row" sx={{ gap: 0.5, alignItems: "center" }}>
+            <ReactionButton
+              value={post.myReaction}
+              disabled={reacting || draft}
+              onChange={onReaction}
+            />
+            {!post.assignment && (
+              <Tooltip title="Bình luận">
+                <IconButton
+                  sx={{
+                    flex: 1,
+                    borderRadius: "12px",
+                    minHeight: 32,
+                    color: "var(--post-muted)",
+                    bgcolor: commentOpen ? "var(--post-soft)" : undefined,
+                  }}
+                  disabled={draft}
+                  onClick={openComments}
+                  aria-label={`Bình luận (${post.commentCount})`}
+                  aria-expanded={commentOpen}
+                >
+                  <ChatBubble fontSize="small" />
+                </IconButton>
+              </Tooltip>
+            )}
+            <Tooltip title="Tải tài liệu">
+              <span style={{ flex: 1, display: "flex" }}>
+                <IconButton
+                  sx={{
+                    flex: 1,
+                    borderRadius: "12px",
+                    minHeight: 32,
+                    color: "var(--post-muted)",
+                  }}
+                  aria-label="Tải tài liệu"
+                  disabled={draft || !files.length || downloadState.isFetching}
+                  onClick={(e) => setDownloads(e.currentTarget)}
+                >
+                  <Download fontSize="small" />
+                </IconButton>
+              </span>
+            </Tooltip>
+          </Stack>
+          <Menu
+            anchorEl={downloads}
+            open={!!downloads}
+            onClose={() => setDownloads(null)}
+          >
+            {files.map((f) => (
+              <MenuItem
+                key={f.id}
+                sx={{
+                  maxWidth: 360,
+                  whiteSpace: "normal",
+                  overflowWrap: "anywhere",
+                }}
+                onClick={async () => {
+                  setDownloads(null);
+                  setError(undefined);
+                  try {
+                    const v: unknown = await download({
+                      id: f.id,
+                      purpose: "download",
+                    }).unwrap();
+                    const url =
+                      typeof v === "string"
+                        ? v
+                        : v && typeof v === "object" && "url" in v
+                          ? String(v.url)
+                          : "";
+                    if (!url) throw new Error("Không tải được file.");
+                    const link = document.createElement("a");
+                    link.href = url;
+                    link.download = downloadName(f);
+                    link.click();
+                  } catch (e) {
+                    setError(e);
+                  }
+                }}
+              >
+                {f.displayName}
+              </MenuItem>
+            ))}
+          </Menu>
+          <Feedback error={error} />
+          <Divider sx={{ borderColor: "var(--post-border)" }} />
+          <Box
+            data-testid="post-comment-scroll"
+            sx={{
+              minHeight: 0,
+              "@container (min-width: 900px)": draft
+                ? {}
+                : {
+                    flex: 1,
+                    overflowY: "auto",
+                    overscrollBehavior: "contain",
+                    scrollbarGutter: "stable",
+                  },
+            }}
+          >
+            {children}
+          </Box>
+        </Stack>
       </Box>
     </Paper>
   );
 }
 
-function PostBody({body,detail,href}:{body:string;detail:boolean;href:string}) {
- const node=useRef<HTMLAnchorElement>(null),[overflow,setOverflow]=useState(false);
- useEffect(()=>{const current=node.current;if(!current||detail)return;const observer=new ResizeObserver(()=>setOverflow(current.scrollHeight>current.clientHeight+1));observer.observe(current);return()=>observer.disconnect();},[body,detail]);
- const style={textDecoration:"none",fontSize:14,color:"var(--post-muted)",whiteSpace:"pre-wrap",overflowWrap:"anywhere"} as const;
- return detail?<Typography sx={style}>{body}</Typography>:<><Typography ref={node} component={NextLink} href={href} sx={{...style,display:"-webkit-box",WebkitLineClamp:8,WebkitBoxOrient:"vertical",overflow:"hidden"}}>{body}</Typography>{overflow&&<Typography component={NextLink} href={href} sx={{fontSize:13,fontWeight:600,color:"var(--post-green)",textDecoration:"none"}}>Xem thêm</Typography>}</>;
+function PostBody({
+  body,
+  detail,
+  href,
+}: {
+  body: string;
+  detail: boolean;
+  href: string;
+}) {
+  const node = useRef<HTMLAnchorElement>(null),
+    [overflow, setOverflow] = useState(false);
+  useEffect(() => {
+    const current = node.current;
+    if (!current || detail) return;
+    const observer = new ResizeObserver(() =>
+      setOverflow(current.scrollHeight > current.clientHeight + 1),
+    );
+    observer.observe(current);
+    return () => observer.disconnect();
+  }, [body, detail]);
+  const style = {
+    textDecoration: "none",
+    fontSize: 14,
+    color: "var(--post-muted)",
+    whiteSpace: "pre-wrap",
+    overflowWrap: "anywhere",
+  } as const;
+  return detail ? (
+    <Typography sx={style}>{body}</Typography>
+  ) : (
+    <>
+      <Typography
+        ref={node}
+        component={NextLink}
+        href={href}
+        sx={{
+          ...style,
+          display: "-webkit-box",
+          WebkitLineClamp: 8,
+          WebkitBoxOrient: "vertical",
+          overflow: "hidden",
+        }}
+      >
+        {body}
+      </Typography>
+      {overflow && (
+        <Typography
+          component={NextLink}
+          href={href}
+          sx={{
+            fontSize: 13,
+            fontWeight: 600,
+            color: "var(--post-green)",
+            textDecoration: "none",
+          }}
+        >
+          Xem thêm
+        </Typography>
+      )}
+    </>
+  );
 }

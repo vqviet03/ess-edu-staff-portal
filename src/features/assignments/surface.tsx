@@ -230,7 +230,14 @@ export function AssignmentIcon({
   name,
 }: {
   name:
-    "help" | "plus" | "copy" | "trash" | "attach" | "link" | "back" | "chevron";
+    | "help"
+    | "plus"
+    | "copy"
+    | "trash"
+    | "attach"
+    | "link"
+    | "back"
+    | "chevron";
 }) {
   const dark = useTheme().palette.mode === "dark";
   const mode =

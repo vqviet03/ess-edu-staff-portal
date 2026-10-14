@@ -29,7 +29,12 @@ import { confirmLeave, useUnsaved } from "@/shared/unsaved";
 import type { BulkPreview, ProfileGroup } from "./models";
 import { columns, columnFields } from "./excel-workbook";
 import { fieldNames } from "./validation";
-import { nonemptyRow, profileGridRow, profileGridErrors, type GridMode } from "./grid-rows";
+import {
+  nonemptyRow,
+  profileGridRow,
+  profileGridErrors,
+  type GridMode,
+} from "./grid-rows";
 import { entityLabels, ManagerOnly, PreviewPanel } from "./shared";
 import { options } from "./editor";
 async function downloadBlob(blob: Blob, name: string) {
@@ -66,7 +71,7 @@ function Excel() {
         title="Excel · Nhập & xuất"
         subtitle="Template riêng theo nhóm; giữ tiếng Việt và xuống dòng. Không xuất mật khẩu / token."
         actions={
-          <NavButton href={`/manage/list/?entity=${group}`}>
+          <NavButton back href={`/manage/list/?entity=${group}`}>
             ← Danh sách
           </NavButton>
         }
@@ -282,7 +287,8 @@ function Grid() {
 }
 function InputGrid({ group }: { group: ProfileGroup }) {
   const [mode, setMode] = useState<GridMode>("CREATE");
-  const [rowKeys, setRowKeys] = useState([1, 2, 3]), nextKey = useRef(4);
+  const [rowKeys, setRowKeys] = useState([1, 2, 3]),
+    nextKey = useRef(4);
   const [rows, setRows] = useState<Record<string, unknown>[]>(() => [
       blank(group),
       blank(group),
@@ -338,7 +344,24 @@ function InputGrid({ group }: { group: ProfileGroup }) {
           <Typography variant="h5" sx={{ mb: 2 }}>
             Bảng nhập · {entityLabels[group]}
           </Typography>
-          <TextField select label="Chế độ nhập bảng" value={mode} disabled={p.isLoading} sx={{ mb: 2, width: "100%" }} onChange={(e) => { if (!confirmLeave()) return; setMode(e.target.value as GridMode); setData(null); setMessage(""); }}><MenuItem value="CREATE">Tạo mới · ID trống tự sinh</MenuItem><MenuItem value="UPDATE">Cập nhật · ID bắt buộc, ô trống giữ dữ liệu cũ</MenuItem></TextField>
+          <TextField
+            select
+            label="Chế độ nhập bảng"
+            value={mode}
+            disabled={p.isLoading}
+            sx={{ mb: 2, width: "100%" }}
+            onChange={(e) => {
+              if (!confirmLeave()) return;
+              setMode(e.target.value as GridMode);
+              setData(null);
+              setMessage("");
+            }}
+          >
+            <MenuItem value="CREATE">Tạo mới · ID trống tự sinh</MenuItem>
+            <MenuItem value="UPDATE">
+              Cập nhật · ID bắt buộc, ô trống giữ dữ liệu cũ
+            </MenuItem>
+          </TextField>
           <Alert severity="info" sx={{ mb: 2 }}>
             Không tự ghi danh hoặc phân công lớp. Tài khoản tạo cùng hồ sơ có
             trạng thái PENDING.
@@ -347,11 +370,23 @@ function InputGrid({ group }: { group: ProfileGroup }) {
             <Table stickyHeader sx={{ minWidth: 1600 }}>
               <TableHead>
                 <TableRow>
-                  <TableCell sx={{ position: "sticky", left: 0, zIndex: 4, bgcolor: "background.paper", minWidth: 90 }}>Dòng</TableCell>
+                  <TableCell
+                    sx={{
+                      position: "sticky",
+                      left: 0,
+                      zIndex: 4,
+                      bgcolor: "background.paper",
+                      minWidth: 90,
+                    }}
+                  >
+                    Dòng
+                  </TableCell>
                   {keys.map((k) => (
                     <TableCell key={k}>
                       {fieldNames[k]}
-                      {(mode === "CREATE" ? k === "fullName" : k === "id") ? " *" : ""}
+                      {(mode === "CREATE" ? k === "fullName" : k === "id")
+                        ? " *"
+                        : ""}
                     </TableCell>
                   ))}
                 </TableRow>
@@ -359,7 +394,41 @@ function InputGrid({ group }: { group: ProfileGroup }) {
               <TableBody>
                 {rows.map((row, i) => (
                   <TableRow key={rowKeys[i]}>
-                    <TableCell sx={{ position: "sticky", left: 0, zIndex: 2, bgcolor: "background.paper" }}>{i + 2}<Button color="error" aria-label={`Xóa dòng ${i + 2}`} disabled={p.isLoading} sx={{ minHeight: 44 }} onClick={() => { if (nonemptyRow(row) && !window.confirm(`Xóa dữ liệu chưa lưu ở dòng ${i + 2}?`)) return; setRowKeys((old) => old.filter((_, index) => index !== i)); setRows((old) => old.filter((_, index) => index !== i)); setData(null); setMessage(""); }}>Xóa</Button></TableCell>
+                    <TableCell
+                      sx={{
+                        position: "sticky",
+                        left: 0,
+                        zIndex: 2,
+                        bgcolor: "background.paper",
+                      }}
+                    >
+                      {i + 2}
+                      <Button
+                        color="error"
+                        aria-label={`Xóa dòng ${i + 2}`}
+                        disabled={p.isLoading}
+                        sx={{ minHeight: 44 }}
+                        onClick={() => {
+                          if (
+                            nonemptyRow(row) &&
+                            !window.confirm(
+                              `Xóa dữ liệu chưa lưu ở dòng ${i + 2}?`,
+                            )
+                          )
+                            return;
+                          setRowKeys((old) =>
+                            old.filter((_, index) => index !== i),
+                          );
+                          setRows((old) =>
+                            old.filter((_, index) => index !== i),
+                          );
+                          setData(null);
+                          setMessage("");
+                        }}
+                      >
+                        Xóa
+                      </Button>
+                    </TableCell>
                     {keys.map((k, j) => (
                       <TableCell
                         key={k}
@@ -372,7 +441,12 @@ function InputGrid({ group }: { group: ProfileGroup }) {
                           multiline={k === "notes"}
                           select={k === "createAccount" || !!options(group, k)}
                           error={!!errors[i][k]}
-                          helperText={errors[i][k] ?? (k === "id" && mode === "CREATE" ? "Để trống: tự sinh ID từ họ tên" : undefined)}
+                          helperText={
+                            errors[i][k] ??
+                            (k === "id" && mode === "CREATE"
+                              ? "Để trống: tự sinh ID từ họ tên"
+                              : undefined)
+                          }
                           onChange={(e) => change(i, k, e.target.value)}
                           onPaste={(e) => {
                             const text = e.clipboardData.getData("text");
@@ -387,13 +461,21 @@ function InputGrid({ group }: { group: ProfileGroup }) {
                               setError("Tối đa 5000 dòng.");
                               return;
                             }
-                            const extra = Math.max(0, i + incoming.length - rows.length);
-                            const addedKeys = Array.from({ length: extra }, () => nextKey.current++);
+                            const extra = Math.max(
+                              0,
+                              i + incoming.length - rows.length,
+                            );
+                            const addedKeys = Array.from(
+                              { length: extra },
+                              () => nextKey.current++,
+                            );
                             setRowKeys((old) => [...old, ...addedKeys]);
                             setRows((old) => {
                               const next = old.map((r) => ({ ...r }));
                               for (let a = 0; a < incoming.length; a++) {
-                                if (!next[i + a]) { next[i + a] = blank(group); }
+                                if (!next[i + a]) {
+                                  next[i + a] = blank(group);
+                                }
                                 for (
                                   let b = 0;
                                   b < incoming[a].length && j + b < keys.length;
@@ -433,7 +515,13 @@ function InputGrid({ group }: { group: ProfileGroup }) {
           <Stack direction="row" spacing={1}>
             <Button
               disabled={p.isLoading || rows.length >= 5000}
-              onClick={() => { const key = nextKey.current++; setRowKeys((old) => [...old, key]); setRows((old) => [...old, blank(group)]); setData(null); setMessage(""); }}
+              onClick={() => {
+                const key = nextKey.current++;
+                setRowKeys((old) => [...old, key]);
+                setRows((old) => [...old, blank(group)]);
+                setData(null);
+                setMessage("");
+              }}
             >
               + Dòng mới
             </Button>
@@ -441,7 +529,9 @@ function InputGrid({ group }: { group: ProfileGroup }) {
               variant="contained"
               loading={p.isLoading}
               disabled={
-                p.isLoading || !filled.length || errors.some((e) => Object.keys(e).length > 0)
+                p.isLoading ||
+                !filled.length ||
+                errors.some((e) => Object.keys(e).length > 0)
               }
               onClick={async () => {
                 try {
@@ -450,7 +540,10 @@ function InputGrid({ group }: { group: ProfileGroup }) {
                     await preview({
                       entity: group,
                       mode,
-                      rows: rows.map((r, i) => ({ ...profileGridRow(r, mode), _excelRow: i + 2 })),
+                      rows: rows.map((r, i) => ({
+                        ...profileGridRow(r, mode),
+                        _excelRow: i + 2,
+                      })),
                     }).unwrap(),
                   );
                 } catch (e) {
@@ -470,9 +563,15 @@ function InputGrid({ group }: { group: ProfileGroup }) {
               close={() => setData(null)}
               onSaved={(n) => {
                 setData(null);
-                setRowKeys([nextKey.current++, nextKey.current++, nextKey.current++]);
+                setRowKeys([
+                  nextKey.current++,
+                  nextKey.current++,
+                  nextKey.current++,
+                ]);
                 setRows([blank(group), blank(group), blank(group)]);
-                setMessage(`Đã ${mode === "CREATE" ? "thêm" : "cập nhật"} ${n} hồ sơ.`);
+                setMessage(
+                  `Đã ${mode === "CREATE" ? "thêm" : "cập nhật"} ${n} hồ sơ.`,
+                );
               }}
             />
           </Card>

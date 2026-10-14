@@ -35,7 +35,10 @@ export function Login() {
     defaultValues: { teacherId: "", password: "" },
   });
   useEffect(() => {
-    if (auth.status === "authenticated") router.replace(loginDestination(location.search, process.env.NEXT_PUBLIC_BASE_PATH));
+    if (auth.status === "authenticated")
+      router.replace(
+        loginDestination(location.search, process.env.NEXT_PUBLIC_BASE_PATH),
+      );
   }, [auth.status, router]);
   return (
     <Shell>
@@ -124,7 +127,10 @@ export function LinkLogin() {
       );
     const read = () => {
       initialized.current = true;
-      destination.current = loginDestination(location.search, process.env.NEXT_PUBLIC_BASE_PATH);
+      destination.current = loginDestination(
+        location.search,
+        process.env.NEXT_PUBLIC_BASE_PATH,
+      );
       setBackLink(loginRedirect(destination.current));
       setError("");
       const code = new URLSearchParams(location.hash.slice(1)).get("code");

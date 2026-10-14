@@ -1,5 +1,11 @@
 "use client";
-import { useEffect, useImperativeHandle, useRef, useState, type Ref } from "react";
+import {
+  useEffect,
+  useImperativeHandle,
+  useRef,
+  useState,
+  type Ref,
+} from "react";
 import { MaterialViewer } from "@/features/materials/viewer";
 import type { MaterialFile } from "@/features/materials/models";
 import Box from "@mui/material/Box";

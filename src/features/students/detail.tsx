@@ -1,8 +1,8 @@
 "use client";
+import { useSectionTab } from "@/shared/page-navigation";
 import dynamic from "next/dynamic";
 import Tabs from "@mui/material/Tabs";
 import Tab from "@mui/material/Tab";
-import { confirmLeave } from "@/shared/unsaved";
 import { useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Box from "@mui/material/Box";
@@ -19,7 +19,11 @@ const StudentRewards = dynamic(
   () => import("@/features/rewards/detail").then((m) => m.StudentRewards),
   { loading: () => <Feedback loading /> },
 );
-const AssignmentReport=dynamic(()=>import("@/features/assignments/report").then(m=>m.AssignmentReportView),{loading:()=> <Feedback loading/>});
+const AssignmentReport = dynamic(
+  () =>
+    import("@/features/assignments/report").then((m) => m.AssignmentReportView),
+  { loading: () => <Feedback loading /> },
+);
 const Reports = dynamic(
   () => import("@/features/reports/page").then((m) => m.StudentReports),
   { loading: () => <Feedback loading /> },
@@ -33,8 +37,10 @@ export function StudentDetail() {
     students = useHistoricalStudentsQuery(classId, {
       skip: !classId || !studentId || !permissions.viewLearning,
     }),
-    [tab, setTab] = useState(
-      params.get("tab") === "assignments" ? "assignments" : params.get("tab") === "rewards" ? "rewards" : "info",
+    [tab, setTab] = useSectionTab(
+      "student",
+      ["info", "report", "assignments", "rewards"] as const,
+      "info",
     ),
     [edit, setEdit] = useState(false),
     [message, setMessage] = useState("");
@@ -82,6 +88,7 @@ export function StudentDetail() {
         actions={
           <>
             <NavButton
+              back
               href={`/class/?classId=${encodeURIComponent(classId)}&tab=profile`}
             >
               ← Hồ sơ lớp học
@@ -103,14 +110,14 @@ export function StudentDetail() {
         value={tab}
         variant="scrollable"
         aria-label="Hồ sơ học sinh"
-        onChange={(_, v: string) => {
-          if (confirmLeave()) setTab(v);
+        onChange={(_, v: "info" | "report" | "assignments" | "rewards") => {
+          setTab(v);
         }}
         sx={{ mb: 2 }}
       >
         <Tab value="info" label="Thông tin" />
         <Tab value="report" label="Báo cáo học tập" />
-        <Tab value="assignments" label="Báo cáo bài tập"/>
+        <Tab value="assignments" label="Báo cáo bài tập" />
         <Tab value="rewards" label="Điểm tích luỹ" />
       </Tabs>
       {tab === "rewards" && (
@@ -120,7 +127,9 @@ export function StudentDetail() {
           name={student.nickname || student.name}
         />
       )}
-      {tab==="assignments"&&<AssignmentReport classId={classId} studentId={student.id}/>}
+      {tab === "assignments" && (
+        <AssignmentReport classId={classId} studentId={student.id} />
+      )}
       {tab === "report" && (
         <Reports initialClassId={classId} initialStudentId={student.id} />
       )}

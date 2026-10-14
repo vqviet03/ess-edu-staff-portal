@@ -138,7 +138,11 @@ export const libraryApi = api.injectEndpoints({
     }),
     content: b.query<
       string,
-      { id: string; purpose: "preview" | "download" | "thumbnail"; width?:number }
+      {
+        id: string;
+        purpose: "preview" | "download" | "thumbnail";
+        width?: number;
+      }
     >({
       query: ({ id, purpose, width }) => ({
         url: `/materials/${id}/content`,
@@ -302,11 +306,12 @@ export const libraryApi = api.injectEndpoints({
               ctx.signal,
               (v) => buffer.progress(90 + Math.round(v * 0.1)),
             );
-          const r = await base(
-            {...mutation(`/material-uploads/${arg.ticket.uploadId}/complete`, {
+          const r = await base({
+            ...mutation(`/material-uploads/${arg.ticket.uploadId}/complete`, {
               version: arg.ticket.version,
-            }),timeout:90000},
-          );
+            }),
+            timeout: 90000,
+          });
           if (r.error) return { error: r.error };
           return { data: (r.data as Envelope<MaterialFile>).data };
         } catch (e) {
@@ -356,7 +361,11 @@ export const libraryApi = api.injectEndpoints({
         ...(r?.items.map((p) => ({ type: "Posts" as const, id: p.id })) ?? []),
       ],
     }),
-    post: b.query<Post,string>({query:id=>`/posts/${id}`,transformResponse:unwrap<Post>,providesTags:["Posts"]}),
+    post: b.query<Post, string>({
+      query: (id) => `/posts/${id}`,
+      transformResponse: unwrap<Post>,
+      providesTags: ["Posts"],
+    }),
     posts: b.query<
       CursorPage<Post>,
       { sessionId: string; cursor?: string; workspace?: string }
@@ -390,9 +399,18 @@ export const libraryApi = api.injectEndpoints({
     }),
     removePost: b.mutation<
       unknown,
-      { id: string; version: number; reason: string; notifyStudents?:boolean; notificationPriority?: "NORMAL"|"IMPORTANT" }
+      {
+        id: string;
+        version: number;
+        reason: string;
+        notifyStudents?: boolean;
+        notificationPriority?: "NORMAL" | "IMPORTANT";
+      }
     >({
-      query: ({ id, notificationPriority, notifyStudents, ...body }) => ({...mutation(`/posts/${id}`, body, "DELETE"),params:{notificationPriority,notifyStudents}}),
+      query: ({ id, notificationPriority, notifyStudents, ...body }) => ({
+        ...mutation(`/posts/${id}`, body, "DELETE"),
+        params: { notificationPriority, notifyStudents },
+      }),
       invalidatesTags: ["Posts"],
     }),
     reaction: b.mutation<
@@ -403,12 +421,20 @@ export const libraryApi = api.injectEndpoints({
         classId?: string;
         cursor?: string;
         reaction: Reaction | null;
-        notifyStudents?:boolean; notificationPriority?: "NORMAL"|"IMPORTANT";
+        notifyStudents?: boolean;
+        notificationPriority?: "NORMAL" | "IMPORTANT";
       }
     >({
       query: (q) => ({
-        ...mutation(`/posts/${q.id}/reaction`,q.reaction ? { reaction:q.reaction } : undefined,q.reaction?"PUT":"DELETE"),
-        params:{notificationPriority:q.notificationPriority,notifyStudents:q.notifyStudents},
+        ...mutation(
+          `/posts/${q.id}/reaction`,
+          q.reaction ? { reaction: q.reaction } : undefined,
+          q.reaction ? "PUT" : "DELETE",
+        ),
+        params: {
+          notificationPriority: q.notificationPriority,
+          notifyStudents: q.notifyStudents,
+        },
       }),
       async onQueryStarted(q, { dispatch, getState, queryFulfilled }) {
         const patches = [
@@ -459,13 +485,23 @@ export const libraryApi = api.injectEndpoints({
     }),
     pinComment: b.mutation<
       Comment,
-      { id: string; postId: string; isPinned: boolean; version: number; notifyStudents?:boolean; notificationPriority?: "NORMAL"|"IMPORTANT" }
+      {
+        id: string;
+        postId: string;
+        isPinned: boolean;
+        version: number;
+        notifyStudents?: boolean;
+        notificationPriority?: "NORMAL" | "IMPORTANT";
+      }
     >({
       query: (q) => ({
         url: `/comments/${q.id}/pin`,
         method: "PUT",
         body: { isPinned: q.isPinned, version: q.version },
-        params:{notificationPriority:q.notificationPriority,notifyStudents:q.notifyStudents},
+        params: {
+          notificationPriority: q.notificationPriority,
+          notifyStudents: q.notifyStudents,
+        },
       }),
       transformResponse: unwrap<Comment>,
       invalidatesTags: (_, e, q) =>
@@ -492,7 +528,8 @@ export const libraryApi = api.injectEndpoints({
         parentId?: string;
         version?: number;
         materialIds?: string[];
-        notifyStudents?:boolean; notificationPriority?: "NORMAL"|"IMPORTANT";
+        notifyStudents?: boolean;
+        notificationPriority?: "NORMAL" | "IMPORTANT";
       }
     >({
       query: ({ id, postId, ...body }) =>
@@ -551,11 +588,21 @@ export const libraryApi = api.injectEndpoints({
     }),
     removeComment: b.mutation<
       unknown,
-      { id: string; postId: string; version: number; notifyStudents?:boolean; notificationPriority?: "NORMAL"|"IMPORTANT" }
+      {
+        id: string;
+        postId: string;
+        version: number;
+        notifyStudents?: boolean;
+        notificationPriority?: "NORMAL" | "IMPORTANT";
+      }
     >({
-      query: ({ id, version,notificationPriority,notifyStudents }) => ({
-        ...mutation(`/comments/${id}`,{version,reason:"Người dùng xóa bình luận"},"DELETE"),
-        params:{notificationPriority,notifyStudents},
+      query: ({ id, version, notificationPriority, notifyStudents }) => ({
+        ...mutation(
+          `/comments/${id}`,
+          { version, reason: "Người dùng xóa bình luận" },
+          "DELETE",
+        ),
+        params: { notificationPriority, notifyStudents },
       }),
       invalidatesTags: (_, error, q) =>
         error ? [] : [{ type: "Comments", id: q.postId }, "Posts"],

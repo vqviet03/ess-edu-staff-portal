@@ -2,15 +2,15 @@
 
 Nguồn: https://www.figma.com/design/t3kAHowsm0FLtomJCMQiuv
 
-| Màn | Frame desktop | Frame mobile |
-| --- | --- | --- |
-| Thiết lập | 3:5555 | 9:1683 (luồng soạn) |
-| Soạn câu hỏi | 3:5739 | 9:1683 / 28:1565 (tối) |
-| Làm bài / xem trước | 4:1313 / 26:1770 | 4:1501 |
-| Bài nộp / chấm | 5:741 / 5:834 | 9:1554 |
-| Báo cáo | 6:1041 | 6:1495 / 6:1603 (tối) |
-| Ghi âm | 40:1749 / 40:1780 | Responsive |
-| Đổi mật khẩu | 7:1490 | Responsive |
+| Màn                 | Frame desktop     | Frame mobile           |
+| ------------------- | ----------------- | ---------------------- |
+| Thiết lập           | 3:5555            | 9:1683 (luồng soạn)    |
+| Soạn câu hỏi        | 3:5739            | 9:1683 / 28:1565 (tối) |
+| Làm bài / xem trước | 4:1313 / 26:1770  | 4:1501                 |
+| Bài nộp / chấm      | 5:741 / 5:834     | 9:1554                 |
+| Báo cáo             | 6:1041            | 6:1495 / 6:1603 (tối)  |
+| Ghi âm              | 40:1749 / 40:1780 | Responsive             |
+| Đổi mật khẩu        | 7:1490            | Responsive             |
 
 Theme riêng của tính năng chỉ áp dụng cho nội dung bài tập (màu, Roboto, typography, input, bo góc và spacing). Màn bài tập và báo cáo dùng layout chung của ứng dụng: header, điều hướng, tài khoản, giao diện, zoom và footer giữ cùng vị trí và hành vi như các màn khác. Không có sidebar hoặc header riêng cho bài tập.
 

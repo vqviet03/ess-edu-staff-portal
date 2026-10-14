@@ -40,11 +40,11 @@ export function Scores() {
   return (
     <>
       <Title
-        title={q.canEdit?"Nhập nhanh theo bảng":"Bảng điểm · Chỉ xem"}
+        title={q.canEdit ? "Nhập nhanh theo bảng" : "Bảng điểm · Chỉ xem"}
         subtitle={`${a.name} · ${a.skills.length} kỹ năng · Schema v${a.schemaVersion}`}
         actions={
           <>
-            <NavButton href={route("/session/", q.context)}>
+            <NavButton back href={route("/session/", q.context)}>
               ← Phiên học
             </NavButton>
             <NavButton href={route("/import/", q.context)}>
@@ -56,7 +56,7 @@ export function Scores() {
           </>
         }
       />
-      <ReadOnlyNotice editable={q.canEdit}/>
+      <ReadOnlyNotice editable={q.canEdit} />
       {!q.students.length ? (
         <Feedback empty="Lớp chưa có học sinh." />
       ) : (
@@ -89,7 +89,9 @@ export function Scores() {
                           fontWeight: 600,
                         }}
                       >
-                        {s.name} · {s.nickname || publicId(s.publicId, s.studentCode, s.id)}
+                        {s.name} ·{" "}
+                        {s.nickname ||
+                          publicId(s.publicId, s.studentCode, s.id)}
                       </Typography>
                       <Typography>
                         {r.attendance === "ABSENT"

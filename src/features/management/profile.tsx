@@ -1,6 +1,10 @@
 "use client";
-import {ClassNotificationSettings} from "@/features/notifications/class-settings";
-import {ClassPresenceContext,ClassMembersButton} from "@/features/presence/roster";
+import { useSectionTab } from "@/shared/page-navigation";
+import { ClassNotificationSettings } from "@/features/notifications/class-settings";
+import {
+  ClassPresenceContext,
+  ClassMembersButton,
+} from "@/features/presence/roster";
 import dynamic from "next/dynamic";
 const ClassRewardActions = dynamic(() =>
   import("@/features/rewards/class-actions").then((m) => m.ClassRewardActions),
@@ -17,11 +21,10 @@ import { useState } from "react";
 import {
   ClassDetailTabs,
   initialClassTab,
-  type ClassTab,
 } from "@/features/classes/detail-tabs";
 import { ClassProgress } from "@/features/classes/progress";
 import { ClassStudentTable } from "@/features/students/class-table";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
@@ -217,24 +220,29 @@ function RelationshipEditor({
                 </MenuItem>
               ))}
             </TextField>
-            {kind === "enrollment" && (!enrollment || (status === "ACTIVE" && enrollment.status !== "ACTIVE")) && (
-              <TextField
-                size="small"
-                type="date"
-                label="Ngày tham gia lớp"
-                value={joinedOn}
-                onChange={(e) => setJoinedOn(e.target.value)}
-                slotProps={{ inputLabel: { shrink: true } }}
-                helperText="Được nhập ngày quá khứ. Giữ lịch sử các giai đoạn trước; kiểm tra ảnh hưởng trước khi lưu."
-              />
-            )}
+            {kind === "enrollment" &&
+              (!enrollment ||
+                (status === "ACTIVE" && enrollment.status !== "ACTIVE")) && (
+                <TextField
+                  size="small"
+                  type="date"
+                  label="Ngày tham gia lớp"
+                  value={joinedOn}
+                  onChange={(e) => setJoinedOn(e.target.value)}
+                  slotProps={{ inputLabel: { shrink: true } }}
+                  helperText="Được nhập ngày quá khứ. Giữ lịch sử các giai đoạn trước; kiểm tra ảnh hưởng trước khi lưu."
+                />
+              )}
             <Button
               variant="contained"
               loading={assignState.isLoading || enrollState.isLoading}
               disabled={
                 !personId ||
                 (kind === "assignment" && !labelId) ||
-                (kind === "enrollment" && (!enrollment || (status === "ACTIVE" && enrollment.status !== "ACTIVE")) && !joinedOn)
+                (kind === "enrollment" &&
+                  (!enrollment ||
+                    (status === "ACTIVE" && enrollment.status !== "ACTIVE")) &&
+                  !joinedOn)
               }
               onClick={async () => {
                 try {
@@ -252,7 +260,11 @@ function RelationshipEditor({
                           classId,
                           studentId: personId,
                           status: status as Enrollment["status"],
-                          ...(!enrollment || (status === "ACTIVE" && enrollment.status !== "ACTIVE") ? {joinedOn} : {}),
+                          ...(!enrollment ||
+                          (status === "ACTIVE" &&
+                            enrollment.status !== "ACTIVE")
+                            ? { joinedOn }
+                            : {}),
                           version: enrollment?.version,
                         }).unwrap(),
                   );
@@ -315,6 +327,7 @@ function Profile({
   classAccessId?: string;
 } = {}) {
   const router = useRouter(),
+    pathname = usePathname(),
     p = useSearchParams(),
     raw = p.get("entity"),
     entity: Entity =
@@ -327,18 +340,25 @@ function Profile({
   const q = useManagementDetailQuery({ entity, id }, { skip: !id }),
     [edit, setEdit] = useState(false),
     [createAccount, setCreateAccount] = useState(false),
-    [tab, setTab] = useState<ClassTab>(initialClassTab(p.get("tab"))),
-    [studentTab, setStudentTab] = useState(
-      entity === "students" && p.get("tab") === "rewards"
-        ? "rewards"
-        : "profile",
+    [tab, setTab] = useSectionTab(
+      pathname.startsWith("/manage/profile/") ? "manage/profile" : "class",
+      ["thread", "progress", "profile", "attendance"] as const,
+      initialClassTab(p.get("tab")),
+    ),
+    [studentTab, setStudentTab] = useSectionTab(
+      "manage/profile",
+      ["profile", "rewards"] as const,
+      "profile",
     ),
     [classStudentEdit, setClassStudentEdit] = useState<{
       student: ManagedStudent;
       mode?: "status";
     } | null>(null),
     [showHistory, setShowHistory] = useState(false),
-    [datesEdit, setDatesEdit] = useState<{classId: string; studentId: string} | null>(null),
+    [datesEdit, setDatesEdit] = useState<{
+      classId: string;
+      studentId: string;
+    } | null>(null),
     [relationship, setRelationship] = useState<{
       kind: "assignment" | "enrollment";
       classId: string;
@@ -581,7 +601,10 @@ function Profile({
                 (e) => e.studentId === s.id && e.classId === r.id,
               );
               if (enrollment)
-                setDatesEdit({classId: r.id, studentId: enrollment.studentId});
+                setDatesEdit({
+                  classId: r.id,
+                  studentId: enrollment.studentId,
+                });
             }}
             onStatus={(s) => {
               const managed = d.students.find((person) => person.id === s.id);
@@ -596,7 +619,13 @@ function Profile({
           <Typography variant="h5">Lịch sử ghi danh</Typography>
           {d.enrollments.map((e) => (
             <Box key={e.id} sx={{ mt: 2 }}>
-              <Button onClick={() => setDatesEdit({classId: e.classId, studentId: e.studentId})}>Sửa ngày nhập học / nghỉ học</Button>
+              <Button
+                onClick={() =>
+                  setDatesEdit({ classId: e.classId, studentId: e.studentId })
+                }
+              >
+                Sửa ngày nhập học / nghỉ học
+              </Button>
               <Typography sx={{ fontWeight: 600 }}>
                 {d.classes.find((c) => c.id === e.classId)?.name} ·{" "}
                 {showValue(e.status)}
@@ -620,7 +649,7 @@ function Profile({
         subtitle={`${entityLabels[entity]} · ${publicId("loginId" in r ? r.loginId : r.id)} · ${showValue(r.status)}`}
         actions={
           <>
-            <NavButton href={`/manage/list/?entity=${entity}`}>
+            <NavButton back href={`/manage/list/?entity=${entity}`}>
               ← Danh sách
             </NavButton>
             {(entity !== "classes" || tab === "profile") && (
@@ -645,62 +674,67 @@ function Profile({
         />
       )}
       {entity === "classes" && "totalUnits" in r ? (
-        <><ClassPresenceContext classId={r.id}/>
-        <Stack direction="row"><ClassMembersButton classId={r.id}/><ClassNotificationSettings classId={r.id}/></Stack>
-        <ClassDetailTabs
-          attendance={
-            access.access?.canView ? (
-              <AttendancePanel classId={access.access.classId} />
-            ) : (
-              <Feedback error={access.error} loading={access.loading} />
-            )
-          }
-          value={tab}
-          onChange={setTab}
-          thread={
-            <>
-              <Feedback
-                loading={access.loading}
-                error={access.error}
-                retry={() => void access.retry()}
-              />
-              {access.access && (
-                <ClassThreadFeed
-                  key={access.access.classId}
+        <>
+          <ClassPresenceContext classId={r.id} />
+          <Stack direction="row">
+            <ClassMembersButton classId={r.id} />
+            <ClassNotificationSettings classId={r.id} />
+          </Stack>
+          <ClassDetailTabs
+            attendance={
+              access.access?.canView ? (
+                <AttendancePanel classId={access.access.classId} />
+              ) : (
+                <Feedback error={access.error} loading={access.loading} />
+              )
+            }
+            value={tab}
+            onChange={setTab}
+            thread={
+              <>
+                <Feedback
+                  loading={access.loading}
+                  error={access.error}
+                  retry={() => void access.retry()}
+                />
+                {access.access && (
+                  <ClassThreadFeed
+                    key={access.access.classId}
+                    classId={access.access.classId}
+                    editable={false}
+                  />
+                )}
+              </>
+            }
+            progress={
+              access.access?.canView ? (
+                <ClassProgress
                   classId={access.access.classId}
+                  classInfo={r}
                   editable={false}
                 />
-              )}
-            </>
-          }
-          progress={
-            access.access?.canView ? (
-              <ClassProgress
-                classId={access.access.classId}
-                classInfo={r}
-                editable={false}
-              />
-            ) : (
-              <Feedback
-                loading={access.loading}
-                error={access.error}
-                retry={() => void access.retry()}
-                empty={
-                  !access.loading && !access.error
-                    ? "Không có quyền xem nội dung học tập của lớp."
-                    : undefined
-                }
-              />
-            )
-          }
-          profile={profileContent}
-        /></>
+              ) : (
+                <Feedback
+                  loading={access.loading}
+                  error={access.error}
+                  retry={() => void access.retry()}
+                  empty={
+                    !access.loading && !access.error
+                      ? "Không có quyền xem nội dung học tập của lớp."
+                      : undefined
+                  }
+                />
+              )
+            }
+            profile={profileContent}
+          />
+        </>
       ) : (
         <>
           <Tabs
             value={studentTab}
-            onChange={(_, value: string) => {
-              if (confirmLeave()) setStudentTab(value);
+            onChange={(_, value: "profile" | "rewards") => {
+              setStudentTab(value);
             }}
             sx={{ mb: 2 }}
           >

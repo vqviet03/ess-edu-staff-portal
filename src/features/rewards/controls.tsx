@@ -15,8 +15,13 @@ export function RewardIcon({
 }: {
   name: "save" | "note" | "detail" | "trash";
 }) {
-  const Icon = {save:SaveOutlined,note:NoteAddOutlined,detail:HistoryOutlined,trash:DeleteOutlined}[name];
-  return <Icon fontSize="small"/>;
+  const Icon = {
+    save: SaveOutlined,
+    note: NoteAddOutlined,
+    detail: HistoryOutlined,
+    trash: DeleteOutlined,
+  }[name];
+  return <Icon fontSize="small" />;
 }
 export function RewardIconAction({
   label,
@@ -57,9 +62,7 @@ export function RewardIconAction({
   );
 }
 export function TrophyRating(props: RatingProps) {
-  const trophy = (
-    <EmojiEvents sx={{fontSize:24}}/>
-  );
+  const trophy = <EmojiEvents sx={{ fontSize: 24 }} />;
   return (
     <Rating
       {...props}

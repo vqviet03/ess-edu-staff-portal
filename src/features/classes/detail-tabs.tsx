@@ -1,5 +1,5 @@
 "use client";
-import { useId, useState, type ReactNode } from "react";
+import { useId, type ReactNode } from "react";
 import Box from "@mui/material/Box";
 import Tab from "@mui/material/Tab";
 import Tabs from "@mui/material/Tabs";
@@ -25,8 +25,7 @@ export function ClassDetailTabs({
   profile: ReactNode;
   attendance?: ReactNode;
 }) {
-  const prefix = useId(),
-    [visited, setVisited] = useState<ClassTab[]>([value]);
+  const prefix = useId();
   const panels = [
     { key: "thread", label: "Thread", content: thread },
     { key: "progress", label: "Tiến độ lớp", content: progress },
@@ -42,7 +41,6 @@ export function ClassDetailTabs({
         scrollButtons="auto"
         sx={{ mb: 2 }}
         onChange={(_, next: ClassTab) => {
-          setVisited((old) => (old.includes(next) ? old : [...old, next]));
           onChange(next);
         }}
       >
@@ -64,7 +62,7 @@ export function ClassDetailTabs({
           aria-labelledby={`${prefix}-${p.key}-tab`}
           hidden={value !== p.key}
         >
-          {visited.includes(p.key) && p.content}
+          {value === p.key && p.content}
         </Box>
       ))}
     </>

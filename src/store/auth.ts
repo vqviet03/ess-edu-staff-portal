@@ -23,8 +23,14 @@ export const authSlice = createSlice({
       s.status = "authenticated";
       s.message = null;
     },
-    profileUpdated: (s, a: PayloadAction<import("@/features/profile/models").PersonalProfile>) => {
-      if(s.session) { s.session.teacher.name=a.payload.fullName; s.session.teacher.avatar=a.payload.avatar; }
+    profileUpdated: (
+      s,
+      a: PayloadAction<import("@/features/profile/models").PersonalProfile>,
+    ) => {
+      if (s.session) {
+        s.session.teacher.name = a.payload.fullName;
+        s.session.teacher.avatar = a.payload.avatar;
+      }
     },
     verified: (s, a: PayloadAction<Teacher>) => {
       if (s.session) {
@@ -39,4 +45,5 @@ export const authSlice = createSlice({
     },
   },
 });
-export const { restore, signedIn, verified, signedOut, profileUpdated } = authSlice.actions;
+export const { restore, signedIn, verified, signedOut, profileUpdated } =
+  authSlice.actions;

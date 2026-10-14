@@ -1,4 +1,4 @@
-import {collaborationRequest} from "./collaboration";
+import { collaborationRequest } from "./collaboration";
 import { currentSettings, settingsRequest } from "./settings";
 import { sessionExpiry } from "@/features/management/session-duration";
 import type {
@@ -36,7 +36,11 @@ import {
 import { accountStaff } from "@/features/management/models";
 import { requestHeaders } from "@/api/headers";
 import { businessMutation } from "@/features/operations/models";
-import { publicOperation, operationCommand, operationEntities } from "./operations";
+import {
+  publicOperation,
+  operationCommand,
+  operationEntities,
+} from "./operations";
 import { capabilities } from "@/features/access/capabilities";
 export const MOCK_KEY = "learnleaf.staff.mock.v1";
 interface StoragePort {
@@ -152,7 +156,8 @@ export function createMockAdapter(
       const envelope = (data: unknown, meta?: unknown) => ({
         data: { data, ...(meta ? { meta } : {}) },
       });
-      if (path === "/application-settings") return envelope(currentSettings(db));
+      if (path === "/application-settings")
+        return envelope(currentSettings(db));
       if (path === "/auth/login" && method === "POST") {
         const b = object(body);
         const account = managed.accounts.find(
@@ -184,11 +189,26 @@ export function createMockAdapter(
           );
         const session: AuthSession = {
           accessToken: `demo-${id()}`,
-          expiresAt: sessionExpiry(new Date().toISOString(), account.sessionDuration, account.sessionLifetimeMinutes ?? 60),
+          expiresAt: sessionExpiry(
+            new Date().toISOString(),
+            account.sessionDuration,
+            account.sessionLifetimeMinutes ?? 60,
+          ),
           teacher: accountStaff(account!, profile!),
         };
-        const history = management(db); history.loginHistory ??= [];
-        if (account) history.loginHistory.push({ accountId: account.id, loggedInAt: new Date().toISOString(), expiresAt: session.expiresAt, revokedAt: null, ipAddress: null, device: "Thiết bị demo", browser: "Trình duyệt demo", operatingSystem: null });
+        const history = management(db);
+        history.loginHistory ??= [];
+        if (account)
+          history.loginHistory.push({
+            accountId: account.id,
+            loggedInAt: new Date().toISOString(),
+            expiresAt: session.expiresAt,
+            revokedAt: null,
+            ipAddress: null,
+            device: "Thiết bị demo",
+            browser: "Trình duyệt demo",
+            operatingSystem: null,
+          });
         db.tokens[session.accessToken] = session;
         save(db);
         return envelope(session);
@@ -204,11 +224,24 @@ export function createMockAdapter(
         if (db.usedCodes.includes(String(code)))
           return fail(410, "CODE_USED", "Liên kết đã được sử dụng.");
         db.usedCodes.push(String(code));
-        const teacher = actor(db, code === "manager-demo" ? "MG0001" : code === "dual-demo" ? "BOTH0001" : "GV0001");
-        const account = management(db).accounts.find((a) => a.kind === "STAFF" && a.profileId === teacher.id);
+        const teacher = actor(
+          db,
+          code === "manager-demo"
+            ? "MG0001"
+            : code === "dual-demo"
+              ? "BOTH0001"
+              : "GV0001",
+        );
+        const account = management(db).accounts.find(
+          (a) => a.kind === "STAFF" && a.profileId === teacher.id,
+        );
         const session: AuthSession = {
           accessToken: `demo-${id()}`,
-          expiresAt: sessionExpiry(new Date().toISOString(), account?.sessionDuration, account?.sessionLifetimeMinutes ?? 60),
+          expiresAt: sessionExpiry(
+            new Date().toISOString(),
+            account?.sessionDuration,
+            account?.sessionLifetimeMinutes ?? 60,
+          ),
           teacher: actor(
             db,
             code === "manager-demo"
@@ -218,8 +251,19 @@ export function createMockAdapter(
                 : "GV0001",
           ),
         };
-        const history = management(db); history.loginHistory ??= [];
-        if (account) history.loginHistory.push({ accountId: account.id, loggedInAt: new Date().toISOString(), expiresAt: session.expiresAt, revokedAt: null, ipAddress: null, device: "Thiết bị demo", browser: "Trình duyệt demo", operatingSystem: null });
+        const history = management(db);
+        history.loginHistory ??= [];
+        if (account)
+          history.loginHistory.push({
+            accountId: account.id,
+            loggedInAt: new Date().toISOString(),
+            expiresAt: session.expiresAt,
+            revokedAt: null,
+            ipAddress: null,
+            device: "Thiết bị demo",
+            browser: "Trình duyệt demo",
+            operatingSystem: null,
+          });
         db.tokens[session.accessToken] = session;
         save(db);
         return envelope(session);
@@ -278,9 +322,18 @@ export function createMockAdapter(
       const staff = actor(db, db.tokens[token].teacher.id);
       if (path === "/auth/me") return envelope(staff);
       const settingResponse = settingsRequest(db, staff, { ...req, headers });
-      if (settingResponse) { save(db); return settingResponse; }
-      const collaboration=collaborationRequest(db,staff,{...req,headers});
-      if(collaboration!==undefined){save(db);return envelope(collaboration);}
+      if (settingResponse) {
+        save(db);
+        return settingResponse;
+      }
+      const collaboration = collaborationRequest(db, staff, {
+        ...req,
+        headers,
+      });
+      if (collaboration !== undefined) {
+        save(db);
+        return envelope(collaboration);
+      }
       const managedResponse = await managementRequest(
         db,
         staff,
@@ -300,8 +353,16 @@ export function createMockAdapter(
 
       if (path === "/auth/logout" && method === "POST") {
         const loggedOut = db.tokens[token];
-        const accountId = management(db).accounts.find((a) => a.kind === "STAFF" && a.profileId === loggedOut?.teacher.id)?.id;
-        for (const entry of management(db).loginHistory ?? []) if (entry.accountId === accountId && entry.expiresAt === loggedOut?.expiresAt && !entry.revokedAt) entry.revokedAt = new Date().toISOString();
+        const accountId = management(db).accounts.find(
+          (a) => a.kind === "STAFF" && a.profileId === loggedOut?.teacher.id,
+        )?.id;
+        for (const entry of management(db).loginHistory ?? [])
+          if (
+            entry.accountId === accountId &&
+            entry.expiresAt === loggedOut?.expiresAt &&
+            !entry.revokedAt
+          )
+            entry.revokedAt = new Date().toISOString();
         delete db.tokens[token];
         save(db);
         return envelope({ loggedOut: true });
@@ -359,7 +420,10 @@ export function createMockAdapter(
         );
       }
       const studentReport = reportRequest(db, staff, path, method, body);
-      if (studentReport) { if (studentReport.changed) learningSave(); return envelope(studentReport.data); }
+      if (studentReport) {
+        if (studentReport.changed) learningSave();
+        return envelope(studentReport.data);
+      }
       let m = path.match(/^\/classes\/([^/]+)$/);
       if (m) return envelope(classView(classCheck(decodeURIComponent(m[1]))));
       m = path.match(/^\/classes\/([^/]+)\/students(?:\/([^/]+))?$/);
@@ -496,36 +560,104 @@ export function createMockAdapter(
         learningSave();
         return envelope(a);
       }
-      m = path.match(/^\/assessments\/([^/]+)\/(publication|publish|unpublish)$/);
+      m = path.match(
+        /^\/assessments\/([^/]+)\/(publication|publish|unpublish)$/,
+      );
       if (m) {
-        const a = assessmentCheck(m[1]), s = sessionCheck(a.sessionId);
+        const a = assessmentCheck(m[1]),
+          s = sessionCheck(a.sessionId);
         const key = `${s.classId}:${s.unitNumber}`;
         const source = db.publications?.[key];
-        if (m[2] === "publication" && method === "GET") return envelope({ unitId: s.unitNumber === null ? null : `unit-${s.classId}-${s.unitNumber}`, unitNumber: s.unitNumber, isPublished: source?.assessmentId === a.id, sourceAssessmentId: source?.assessmentId ?? null, publishedAt: source?.publishedAt ?? null });
-        if (method !== "POST" || m[2] === "publication") return fail(405, "METHOD_NOT_ALLOWED", "Phương thức không hợp lệ.");
+        if (m[2] === "publication" && method === "GET")
+          return envelope({
+            unitId:
+              s.unitNumber === null
+                ? null
+                : `unit-${s.classId}-${s.unitNumber}`,
+            unitNumber: s.unitNumber,
+            isPublished: source?.assessmentId === a.id,
+            sourceAssessmentId: source?.assessmentId ?? null,
+            publishedAt: source?.publishedAt ?? null,
+          });
+        if (method !== "POST" || m[2] === "publication")
+          return fail(405, "METHOD_NOT_ALLOWED", "Phương thức không hợp lệ.");
         assertLearning(db, staff, s.classId, true);
-        if (object(body).version !== a.version) return fail(409, "VERSION_CONFLICT", "Bài đánh giá đã thay đổi. Tải lại trước khi công bố.");
-        if (s.unitNumber === null) return fail(422, "VALIDATION_ERROR", "Phiên cần liên kết Unit để công bố.");
+        if (object(body).version !== a.version)
+          return fail(
+            409,
+            "VERSION_CONFLICT",
+            "Bài đánh giá đã thay đổi. Tải lại trước khi công bố.",
+          );
+        if (s.unitNumber === null)
+          return fail(
+            422,
+            "VALIDATION_ERROR",
+            "Phiên cần liên kết Unit để công bố.",
+          );
         db.publications ??= {};
         const publish = m[2] === "publish";
         if (publish) {
-          if (a.status !== "COMPLETED") return fail(409, "ASSESSMENT_LOCKED", "Chỉ công bố bài đánh giá đã hoàn thành.");
-          const rows = db.results[a.id].filter(r => db.students[s.classId].some(student => student.id === r.studentId && student.status === "ACTIVE"));
-          if (rows.some(r => r.attendance === "UNSET" || (r.attendance === "PRESENT" && !calculate(r, a.skills).complete))) return fail(422, "INCOMPLETE_RESULTS", "Bài còn điểm chưa hoàn tất.");
-          db.reportVersions ??= {}; for (const row of rows) { const versionKey = `${key}:${row.studentId}`; db.reportVersions[versionKey] = (db.reportVersions[versionKey] ?? 1) + 1; }
-          db.publications[key] = { assessmentId: a.id, publishedAt: new Date().toISOString(), results: structuredClone(rows), skills: structuredClone(a.skills) };
+          if (a.status !== "COMPLETED")
+            return fail(
+              409,
+              "ASSESSMENT_LOCKED",
+              "Chỉ công bố bài đánh giá đã hoàn thành.",
+            );
+          const rows = db.results[a.id].filter((r) =>
+            db.students[s.classId].some(
+              (student) =>
+                student.id === r.studentId && student.status === "ACTIVE",
+            ),
+          );
+          if (
+            rows.some(
+              (r) =>
+                r.attendance === "UNSET" ||
+                (r.attendance === "PRESENT" &&
+                  !calculate(r, a.skills).complete),
+            )
+          )
+            return fail(
+              422,
+              "INCOMPLETE_RESULTS",
+              "Bài còn điểm chưa hoàn tất.",
+            );
+          db.reportVersions ??= {};
+          for (const row of rows) {
+            const versionKey = `${key}:${row.studentId}`;
+            db.reportVersions[versionKey] =
+              (db.reportVersions[versionKey] ?? 1) + 1;
+          }
+          db.publications[key] = {
+            assessmentId: a.id,
+            publishedAt: new Date().toISOString(),
+            results: structuredClone(rows),
+            skills: structuredClone(a.skills),
+          };
         } else {
-          if (source?.assessmentId !== a.id) return fail(409, "VALIDATION_ERROR", "Bài này chưa được công bố.");
+          if (source?.assessmentId !== a.id)
+            return fail(409, "VALIDATION_ERROR", "Bài này chưa được công bố.");
           delete db.publications[key];
         }
-        a.version++; learningSave(); return envelope({ published: publish });
+        a.version++;
+        learningSave();
+        return envelope({ published: publish });
       }
       m = path.match(/^\/assessments\/([^/]+)$/);
       if (m) {
         const a = assessmentCheck(m[1]);
         if (method === "GET") return envelope(a);
         assertLearning(db, staff, sessionCheck(a.sessionId).classId, true);
-        if (Object.values(db.publications ?? {}).some(p => p.assessmentId === a.id)) return fail(409, "PUBLISHED_ASSESSMENT", "Gỡ công bố báo cáo trước khi sửa bài đánh giá.");
+        if (
+          Object.values(db.publications ?? {}).some(
+            (p) => p.assessmentId === a.id,
+          )
+        )
+          return fail(
+            409,
+            "PUBLISHED_ASSESSMENT",
+            "Gỡ công bố báo cáo trước khi sửa bài đánh giá.",
+          );
         const b = object(body);
         if (b.version !== a.version || b.schemaVersion !== a.schemaVersion)
           return fail(
@@ -840,63 +972,182 @@ export function createMockAdapter(
     }
   };
   const processPending = async (runtime: Parameters<typeof handler>[1]) => {
-    const pending = Object.values(read().operations ?? {}).filter((j) => j.status === "IN_PROGRESS");
+    const pending = Object.values(read().operations ?? {}).filter(
+      (j) => j.status === "IN_PROGRESS",
+    );
     for (const job of pending) {
       const result = await handler(job.request, runtime);
-      const db = structuredClone(read()), current = db.operations?.[job.operationId];
+      const db = structuredClone(read()),
+        current = db.operations?.[job.operationId];
       if (!current || current.status !== "IN_PROGRESS") continue;
       current.completedAt = new Date().toISOString();
       if ("error" in result && result.error) {
-        const detail = result.error.data as { error?: { code?: string; message?: string } } | undefined;
-        current.status = "FAILED"; current.error = { status: typeof result.error.status === "number" ? result.error.status : 500, code: detail?.error?.code ?? "OPERATION_FAILED", message: detail?.error?.message ?? "Tác vụ thất bại." };
-      } else { current.status = "DONE"; current.result = "data" in result ? result.data : undefined; }
-      const events = db.operationEvents ??= [];
-      events.push({ eventId: String(Number(events.at(-1)?.eventId ?? 0) + 1), operationId: current.operationId, actorId: current.actorId, status: current.status, command: current.command, entities: operationEntities(current.command), completedAt: current.completedAt, error: current.error });
+        const detail = result.error.data as
+          | { error?: { code?: string; message?: string } }
+          | undefined;
+        current.status = "FAILED";
+        current.error = {
+          status:
+            typeof result.error.status === "number" ? result.error.status : 500,
+          code: detail?.error?.code ?? "OPERATION_FAILED",
+          message: detail?.error?.message ?? "Tác vụ thất bại.",
+        };
+      } else {
+        current.status = "DONE";
+        current.result = "data" in result ? result.data : undefined;
+      }
+      const events = (db.operationEvents ??= []);
+      events.push({
+        eventId: String(Number(events.at(-1)?.eventId ?? 0) + 1),
+        operationId: current.operationId,
+        actorId: current.actorId,
+        status: current.status,
+        command: current.command,
+        entities: operationEntities(current.command),
+        completedAt: current.completedAt,
+        error: current.error,
+      });
       if (events.length > 1000) events.splice(0, events.length - 1000);
       save(db);
     }
   };
-  const wrapped = async (args: string | FetchArgs, runtime: Parameters<typeof handler>[1]) => {
+  const wrapped = async (
+    args: string | FetchArgs,
+    runtime: Parameters<typeof handler>[1],
+  ) => {
     const request = typeof args === "string" ? { url: args } : args;
-    const path = request.url.split("?")[0], method = request.method ?? "GET", headers = requestHeaders(request.headers);
-    const asynchronous = headers.get("Prefer") === "respond-async" && businessMutation(path, method);
-    if (!asynchronous && !path.startsWith("/operations")) return handler(args, runtime);
+    const path = request.url.split("?")[0],
+      method = request.method ?? "GET",
+      headers = requestHeaders(request.headers);
+    const asynchronous =
+      headers.get("Prefer") === "respond-async" &&
+      businessMutation(path, method);
+    if (!asynchronous && !path.startsWith("/operations"))
+      return handler(args, runtime);
     try {
-      const db = structuredClone(read()), token = headers.get("Authorization")?.replace(/^Bearer /, "") ?? "";
+      const db = structuredClone(read()),
+        token = headers.get("Authorization")?.replace(/^Bearer /, "") ?? "";
       const session = db.tokens[token];
-      if (!session || Date.parse(session.expiresAt) <= Date.now()) fail(401, "UNAUTHORIZED", "Phiên đăng nhập hết hạn.");
+      if (!session || Date.parse(session.expiresAt) <= Date.now())
+        fail(401, "UNAUTHORIZED", "Phiên đăng nhập hết hạn.");
       const staff = actor(db, session.teacher.id);
       if (asynchronous) {
-        if (path.startsWith("/manager/")) { if (!capabilities(staff, "manager").manage) fail(403, "FORBIDDEN", "Cần vai trò MANAGER hoạt động."); }
-        else {
+        if (path.startsWith("/manager/")) {
+          if (!capabilities(staff, "manager").manage)
+            fail(403, "FORBIDDEN", "Cần vai trò MANAGER hoạt động.");
+        } else {
           let classId = path.match(/^\/classes\/([^/]+)/)?.[1];
-          const sid = path.match(/^\/sessions\/([^/]+)/)?.[1], aid = path.match(/^\/assessments\/([^/]+)/)?.[1];
+          const sid = path.match(/^\/sessions\/([^/]+)/)?.[1],
+            aid = path.match(/^\/assessments\/([^/]+)/)?.[1];
           if (sid) classId = db.sessions.find((s) => s.id === sid)?.classId;
-          if (aid) { const assessment = db.assessments.find((a) => a.id === aid); classId = db.sessions.find((s) => s.id === assessment?.sessionId)?.classId; }
+          if (aid) {
+            const assessment = db.assessments.find((a) => a.id === aid);
+            classId = db.sessions.find(
+              (s) => s.id === assessment?.sessionId,
+            )?.classId;
+          }
           assertLearning(db, staff, classId ?? "", true);
         }
-        const key = headers.get("Idempotency-Key") ?? id(), digest = JSON.stringify({ path, method, body: request.body });
-        if (key.length > 128) fail(400, "INVALID_KEY", "Idempotency-Key không hợp lệ.");
-        const jobs = db.operations ??= {};
-        const old = Object.values(jobs).find((j) => j.actorId === staff.id && j.key === key);
-        if (old) { if (old.digest !== digest) fail(409, "IDEMPOTENCY_CONFLICT", "Khóa đã dùng cho request khác."); return { data: { data: publicOperation(old, staff.id) } }; }
+        const key = headers.get("Idempotency-Key") ?? id(),
+          digest = JSON.stringify({ path, method, body: request.body });
+        if (key.length > 128)
+          fail(400, "INVALID_KEY", "Idempotency-Key không hợp lệ.");
+        const jobs = (db.operations ??= {});
+        const old = Object.values(jobs).find(
+          (j) => j.actorId === staff.id && j.key === key,
+        );
+        if (old) {
+          if (old.digest !== digest)
+            fail(409, "IDEMPOTENCY_CONFLICT", "Khóa đã dùng cho request khác.");
+          return { data: { data: publicOperation(old, staff.id) } };
+        }
         const operationId = id();
-        jobs[operationId] = { operationId, actorId: staff.id, token, key, digest, status: "IN_PROGRESS", command: operationCommand(path, method), createdAt: new Date().toISOString(), completedAt: null, request: { ...request, headers: { Authorization: `Bearer ${token}`, "Idempotency-Key": key } } };
+        jobs[operationId] = {
+          operationId,
+          actorId: staff.id,
+          token,
+          key,
+          digest,
+          status: "IN_PROGRESS",
+          command: operationCommand(path, method),
+          createdAt: new Date().toISOString(),
+          completedAt: null,
+          request: {
+            ...request,
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Idempotency-Key": key,
+            },
+          },
+        };
         save(db);
-        setTimeout(() => { const work = queue.then(() => processPending(runtime)); queue = work.catch(() => undefined); }, Math.max(50, delay * 2));
+        setTimeout(
+          () => {
+            const work = queue.then(() => processPending(runtime));
+            queue = work.catch(() => undefined);
+          },
+          Math.max(50, delay * 2),
+        );
         return { data: { data: publicOperation(jobs[operationId], staff.id) } };
       }
       if (path === "/operations/events") {
-        const after = new URLSearchParams(request.url.split("?")[1]).get("after") ?? "0";
-        return { data: { data: { items: (db.operationEvents ?? []).filter((e) => BigInt(e.eventId) > BigInt(after) && (staff.roles?.includes("MANAGER") || e.actorId === staff.id)).slice(0, 100) } } };
+        const after =
+          new URLSearchParams(request.url.split("?")[1]).get("after") ?? "0";
+        return {
+          data: {
+            data: {
+              items: (db.operationEvents ?? [])
+                .filter(
+                  (e) =>
+                    BigInt(e.eventId) > BigInt(after) &&
+                    (staff.roles?.includes("MANAGER") ||
+                      e.actorId === staff.id),
+                )
+                .slice(0, 100),
+            },
+          },
+        };
       }
-      if (path === "/operations") return { data: { data: { items: Object.values(db.operations ?? {}).filter((j) => j.actorId === staff.id).slice(-100).map((j) => publicOperation(j, staff.id)) } } };
-      const opId = path.split("/")[2], owned = db.operations?.[opId];
-      if (!owned || (owned.actorId !== staff.id && !staff.roles?.includes("MANAGER"))) return fail(404, "OPERATION_NOT_FOUND", "Không tìm thấy tác vụ.");
+      if (path === "/operations")
+        return {
+          data: {
+            data: {
+              items: Object.values(db.operations ?? {})
+                .filter((j) => j.actorId === staff.id)
+                .slice(-100)
+                .map((j) => publicOperation(j, staff.id)),
+            },
+          },
+        };
+      const opId = path.split("/")[2],
+        owned = db.operations?.[opId];
+      if (
+        !owned ||
+        (owned.actorId !== staff.id && !staff.roles?.includes("MANAGER"))
+      )
+        return fail(404, "OPERATION_NOT_FOUND", "Không tìm thấy tác vụ.");
       if (owned.status === "IN_PROGRESS") await processPending(runtime);
-      return { data: { data: publicOperation(read().operations![opId], staff.id) } };
+      return {
+        data: { data: publicOperation(read().operations![opId], staff.id) },
+      };
     } catch (e) {
-      return { error: { status: e instanceof MockFailure || e instanceof ManagementError ? e.status : 500, data: { error: { code: e instanceof MockFailure || e instanceof ManagementError ? e.code : "MOCK_ERROR", message: e instanceof Error ? e.message : "Tác vụ thất bại." } } } };
+      return {
+        error: {
+          status:
+            e instanceof MockFailure || e instanceof ManagementError
+              ? e.status
+              : 500,
+          data: {
+            error: {
+              code:
+                e instanceof MockFailure || e instanceof ManagementError
+                  ? e.code
+                  : "MOCK_ERROR",
+              message: e instanceof Error ? e.message : "Tác vụ thất bại.",
+            },
+          },
+        },
+      };
     }
   };
   return (args, api, options) => {

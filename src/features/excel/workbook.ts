@@ -230,10 +230,18 @@ export async function parseWorkbook(
     const value = (name: string) =>
       scalar(row.getCell(headers.indexOf(name) + 1));
     const suppliedId = value("student_id");
-    const id = typeof suppliedId === "string" ? students.find(s => [s.id, s.publicId, s.studentCode].includes(suppliedId))?.id ?? suppliedId : suppliedId;
+    const id =
+      typeof suppliedId === "string"
+        ? (students.find((s) =>
+            [s.id, s.publicId, s.studentCode].includes(suppliedId),
+          )?.id ?? suppliedId)
+        : suppliedId;
     const add = (column: string, message: string) =>
       errors.push({ row: n, column, message });
-    if (typeof id !== "string" || !students.some((s) => [s.id, s.publicId, s.studentCode].includes(id))) {
+    if (
+      typeof id !== "string" ||
+      !students.some((s) => [s.id, s.publicId, s.studentCode].includes(id))
+    ) {
       add("student_id", "ID không thuộc lớp hoặc không hợp lệ");
       continue;
     }

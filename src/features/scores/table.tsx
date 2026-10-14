@@ -43,7 +43,7 @@ export default function ScoreTable({
   results,
 }: {
   assessment: Assessment;
-  editable?:boolean;
+  editable?: boolean;
   students: Student[];
   results: StudentResult[];
 }) {
@@ -52,13 +52,15 @@ export default function ScoreTable({
     [message, setMessage] = useState(""),
     [save, state] = useSaveBatchMutation();
   useUnsaved(Object.keys(drafts).length > 0);
-  const locked = !editable || assessment.status === "COMPLETED" || state.isLoading;
+  const locked =
+    !editable || assessment.status === "COMPLETED" || state.isLoading;
   const read = (id: string) =>
     drafts[id] ??
     results.find((r) => r.studentId === id) ??
     emptyResult(id, assessment.skills);
   const change = (id: string, apply: (r: StudentResult) => void) => {
-    if(locked || students.find(s=>s.id===id)?.status!=="ACTIVE")return;
+    if (locked || students.find((s) => s.id === id)?.status !== "ACTIVE")
+      return;
     setDrafts((old) => {
       const r = structuredClone(
         old[id] ??
@@ -222,7 +224,7 @@ export default function ScoreTable({
               const r = read(student.id),
                 errors = validateResult(r, assessment.skills),
                 total = calculate(r, assessment.skills),
-                rowLocked = locked || student.status!=="ACTIVE";
+                rowLocked = locked || student.status !== "ACTIVE";
               return (
                 <TableRow
                   key={student.id}
@@ -239,7 +241,13 @@ export default function ScoreTable({
                       {student.name}
                       {student.nickname ? ` (${student.nickname})` : ""}
                     </Typography>
-                    <Typography variant="caption">{publicId(student.publicId, student.studentCode, student.id)}</Typography>
+                    <Typography variant="caption">
+                      {publicId(
+                        student.publicId,
+                        student.studentCode,
+                        student.id,
+                      )}
+                    </Typography>
                     {rowErrors[student.id] && (
                       <>
                         <Alert severity="error">{rowErrors[student.id]}</Alert>
@@ -274,7 +282,15 @@ export default function ScoreTable({
                       indeterminate={r.attendance === "UNSET"}
                       disabled={rowLocked}
                       slotProps={{
-                        input: { "aria-label": "Có mặt " + publicId(student.publicId, student.studentCode, student.id) },
+                        input: {
+                          "aria-label":
+                            "Có mặt " +
+                            publicId(
+                              student.publicId,
+                              student.studentCode,
+                              student.id,
+                            ),
+                        },
                       }}
                       onChange={(_, value) =>
                         setAttendance(student.id, value ? "PRESENT" : "ABSENT")
@@ -295,7 +311,14 @@ export default function ScoreTable({
                     <Button
                       disabled={rowLocked}
                       onClick={() => setAttendance(student.id, "UNSET")}
-                      aria-label={"Bỏ xác định " + publicId(student.publicId, student.studentCode, student.id)}
+                      aria-label={
+                        "Bỏ xác định " +
+                        publicId(
+                          student.publicId,
+                          student.studentCode,
+                          student.id,
+                        )
+                      }
                     >
                       Đặt lại
                     </Button>

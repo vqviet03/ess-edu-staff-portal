@@ -1,12 +1,11 @@
 "use client";
-import {NotificationActionPriority} from "@/features/notifications/action-priority";
-import {NotificationPrioritySelect} from "@/features/notifications/priority";
+import { useRouteState } from "@/shared/route-state";
+import { NotificationActionPriority } from "@/features/notifications/action-priority";
+import { NotificationPrioritySelect } from "@/features/notifications/priority";
 import NextLink from "next/link";
 import Button from "@mui/material/Button";
-import IconButton from "@mui/material/IconButton";
-import Tooltip from "@mui/material/Tooltip";
-import ArrowBack from "@mui/icons-material/ArrowBack";
-import {usePostTarget} from "./post-target";
+import { BackAction } from "@/shared/back-action";
+import { usePostTarget } from "./post-target";
 import { Comments } from "./comments";
 import { IconAction } from "@/shared/icon-action";
 import FirstPage from "@mui/icons-material/FirstPage";
@@ -18,7 +17,7 @@ import Close from "@mui/icons-material/Close";
 import ButtonBase from "@mui/material/ButtonBase";
 import InputBase from "@mui/material/InputBase";
 import { PostSurface, postTypeLabels } from "./post-surface";
-import {useRouter} from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useWorkspace } from "@/features/access/hooks";
 import Autocomplete from "@mui/material/Autocomplete";
 import { useState } from "react";
@@ -67,10 +66,12 @@ export function PostCard({
   editable: boolean;
   edit: (post: Post) => void;
 }) {
-  const router=useRouter();
+  const router = useRouter();
   const me = useAppSelector((s) => s.auth.session?.teacher),
-    [notifyStudents,setNotifyStudents]=useState<boolean|undefined>(),
-    [actionPriority,setActionPriority]=useState<"NORMAL"|"IMPORTANT"|undefined>(),
+    [notifyStudents, setNotifyStudents] = useState<boolean | undefined>(),
+    [actionPriority, setActionPriority] = useState<
+      "NORMAL" | "IMPORTANT" | undefined
+    >(),
     [showComments, setShowComments] = useState(!!targetComment),
     [preview, setPreview] = useState<MaterialFile | null>(null),
     [reaction, state] = useReactionMutation(),
@@ -80,15 +81,37 @@ export function PostCard({
     editable && post.authorId === me?.id && post.canEdit !== false;
   const canDelete =
     post.canDelete ?? (!!me?.roles?.includes("MANAGER") || canEdit);
-  const [lastTarget,setLastTarget]=useState(targetComment);
-  if(lastTarget!==targetComment){setLastTarget(targetComment);if(targetComment)setShowComments(true);}
+  const [lastTarget, setLastTarget] = useState(targetComment);
+  if (lastTarget !== targetComment) {
+    setLastTarget(targetComment);
+    if (targetComment) setShowComments(true);
+  }
   return (
     <>
       <PostSurface
         detail={detail}
         post={post}
-        headerActions={<NotificationActionPriority notifyStudents={notifyStudents} onNotifyStudentsChange={setNotifyStudents} classId={post.classId} feature="SOCIAL" value={actionPriority} onChange={setActionPriority}/>}
-        afterMedia={post.assignment && <Button variant="contained" component={NextLink} href={`/assignment/?assignmentId=${post.assignment.id}&classId=${post.classId}`}>Mở bài tập</Button>}
+        headerActions={
+          <NotificationActionPriority
+            notifyStudents={notifyStudents}
+            onNotifyStudentsChange={setNotifyStudents}
+            classId={post.classId}
+            feature="SOCIAL"
+            value={actionPriority}
+            onChange={setActionPriority}
+          />
+        }
+        afterMedia={
+          post.assignment && (
+            <Button
+              variant="contained"
+              component={NextLink}
+              href={`/assignment/?assignmentId=${post.assignment.id}&classId=${post.classId}`}
+            >
+              Mở bài tập
+            </Button>
+          )
+        }
         commentOpen={showComments}
         openComments={() => setShowComments((s) => !s)}
         preview={setPreview}
@@ -102,13 +125,23 @@ export function PostCard({
               classId: post.classId,
               cursor,
               reaction: post.myReaction === value ? null : value,
-              notifyStudents,notificationPriority:actionPriority,
+              notifyStudents,
+              notificationPriority: actionPriority,
             }).unwrap();
           } catch (e) {
             setError(e);
           }
         }}
-        onEdit={canEdit ? () => post.assignment ? router.push(`/assignment/?assignmentId=${post.assignment.id}&classId=${post.classId}&mode=edit`) : edit(post) : undefined}
+        onEdit={
+          canEdit
+            ? () =>
+                post.assignment
+                  ? router.push(
+                      `/assignment/?assignmentId=${post.assignment.id}&classId=${post.classId}&mode=edit`,
+                    )
+                  : edit(post)
+            : undefined
+        }
         onDelete={
           canDelete
             ? async () => {
@@ -120,7 +153,8 @@ export function PostCard({
                     id: post.id,
                     version: post.version,
                     reason,
-                    notifyStudents,notificationPriority:actionPriority,
+                    notifyStudents,
+                    notificationPriority: actionPriority,
                   }).unwrap();
                 } catch (e) {
                   setError(e);
@@ -129,13 +163,15 @@ export function PostCard({
             : undefined
         }
       >
-        {!post.assignment && <Comments
-          post={post}
-          targetComment={targetComment}
-          expanded={showComments}
-          expand={() => setShowComments(true)}
-          collapse={() => setShowComments(false)}
-        />}
+        {!post.assignment && (
+          <Comments
+            post={post}
+            targetComment={targetComment}
+            expanded={showComments}
+            expand={() => setShowComments(true)}
+            collapse={() => setShowComments(false)}
+          />
+        )}
       </PostSurface>
       <Feedback error={error} />
       {preview && (
@@ -176,7 +212,11 @@ export function SessionFeed({
   const { selected } = useWorkspace();
   const me = useAppSelector((s) => s.auth.session?.teacher);
   const workspace = selected ?? undefined;
-  const [cursor, setCursor] = useState<string>(),
+  const scope = `posts:${classId ?? ""}:${sessionId ?? ""}`;
+  const [cursor, setCursor] = useRouteState<string | undefined>(
+      `${scope}:cursor`,
+      undefined,
+    ),
     sessionList = usePostsQuery(
       { sessionId: sessionId ?? "", cursor, workspace },
       { skip: !sessionId },
@@ -190,17 +230,25 @@ export function SessionFeed({
       skip: !classId || !editable,
     }),
     [open, setOpen] = useState(false),
-    [draft, setDraft] = useState<PostInput>(() => emptyDraft(sessionId)),
-    [editingId, setEditingId] = useState<string>(),
-    [chosen, setChosen] = useState<Record<string, MaterialFile>>({}),
+    [draft, setDraft] = useRouteState<PostInput>(`${scope}:draft`, () =>
+      emptyDraft(sessionId),
+    ),
+    [editingId, setEditingId] = useRouteState<string | undefined>(
+      `${scope}:editing`,
+      undefined,
+    ),
+    [chosen, setChosen] = useRouteState<Record<string, MaterialFile>>(
+      `${scope}:chosen`,
+      {},
+    ),
     [picker, setPicker] = useState(false),
     [upload, setUpload] = useState(false),
     [error, setError] = useState<unknown>(),
     [success, setSuccess] = useState(""),
     [save, state] = useSavePostMutation(),
-    [dirty, setDirty] = useState(false);
-  useUnsaved(dirty);
-  // This component remains mounted across the two session tabs; drafts and scroll containers survive switching.
+    [dirty, setDirty] = useRouteState(`${scope}:dirty`, false);
+  useUnsaved(dirty && open);
+  // Drafts survive route transitions; API subscriptions only exist while this page is visible.
   const add = (files: MaterialFile[]) => {
     setChosen((old) => ({
       ...old,
@@ -230,9 +278,7 @@ export function SessionFeed({
         </Alert>
       )}
       {editable && (
-        <Box
-          sx={{ width: "100%", mx: "auto", alignSelf: "center" }}
-        >
+        <Box sx={{ width: "100%", mx: "auto", alignSelf: "center" }}>
           <Button
             size="small"
             startIcon={<Add />}
@@ -240,7 +286,14 @@ export function SessionFeed({
           >
             Tạo bài đăng
           </Button>
-          <Button component={NextLink} href={`/assignment/?classId=${classId}&mode=create${sessionId?`&sessionId=${sessionId}`:""}`} size="small" startIcon={<Add/>}>Tạo bài tập</Button>
+          <Button
+            component={NextLink}
+            href={`/assignment/?classId=${classId}&mode=create${sessionId ? `&sessionId=${sessionId}` : ""}`}
+            size="small"
+            startIcon={<Add />}
+          >
+            Tạo bài tập
+          </Button>
         </Box>
       )}
       <Box
@@ -347,11 +400,13 @@ export function SessionFeed({
                   setDirty(true);
                 }}
               >
-                {Object.entries(postTypeLabels).filter(([v]) => v !== "ASSIGNMENT").map(([v, l]) => (
-                  <MenuItem key={v} value={v}>
-                    {l}
-                  </MenuItem>
-                ))}
+                {Object.entries(postTypeLabels)
+                  .filter(([v]) => v !== "ASSIGNMENT")
+                  .map(([v, l]) => (
+                    <MenuItem key={v} value={v}>
+                      {l}
+                    </MenuItem>
+                  ))}
               </TextField>
               <TextField
                 size="small"
@@ -371,7 +426,20 @@ export function SessionFeed({
                 <MenuItem value="DRAFT">Nháp</MenuItem>
               </TextField>
             </Stack>
-            <NotificationPrioritySelect notifyStudents={draft.notifyStudents} onNotifyStudentsChange={v=>{setDraft(d=>({...d,notifyStudents:v}));setDirty(true);}} classId={classId??""} feature="MATERIAL" value={draft.notificationPriority} onChange={v=>{setDraft(d=>({...d,notificationPriority:v}));setDirty(true);}}/>
+            <NotificationPrioritySelect
+              notifyStudents={draft.notifyStudents}
+              onNotifyStudentsChange={(v) => {
+                setDraft((d) => ({ ...d, notifyStudents: v }));
+                setDirty(true);
+              }}
+              classId={classId ?? ""}
+              feature="MATERIAL"
+              value={draft.notificationPriority}
+              onChange={(v) => {
+                setDraft((d) => ({ ...d, notificationPriority: v }));
+                setDirty(true);
+              }}
+            />
             {!sessionId && draft.postType === "SESSION_MATERIAL" && (
               <>
                 <Autocomplete
@@ -648,4 +716,34 @@ export function SessionFeed({
   );
 }
 
-export function PostDetailPage({postId}:{postId:string}) { const router=useRouter(); const q=usePostQuery(postId,{skip:!postId});const target=usePostTarget(postId);return <><Feedback loading={q.isLoading} error={q.error} retry={()=>void q.refetch()}/>{q.data&&target&&<><Tooltip title="Về thread"><IconButton component={NextLink} href={`/class/?classId=${encodeURIComponent(q.data.classId)}&tab=thread`} aria-label="Về thread"><ArrowBack/></IconButton></Tooltip><PostCard detail targetComment={target?.comment} post={q.data} editable={q.data.canEdit===true} edit={p=>{router.push(`/class/?classId=${p.classId}&postId=${p.id}`);}}/></>}</>;}
+export function PostDetailPage({ postId }: { postId: string }) {
+  const router = useRouter();
+  const q = usePostQuery(postId, { skip: !postId });
+  const target = usePostTarget(postId);
+  return (
+    <>
+      <Feedback
+        loading={q.isLoading}
+        error={q.error}
+        retry={() => void q.refetch()}
+      />
+      {q.data && target && (
+        <>
+          <BackAction
+            label="Về thread"
+            fallback={`/class/thread/?classId=${encodeURIComponent(q.data.classId)}`}
+          />
+          <PostCard
+            detail
+            targetComment={target?.comment}
+            post={q.data}
+            editable={q.data.canEdit === true}
+            edit={(p) => {
+              router.push(`/class/?classId=${p.classId}&postId=${p.id}`);
+            }}
+          />
+        </>
+      )}
+    </>
+  );
+}

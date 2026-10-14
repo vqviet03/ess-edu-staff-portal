@@ -5,11 +5,17 @@ import { createSocketSessionCheck } from "../src/features/auth/socket-session";
 test("socket auth failure checks once, sharing concurrent checks and limiting recovery", async () => {
   let calls = 0;
   let finish!: (value: { data: unknown }) => void;
-  const check = createSocketSessionCheck(() => "token", () => {
-    calls++;
-    return new Promise(resolve => { finish = resolve; });
-  });
-  const first = check("token"), second = check("token");
+  const check = createSocketSessionCheck(
+    () => "token",
+    () => {
+      calls++;
+      return new Promise((resolve) => {
+        finish = resolve;
+      });
+    },
+  );
+  const first = check("token"),
+    second = check("token");
   assert.equal(calls, 1);
   finish({ data: { id: "current-user" } });
   assert.equal(await first, true);
@@ -21,15 +27,23 @@ test("socket auth failure checks once, sharing concurrent checks and limiting re
 test("network/403/401/server failures never authorize a reconnect or loop", async () => {
   for (const status of [401, 403, 500, "FETCH_ERROR", "TIMEOUT_ERROR"]) {
     let calls = 0;
-    const check = createSocketSessionCheck(() => "token", async () => {
-      calls++;
-      return { data: { id: "old-cache" }, error: { status } };
-    });
+    const check = createSocketSessionCheck(
+      () => "token",
+      async () => {
+        calls++;
+        return { data: { id: "old-cache" }, error: { status } };
+      },
+    );
     assert.equal(await check("token"), false);
     assert.equal(await check("token"), false);
     assert.equal(calls, 1);
   }
-  const check = createSocketSessionCheck(() => "token", async () => { throw new Error("Offline"); });
+  const check = createSocketSessionCheck(
+    () => "token",
+    async () => {
+      throw new Error("Offline");
+    },
+  );
   assert.equal(await check("token"), false);
 });
 
@@ -37,10 +51,15 @@ test("old socket and late auth response cannot affect a new login or disposed li
   let token: string | null = "old";
   let calls = 0;
   let finish!: (value: { data: unknown }) => void;
-  const check = createSocketSessionCheck(() => token, () => {
-    calls++;
-    return new Promise(resolve => { finish = resolve; });
-  });
+  const check = createSocketSessionCheck(
+    () => token,
+    () => {
+      calls++;
+      return new Promise((resolve) => {
+        finish = resolve;
+      });
+    },
+  );
   const pending = check("old");
   token = "new";
   finish({ data: { id: "old-user" } });

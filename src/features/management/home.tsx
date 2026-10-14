@@ -1,5 +1,5 @@
 "use client";
-import {StorageNotice} from "@/features/materials/storage-notice";
+import { StorageNotice } from "@/features/materials/storage-notice";
 import dynamic from "next/dynamic";
 import { Home } from "@/features/classes/home";
 import { useWorkspace } from "@/features/access/hooks";
@@ -10,5 +10,12 @@ const Dashboard = dynamic(
 );
 export function StaffHome() {
   const { selected } = useWorkspace();
-  return selected === "manager" ? <><StorageNotice/><Dashboard /></> : <Home />;
+  return selected === "manager" ? (
+    <>
+      <StorageNotice />
+      <Dashboard />
+    </>
+  ) : (
+    <Home />
+  );
 }

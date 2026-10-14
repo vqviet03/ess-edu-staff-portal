@@ -81,8 +81,16 @@ export function UploadDialog({
     tickets = useRef(new Map<string, UploadTicket>()),
     [busy, setBusy] = useState(false),
     mounted = useRef(true);
-  const drives = settings.data?.storages ?? Object.entries(areaLabels).map(([id, name]) => ({ id, name, category: id }));
-  const initialDrive = (mime: string) => drives.find(s => s.category === defaultArea(mime))?.id ?? defaultArea(mime);
+  const drives =
+    settings.data?.storages ??
+    Object.entries(areaLabels).map(([id, name]) => ({
+      id,
+      name,
+      category: id,
+    }));
+  const initialDrive = (mime: string) =>
+    drives.find((s) => s.category === defaultArea(mime))?.id ??
+    defaultArea(mime);
   useUnsaved(
     rows.some((r) => r.status === "WAITING" || r.status === "UPLOADING"),
   );
@@ -100,7 +108,13 @@ export function UploadDialog({
   };
   const run = async (row: Row) => {
     const normalized = await compressImage(row.file).catch(() => null);
-    if (!normalized) { patch(row.key, { status: "ERROR", error: "Không xử lý được ảnh. Vui lòng chọn ảnh nhỏ hơn." }); return; }
+    if (!normalized) {
+      patch(row.key, {
+        status: "ERROR",
+        error: "Không xử lý được ảnh. Vui lòng chọn ảnh nhỏ hơn.",
+      });
+      return;
+    }
     row = { ...row, file: normalized };
     const error = validateUpload(
       row.file,
@@ -127,7 +141,14 @@ export function UploadDialog({
           sizeBytes: row.file.size,
           storageId: postId ? "" : row.area,
           folderId,
-          uploadSource: source === "avatar" ? "avatar" : postId ? "comment" : sessionId ? "session" : source ?? "library",
+          uploadSource:
+            source === "avatar"
+              ? "avatar"
+              : postId
+                ? "comment"
+                : sessionId
+                  ? "session"
+                  : (source ?? "library"),
           sourcePostId: postId,
           sourceSessionId: sessionId,
           thumbnailMime: thumb?.type,
@@ -168,7 +189,16 @@ export function UploadDialog({
       fullWidth
       maxWidth="md"
     >
-      <DialogTitle>{source === "avatar" ? "Tải ảnh đại diện" : "Upload " + (postId ? "đính kèm bình luận" : sessionId ? "vào phiên học" : "vào kho")}</DialogTitle>
+      <DialogTitle>
+        {source === "avatar"
+          ? "Tải ảnh đại diện"
+          : "Upload " +
+            (postId
+              ? "đính kèm bình luận"
+              : sessionId
+                ? "vào phiên học"
+                : "vào kho")}
+      </DialogTitle>
       <DialogContent>
         <Feedback
           loading={settings.isLoading}
@@ -179,13 +209,19 @@ export function UploadDialog({
           {settings.currentData && (
             <>
               <Typography variant="body2">
-                Tối đa {bytes(settings.currentData.maxUploadBytes)}/file. Ảnh trên 20 MB được nén trước khi tải. File bình luận vào ổ do quản lý cấu hình.
+                Tối đa {bytes(settings.currentData.maxUploadBytes)}/file. Ảnh
+                trên 20 MB được nén trước khi tải. File bình luận vào ổ do quản
+                lý cấu hình.
               </Typography>
               <Button component="label" variant="outlined" disabled={busy}>
                 Chọn nhiều file
                 <input
                   type="file"
-                accept={source === "avatar" ? "image/jpeg,image/png,image/webp" : undefined}
+                  accept={
+                    source === "avatar"
+                      ? "image/jpeg,image/png,image/webp"
+                      : undefined
+                  }
                   multiple={source !== "avatar"}
                   hidden
                   onChange={(e) => {
@@ -220,17 +256,28 @@ export function UploadDialog({
                   File lớn, thời gian tải có thể lâu.
                 </Alert>
               )}
-              {!postId && source !== "avatar" && <TextField
-                select
-                label="Nhóm storage"
-                value={row.area}
-                disabled={!!postId || row.status !== "WAITING"}
-                onChange={(e) =>
-                  patch(row.key, { area: e.target.value })
-                }
-              >
-                {drives.filter(s => (!row.file.type.startsWith("image/") && !row.file.type.startsWith("audio/")) || s.category === defaultArea(row.file.type)).map(s => <MenuItem key={s.id} value={s.id}>{s.name} ({s.id})</MenuItem>)}
-              </TextField>}
+              {!postId && source !== "avatar" && (
+                <TextField
+                  select
+                  label="Nhóm storage"
+                  value={row.area}
+                  disabled={!!postId || row.status !== "WAITING"}
+                  onChange={(e) => patch(row.key, { area: e.target.value })}
+                >
+                  {drives
+                    .filter(
+                      (s) =>
+                        (!row.file.type.startsWith("image/") &&
+                          !row.file.type.startsWith("audio/")) ||
+                        s.category === defaultArea(row.file.type),
+                    )
+                    .map((s) => (
+                      <MenuItem key={s.id} value={s.id}>
+                        {s.name} ({s.id})
+                      </MenuItem>
+                    ))}
+                </TextField>
+              )}
               <LinearProgress variant="determinate" value={row.progress} />
               <Typography variant="caption">
                 {row.status === "DONE"

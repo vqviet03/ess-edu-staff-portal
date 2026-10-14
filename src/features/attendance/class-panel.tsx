@@ -1,6 +1,6 @@
 "use client";
-import {CalendarActions} from "./calendar-actions";
-import {NotificationPrioritySelect} from "@/features/notifications/priority";
+import { CalendarActions } from "./calendar-actions";
+import { NotificationPrioritySelect } from "@/features/notifications/priority";
 import { useState } from "react";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
@@ -180,8 +180,8 @@ function DayEditor({
         data.items.map((r) => [r.studentId, r.status === "PRESENT"]),
       ),
     ),
-    [notifyStudents,setNotifyStudents]=useState<boolean|undefined>(),
-    [priority,setPriority]=useState<"NORMAL"|"IMPORTANT"|undefined>(),
+    [notifyStudents, setNotifyStudents] = useState<boolean | undefined>(),
+    [priority, setPriority] = useState<"NORMAL" | "IMPORTANT" | undefined>(),
     [reason, setReason] = useState(""),
     [dirty, setDirty] = useState(false),
     [confirm, setConfirm] = useState(false),
@@ -227,7 +227,14 @@ function DayEditor({
           slotProps={{ htmlInput: { maxLength: 2000 } }}
         />
       )}
-      <NotificationPrioritySelect notifyStudents={notifyStudents} onNotifyStudentsChange={setNotifyStudents} classId={classId} feature="ATTENDANCE" value={priority} onChange={setPriority}/>
+      <NotificationPrioritySelect
+        notifyStudents={notifyStudents}
+        onNotifyStudentsChange={setNotifyStudents}
+        classId={classId}
+        feature="ATTENDANCE"
+        value={priority}
+        onChange={setPriority}
+      />
       <Feedback error={error} />
       <Stack direction="row" spacing={1}>
         <Button
@@ -331,7 +338,8 @@ function DayEditor({
                   date: initial.date,
                   version: initial.version,
                   reason,
-                  notifyStudents,notificationPriority:priority,
+                  notifyStudents,
+                  notificationPriority: priority,
                   rows: initial.items.map((r) => ({
                     studentId: r.studentId,
                     status: checked[r.studentId] ? "PRESENT" : "ABSENT",
@@ -364,9 +372,15 @@ function AttendanceDay({
   editable: boolean;
   today: boolean;
 }) {
-  const [edit,setEdit]=useState(false),[message,setMessage]=useState("");
-  const allowed=editable && data.date<=data.today && !data.replaced && !data.isHoliday && !data.isCancelled,
-    ready=data.scheduled||data.confirmed;
+  const [edit, setEdit] = useState(false),
+    [message, setMessage] = useState("");
+  const allowed =
+      editable &&
+      data.date <= data.today &&
+      !data.replaced &&
+      !data.isHoliday &&
+      !data.isCancelled,
+    ready = data.scheduled || data.confirmed;
   return (
     <Paper sx={{ p: { xs: 2, sm: 3 } }}>
       <Stack spacing={1.5}>
@@ -383,7 +397,19 @@ function AttendanceDay({
         </Typography>
         <Box>
           <AttendanceBadge
-            status={data.isHoliday?"HOLIDAY":data.isCancelled?"CANCELLED":data.isPlanned?"PLANNED":data.replaced ? "REPLACED" : data.saved ? "SAVED" : "UNSET"}
+            status={
+              data.isHoliday
+                ? "HOLIDAY"
+                : data.isCancelled
+                  ? "CANCELLED"
+                  : data.isPlanned
+                    ? "PLANNED"
+                    : data.replaced
+                      ? "REPLACED"
+                      : data.saved
+                        ? "SAVED"
+                        : "UNSET"
+            }
           />
           {data.scheduled && (
             <Typography
@@ -421,8 +447,12 @@ function AttendanceDay({
             Ngày tương lai chỉ xem, không điểm danh.
           </Alert>
         )}
-        <CalendarActions data={data} classId={classId} editable={editable}/>
-        {!ready&&!data.isHoliday&&<Alert severity="info">Ngày ngoài lịch. Xếp học bù hoặc học thêm trước khi điểm danh.</Alert>}
+        <CalendarActions data={data} classId={classId} editable={editable} />
+        {!ready && !data.isHoliday && (
+          <Alert severity="info">
+            Ngày ngoài lịch. Xếp học bù hoặc học thêm trước khi điểm danh.
+          </Alert>
+        )}
         {message && (
           <Alert severity="success" onClose={() => setMessage("")}>
             {message}

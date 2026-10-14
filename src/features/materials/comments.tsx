@@ -1,8 +1,8 @@
 "use client";
-import {NotificationPrioritySelect} from "@/features/notifications/priority";
-import {ContentViews} from "@/features/presence/views";
+import { NotificationPrioritySelect } from "@/features/notifications/priority";
+import { ContentViews } from "@/features/presence/views";
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import {ProfileAvatar} from "@/features/profile/avatar";
+import { ProfileAvatar } from "@/features/profile/avatar";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Chip from "@mui/material/Chip";
@@ -53,10 +53,16 @@ function CommentPage({
     [more, setMore] = useState(false);
   const located = useRef<string | null>(null);
   useEffect(() => {
-    if (!around) { located.current = null; return; }
+    if (!around) {
+      located.current = null;
+      return;
+    }
     if (located.current === around || !query.currentData) return;
     const element = document.getElementById(`comment-${around}`);
-    if (element) { element.scrollIntoView({ block: "center" }); located.current = around; }
+    if (element) {
+      element.scrollIntoView({ block: "center" });
+      located.current = around;
+    }
   }, [around, query.currentData]);
   return (
     <Stack spacing={1.5}>
@@ -100,8 +106,10 @@ export function Comments({
   targetComment?: string;
 }) {
   const me = useAppSelector((s) => s.auth.session?.teacher);
-  const [notifyStudents,setNotifyStudents]=useState<boolean|undefined>();
-  const [priority,setPriority]=useState<"NORMAL"|"IMPORTANT"|undefined>();
+  const [notifyStudents, setNotifyStudents] = useState<boolean | undefined>();
+  const [priority, setPriority] = useState<
+    "NORMAL" | "IMPORTANT" | undefined
+  >();
   const [body, setBody] = useState(""),
     [upload, setUpload] = useState(false),
     [attachments, setAttachments] = useState<MaterialFile[]>([]),
@@ -139,7 +147,8 @@ export function Comments({
         body,
         parentId: parent?.id,
         materialIds: attachments.map((f) => f.id),
-        notifyStudents,notificationPriority:priority,
+        notifyStudents,
+        notificationPriority: priority,
       }).unwrap();
       setBody("");
       setAttachments([]);
@@ -158,7 +167,7 @@ export function Comments({
       spacing={1}
       sx={{ ml: c.parentId ? 2 : 0, alignItems: "flex-start" }}
     >
-      <ProfileAvatar name={c.authorName} value={c.authorAvatar}/>
+      <ProfileAvatar name={c.authorName} value={c.authorAvatar} />
       <Box
         sx={{
           flex: 1,
@@ -179,7 +188,7 @@ export function Comments({
             {c.authorId === post.authorId ? " · Giảng viên" : ""}
           </Typography>
           <Stack direction="row" sx={{ alignItems: "center" }}>
-            <ContentViews kind="COMMENT" id={c.id}/>
+            <ContentViews kind="COMMENT" id={c.id} />
             {c.isPinned && (
               <Tooltip title="Bình luận đã ghim — luôn hiển thị">
                 <PushPin sx={{ fontSize: 15, color: "var(--post-green)" }} />
@@ -342,7 +351,7 @@ export function Comments({
         </Stack>
       )}
       <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
-        <ProfileAvatar name={me?.name??"Bạn"} value={me?.avatar}/>
+        <ProfileAvatar name={me?.name ?? "Bạn"} value={me?.avatar} />
         <Box
           component="form"
           aria-label="Soạn bình luận"
@@ -426,7 +435,14 @@ export function Comments({
           </Tooltip>
         </Box>
       </Stack>
-      <NotificationPrioritySelect notifyStudents={notifyStudents} onNotifyStudentsChange={setNotifyStudents} classId={post.classId} feature={parent?"REPLY":"SOCIAL"} value={priority} onChange={setPriority}/>
+      <NotificationPrioritySelect
+        notifyStudents={notifyStudents}
+        onNotifyStudentsChange={setNotifyStudents}
+        classId={post.classId}
+        feature={parent ? "REPLY" : "SOCIAL"}
+        value={priority}
+        onChange={setPriority}
+      />
       <Menu anchorEl={menu?.anchor} open={!!menu} onClose={() => setMenu(null)}>
         {post.canPinComment && (
           <MenuItem
@@ -442,7 +458,8 @@ export function Comments({
                   postId: post.id,
                   isPinned: !c.isPinned,
                   version: c.version,
-                  notifyStudents,notificationPriority:priority,
+                  notifyStudents,
+                  notificationPriority: priority,
                 }).unwrap();
               } catch (e) {
                 setError(e);

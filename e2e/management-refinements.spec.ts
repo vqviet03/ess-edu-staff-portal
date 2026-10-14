@@ -10,48 +10,113 @@ async function login(page: Page) {
   await page.getByRole("button", { name: "Đăng nhập", exact: true }).click();
   await expect(page).toHaveURL(/\/home\//);
 }
-test("audit deep link paginates, sidebar collapses with active icon, edit IDs and back", async ({ page }) => {
-  const db = seed(); db.management = managementSeed(db);
-  for (let i = 0; i < 25; i++) db.management.audit.push({ id: `log-${i}`, actorId: "MG0001", at: new Date().toISOString(), entity: "materials", action: "DELETE_STORAGE_OBJECTS", ids: ["file"], changes: [], reason: "Kiểm tra" });
-  let value = JSON.stringify(db); await installHttpFixture(page, { get: () => value, set: v => { value = v; } });
-  await login(page); await page.goto(`${base}/manage/audit/`);
-  await expect(page.getByRole("heading", { name: "Nhật ký thay đổi" })).toBeVisible();
+test("audit deep link paginates, sidebar collapses with active icon, edit IDs and back", async ({
+  page,
+}) => {
+  const db = seed();
+  db.management = managementSeed(db);
+  for (let i = 0; i < 25; i++)
+    db.management.audit.push({
+      id: `log-${i}`,
+      actorId: "MG0001",
+      at: new Date().toISOString(),
+      entity: "materials",
+      action: "DELETE_STORAGE_OBJECTS",
+      ids: ["file"],
+      changes: [],
+      reason: "Kiểm tra",
+    });
+  let value = JSON.stringify(db);
+  await installHttpFixture(page, {
+    get: () => value,
+    set: (v) => {
+      value = v;
+    },
+  });
+  await login(page);
+  await page.goto(`${base}/manage/audit/`);
+  await expect(
+    page.getByRole("heading", { name: "Nhật ký thay đổi" }),
+  ).toBeVisible();
   await expect(page.getByText(/25 bản ghi/)).toBeVisible();
   await expect(page.getByText(/Nguyễn Mai.*MG0001/).first()).toBeVisible();
   await page.getByRole("button", { name: "Tới trang 2" }).click();
   await expect(page.getByText("25 bản ghi · Trang 2")).toBeVisible();
-  await page.getByLabel("Tìm nhật ký", {exact:true}).fill("DELETE_STORAGE_OBJECTS");
-  await page.getByRole("button",{name:"Tìm kiếm",exact:true}).click(); await expect(page.getByText("25 bản ghi · Trang 1")).toBeVisible();
-  await page.getByRole("button",{name:"Xóa bộ lọc",exact:true}).click(); await expect(page.getByLabel("Tìm nhật ký",{exact:true})).toHaveValue("");
+  await page
+    .getByLabel("Tìm nhật ký", { exact: true })
+    .fill("DELETE_STORAGE_OBJECTS");
+  await page.getByRole("button", { name: "Tìm kiếm", exact: true }).click();
+  await expect(page.getByText("25 bản ghi · Trang 1")).toBeVisible();
+  await page.getByRole("button", { name: "Xóa bộ lọc", exact: true }).click();
+  await expect(page.getByLabel("Tìm nhật ký", { exact: true })).toHaveValue("");
   await page.getByRole("button", { name: "Thu menu" }).click();
-  await expect(page.getByTestId("sidebar")).toHaveAttribute("data-collapsed", "true");
-  await expect(page.getByRole("link", { name: "Nhật ký", exact: true })).toHaveAttribute("aria-current", "page");
+  await expect(page.getByTestId("sidebar")).toHaveAttribute(
+    "data-collapsed",
+    "true",
+  );
+  await expect(
+    page.getByRole("link", { name: "Nhật ký", exact: true }),
+  ).toHaveAttribute("aria-current", "page");
   await page.getByRole("button", { name: "Mở menu" }).click();
-  await page.goto(`${base}/manage/profile/?entity=students&id=${encodeURIComponent(db.management.students[0].id)}`);
+  await page.goto(
+    `${base}/manage/profile/?entity=students&id=${encodeURIComponent(db.management.students[0].id)}`,
+  );
   await page.getByRole("tab", { name: "Hồ sơ & quan hệ", exact: true }).click();
-  await page.getByRole("button", { name: "Chỉnh sửa hồ sơ / trạng thái" }).click();
-  const dialog = page.getByRole("dialog"); await expect(dialog.getByLabel("ID", { exact: true })).toBeEnabled();
+  await page
+    .getByRole("button", { name: "Chỉnh sửa hồ sơ / trạng thái" })
+    .click();
+  const dialog = page.getByRole("dialog");
+  await expect(dialog.getByLabel("ID", { exact: true })).toBeEnabled();
   await dialog.getByLabel("ID", { exact: true }).fill("student.renamed");
-  await dialog.getByRole("button", { name: "Kiểm tra trùng" }).click(); await expect(dialog.getByText(/ID có thể sử dụng/)).toBeVisible();
+  await dialog.getByRole("button", { name: "Kiểm tra trùng" }).click();
+  await expect(dialog.getByText(/ID có thể sử dụng/)).toBeVisible();
   await dialog.getByRole("button", { name: "Kiểm tra & xem trước" }).click();
-  await dialog.getByRole("button", { name: /Xác nhận cập nhật 1 bản ghi/ }).click();
-  await expect(page).toHaveURL(/id=student.renamed/); await expect(page.getByText(/student.renamed/).first()).toBeVisible();
-  await page.getByRole("link", { name: "Quay lại", exact: true }).click(); await expect(page).toHaveURL(/manage\/list/);
+  await dialog
+    .getByRole("button", { name: /Xác nhận cập nhật 1 bản ghi/ })
+    .click();
+  await expect(page).toHaveURL(/id=student.renamed/);
+  await expect(page.getByText(/student.renamed/).first()).toBeVisible();
+  await page.getByRole("link", { name: "Quay lại", exact: true }).click();
+  await expect(page).toHaveURL(/manage\/list/);
 });
-test("manager creates a branding proposal without changing the current name", async ({ page }) => {
-  await installHttpFixture(page); await login(page); await page.goto(`${base}/manage/settings/`);
-  await expect(page.getByRole("heading", { name: "Cấu hình ứng dụng" })).toBeVisible();
-  await page.getByLabel("Tên ứng dụng").fill("LearnLeaf Academy"); await page.getByLabel("Tiền tố gợi ý ID lớp").fill("leaf"); await page.getByLabel("Lý do thay đổi").fill("Đổi tên đã trao đổi");
-  await page.getByLabel("Tên hiển thị · Ứng dụng học sinh", {exact:true}).fill("LearnLeaf Học sinh");
-  await page.getByLabel("Tên hiển thị · Staff Portal", {exact:true}).fill("LearnLeaf Staff");
-  const proposalRequest = page.waitForRequest(r => r.method() === "POST" && new URL(r.url()).pathname.endsWith("/manager/settings/proposals"));
-  page.on("dialog", d => void d.accept()); await page.getByRole("button", { name: "Gửi đề xuất thay đổi" }).click();
+test("manager creates a branding proposal without changing the current name", async ({
+  page,
+}) => {
+  await installHttpFixture(page);
+  await login(page);
+  await page.goto(`${base}/manage/settings/`);
+  await expect(
+    page.getByRole("heading", { name: "Cấu hình ứng dụng" }),
+  ).toBeVisible();
+  await page.getByLabel("Tên ứng dụng").fill("LearnLeaf Academy");
+  await page.getByLabel("Tiền tố gợi ý ID lớp").fill("leaf");
+  await page.getByLabel("Lý do thay đổi").fill("Đổi tên đã trao đổi");
+  await page
+    .getByLabel("Tên hiển thị · Ứng dụng học sinh", { exact: true })
+    .fill("LearnLeaf Học sinh");
+  await page
+    .getByLabel("Tên hiển thị · Staff Portal", { exact: true })
+    .fill("LearnLeaf Staff");
+  const proposalRequest = page.waitForRequest(
+    (r) =>
+      r.method() === "POST" &&
+      new URL(r.url()).pathname.endsWith("/manager/settings/proposals"),
+  );
+  page.on("dialog", (d) => void d.accept());
+  await page.getByRole("button", { name: "Gửi đề xuất thay đổi" }).click();
   const payload = (await proposalRequest).postDataJSON();
   expect(payload.appName).toBe("LearnLeaf Academy");
   expect(payload.portals.student.name).toBe("LearnLeaf Học sinh");
   expect(payload.portals.staff.name).toBe("LearnLeaf Staff");
-  await expect(page.getByText(/Đã gửi đề xuất, đang chờ/)).toBeVisible(); await expect(page.getByText("Chờ xác nhận", { exact: true })).toBeVisible();
-  await expect(page.getByRole("link", { name: "ESS", exact: true })).toBeVisible();
+  await expect(page.getByText(/Đã gửi đề xuất, đang chờ/)).toBeVisible();
+  await expect(page.getByText("Chờ xác nhận", { exact: true })).toBeVisible();
+  await expect(
+    page.getByRole("link", { name: "ESS", exact: true }),
+  ).toBeVisible();
   await page.setViewportSize({ width: 375, height: 812 });
-  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBeTruthy();
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= window.innerWidth + 1,
+    ),
+  ).toBeTruthy();
 });

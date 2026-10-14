@@ -35,7 +35,14 @@ export interface MaterialFile {
   authorName: string;
   authorAvatar?: import("@/features/profile/models").AvatarChoice | null;
   uploadedBy: string;
-  uploadSource: "session" | "library" | "comment" | "avatar" | "post" | "assignment" | "submission";
+  uploadSource:
+    | "session"
+    | "library"
+    | "comment"
+    | "avatar"
+    | "post"
+    | "assignment"
+    | "submission";
   sourceSessionId: string | null;
   sourcePostId: string | null;
   storageId?: string;
@@ -52,7 +59,11 @@ export interface Attachment {
   file: MaterialFile | null;
 }
 export type Reaction = "LIKE" | "LOVE" | "CELEBRATE";
-export type PostType = "SESSION_MATERIAL" | "ANNOUNCEMENT" | "DISCUSSION" | "ASSIGNMENT";
+export type PostType =
+  | "SESSION_MATERIAL"
+  | "ANNOUNCEMENT"
+  | "DISCUSSION"
+  | "ASSIGNMENT";
 export interface ThreadSession {
   id: string;
   name: string;
@@ -61,7 +72,12 @@ export interface ThreadSession {
   status: string;
 }
 export interface Post {
-  assignment?: {id:string;deadline:string|null;unitNumber:number|null;status:string}|null;
+  assignment?: {
+    id: string;
+    deadline: string | null;
+    unitNumber: number | null;
+    status: string;
+  } | null;
   id: string;
   sessionId: string | null;
   postType?: PostType;
@@ -152,7 +168,11 @@ export interface DeletionItem {
 export interface Notification {
   actorAvatar?: import("@/features/profile/models").AvatarChoice;
   priority?: "NORMAL" | "IMPORTANT";
-  actorName?: string; actorPublicId?: string; actorRole?: string; subject?: string; message?: string;
+  actorName?: string;
+  actorPublicId?: string;
+  actorRole?: string;
+  subject?: string;
+  message?: string;
   classId?: string | null;
   id: string;
   type: string;
@@ -168,7 +188,14 @@ export interface UploadInput {
   sizeBytes: number;
   storageId: string;
   folderId: string | null;
-  uploadSource: "session" | "library" | "comment" | "avatar" | "post" | "assignment" | "submission";
+  uploadSource:
+    | "session"
+    | "library"
+    | "comment"
+    | "avatar"
+    | "post"
+    | "assignment"
+    | "submission";
   sourceSessionId?: string;
   sourcePostId?: string;
   thumbnailMime?: string;

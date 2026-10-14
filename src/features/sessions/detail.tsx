@@ -1,11 +1,12 @@
 "use client";
+import { useSectionTab } from "@/shared/page-navigation";
 import { ReadOnlyNotice, useClassCapabilities } from "@/features/access/hooks";
 import { SessionFeed } from "@/features/materials/feed";
 import Box from "@mui/material/Box";
 import Tabs from "@mui/material/Tabs";
 import Tab from "@mui/material/Tab";
-import { useRef, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useState } from "react";
+import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import Alert from "@mui/material/Alert";
 import Button from "@mui/material/Button";
 import Dialog from "@mui/material/Dialog";
@@ -40,14 +41,33 @@ export function SessionDetail() {
     classId = params.get("classId") ?? "",
     sessionId = params.get("sessionId") ?? "",
     ready = !!classId && !!sessionId;
+  const [tab, setTab] = useSectionTab(
+    "session",
+    ["materials", "assessments"] as const,
+    "materials",
+  );
   const permissions = useClassCapabilities(classId);
   const c = useClassQuery(classId, { skip: !ready }),
     sessions = useSessionsQuery(classId, { skip: !ready }),
-    list = useAssessmentsQuery(sessionId, { skip: !ready });
-  const [tab, setTab] = useState("materials");
-  const scrollPositions = useRef<Record<string, number>>({});
+    list = useAssessmentsQuery(sessionId, {
+      skip: !ready || tab !== "assessments",
+    });
+  const router = useRouter(),
+    pathname = usePathname();
+  const creating = params.get("createAssessment") === "1";
+  const setCreating = (open: boolean) => {
+    const search = new URLSearchParams(params.toString());
+    if (open) {
+      if (!confirmLeave()) return;
+      search.delete("tab");
+      search.set("createAssessment", "1");
+      router.push(`/session/assessments/?${search}`, { scroll: false });
+    } else {
+      search.delete("createAssessment");
+      router.replace(`${pathname}?${search}`, { scroll: false });
+    }
+  };
   const [editing, setEditing] = useState(false),
-    [creating, setCreating] = useState(false),
     [message, setMessage] = useState(""),
     [create, state] = useCreateAssessmentMutation();
   if (!ready) return <Feedback empty="Thiếu classId hoặc sessionId." />;
@@ -80,7 +100,7 @@ export function SessionDetail() {
           void permissions.retry();
           void c.refetch();
           void sessions.refetch();
-          void list.refetch();
+          if (tab === "assessments") void list.refetch();
         }}
       />
     );
@@ -94,7 +114,10 @@ export function SessionDetail() {
         subtitle={`${c.currentData.name} · ${session.date}`}
         actions={
           <>
-            <NavButton href={"/class/?classId=" + encodeURIComponent(classId)}>
+            <NavButton
+              back
+              href={"/class/?classId=" + encodeURIComponent(classId)}
+            >
               ← Dashboard lớp
             </NavButton>
             <Button
@@ -107,7 +130,6 @@ export function SessionDetail() {
               disabled={!permissions.editLearning}
               variant="contained"
               onClick={() => {
-                setTab("assessments");
                 setCreating(true);
               }}
             >
@@ -118,12 +140,8 @@ export function SessionDetail() {
       />
       <Tabs
         value={tab}
-        onChange={(_, value: string) => {
-          scrollPositions.current[tab] = window.scrollY;
+        onChange={(_, value: "materials" | "assessments") => {
           setTab(value);
-          requestAnimationFrame(() =>
-            window.scrollTo({ top: scrollPositions.current[value] ?? 0 }),
-          );
         }}
         aria-label="Nội dung phiên học"
         sx={{ mb: 2 }}
@@ -133,11 +151,13 @@ export function SessionDetail() {
       </Tabs>
       <ReadOnlyNotice editable={permissions.editLearning} />
       <Box hidden={tab !== "materials"}>
-        <SessionFeed
-          key={sessionId}
-          sessionId={sessionId}
-          editable={permissions.editLearning}
-        />
+        {tab === "materials" && (
+          <SessionFeed
+            key={sessionId}
+            sessionId={sessionId}
+            editable={permissions.editLearning}
+          />
+        )}
       </Box>
       <Box hidden={tab !== "assessments"}>
         <Card>
