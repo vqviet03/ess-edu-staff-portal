@@ -56,6 +56,7 @@ export function NotificationPreferencesPanel() {
           );
         if (!q.data.publicKey)
           throw new Error("Thông báo đẩy chưa được cấu hình.");
+        const key = applicationKey(q.data.publicKey);
         if ((await Notification.requestPermission()) !== "granted")
           throw new Error("Chưa được cấp quyền thông báo.");
         const registration = await registerWorker();
@@ -64,7 +65,7 @@ export function NotificationPreferencesPanel() {
           (await registration.pushManager.getSubscription()) ??
           (await registration.pushManager.subscribe({
             userVisibleOnly: true,
-            applicationServerKey: applicationKey(q.data.publicKey),
+            applicationServerKey: key,
           }));
         const json = device.toJSON();
         if (!json.endpoint || !json.keys?.p256dh || !json.keys?.auth)

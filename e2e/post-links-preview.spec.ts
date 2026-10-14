@@ -489,3 +489,57 @@ test("notification preferences do not request before login; noisy types are off 
     /portal\/manifest.webmanifest/,
   );
 });
+
+test("invalid push public key fails before permission, worker or subscription writes", async ({
+  page,
+}) => {
+  await setup(page);
+  let writes = 0;
+  await page.addInitScript(() => {
+    Object.defineProperty(window, "PushManager", {
+      value: function () {},
+      configurable: true,
+    });
+    Object.defineProperty(Notification, "requestPermission", {
+      value: async () => {
+        document.documentElement.dataset.pushPermissionRequested = "true";
+        return "granted";
+      },
+      configurable: true,
+    });
+  });
+  await page.route("**/me/notification-preferences**", (r) => {
+    if (r.request().method() === "OPTIONS")
+      return r.fulfill({ status: 204, headers });
+    if (r.request().method() !== "GET") writes++;
+    return r.fulfill({
+      headers,
+      json: {
+        data: {
+          pushEnabled: false,
+          types: {},
+          version: 1,
+          configured: true,
+          publicKey: "_",
+        },
+      },
+    });
+  });
+  await page.goto(base + "/login/");
+  await credentials(page);
+  await expect(page).toHaveURL(/\/home\//);
+  await page.goto(base + "/profile/");
+  const toggle = page.getByRole("switch", {
+    name: "Thông báo đẩy",
+    exact: true,
+  });
+  await toggle.click();
+  await expect(
+    page.getByRole("alert").filter({ hasText: "cấu hình khóa thông báo" }),
+  ).toBeVisible();
+  await expect(toggle).not.toBeChecked();
+  expect(writes).toBe(0);
+  expect(
+    await page.locator("html").getAttribute("data-push-permission-requested"),
+  ).toBeNull();
+});

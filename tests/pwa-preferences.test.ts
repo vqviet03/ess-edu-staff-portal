@@ -36,3 +36,40 @@ test("processed images download with their real encoding and other document name
     "Giáo trình.pdf",
   );
 });
+
+import {
+  applicationKey,
+  invalidPushKeyMessage,
+} from "../src/features/pwa/platform";
+import { generateKeyPairSync } from "node:crypto";
+test("VAPID public key decodes the exact P-256 point, padded or unpadded", () => {
+  const { publicKey } = generateKeyPairSync("ec", { namedCurve: "prime256v1" });
+  const jwk = publicKey.export({ format: "jwk" });
+  const bytes = Buffer.concat([
+    Buffer.from([4]),
+    Buffer.from(jwk.x!, "base64url"),
+    Buffer.from(jwk.y!, "base64url"),
+  ]);
+  for (const value of [
+    bytes.toString("base64url"),
+    bytes.toString("base64url") + "=",
+  ]) {
+    assert.deepEqual(applicationKey(value), new Uint8Array(bytes));
+  }
+});
+test("invalid VAPID config reports a Vietnamese error instead of browser atob exception", () => {
+  for (const value of [
+    "_",
+    "",
+    "undefined",
+    "not a key",
+    '"public-key"',
+    "A".repeat(87),
+    "B".repeat(86),
+    "B".repeat(87) + "==",
+  ]) {
+    assert.throws(() => applicationKey(value), {
+      message: invalidPushKeyMessage,
+    });
+  }
+});
