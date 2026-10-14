@@ -1,4 +1,5 @@
 "use client";
+import { useSectionTab } from "@/shared/page-navigation";
 import { ReadOnlyNotice, useClassCapabilities } from "@/features/access/hooks";
 import { SessionFeed } from "@/features/materials/feed";
 import Box from "@mui/material/Box";
@@ -40,11 +41,17 @@ export function SessionDetail() {
     classId = params.get("classId") ?? "",
     sessionId = params.get("sessionId") ?? "",
     ready = !!classId && !!sessionId;
+  const [tab, setTab] = useSectionTab(
+    "session",
+    ["materials", "assessments"] as const,
+    "materials",
+  );
   const permissions = useClassCapabilities(classId);
   const c = useClassQuery(classId, { skip: !ready }),
     sessions = useSessionsQuery(classId, { skip: !ready }),
-    list = useAssessmentsQuery(sessionId, { skip: !ready });
-  const [tab, setTab] = useState("materials");
+    list = useAssessmentsQuery(sessionId, {
+      skip: !ready || tab !== "assessments",
+    });
   const scrollPositions = useRef<Record<string, number>>({});
   const [editing, setEditing] = useState(false),
     [creating, setCreating] = useState(false),
@@ -80,7 +87,7 @@ export function SessionDetail() {
           void permissions.retry();
           void c.refetch();
           void sessions.refetch();
-          void list.refetch();
+          if (tab === "assessments") void list.refetch();
         }}
       />
     );
@@ -94,7 +101,10 @@ export function SessionDetail() {
         subtitle={`${c.currentData.name} · ${session.date}`}
         actions={
           <>
-            <NavButton href={"/class/?classId=" + encodeURIComponent(classId)}>
+            <NavButton
+              back
+              href={"/class/?classId=" + encodeURIComponent(classId)}
+            >
               ← Dashboard lớp
             </NavButton>
             <Button
@@ -118,7 +128,7 @@ export function SessionDetail() {
       />
       <Tabs
         value={tab}
-        onChange={(_, value: string) => {
+        onChange={(_, value: "materials" | "assessments") => {
           scrollPositions.current[tab] = window.scrollY;
           setTab(value);
           requestAnimationFrame(() =>
@@ -133,11 +143,13 @@ export function SessionDetail() {
       </Tabs>
       <ReadOnlyNotice editable={permissions.editLearning} />
       <Box hidden={tab !== "materials"}>
-        <SessionFeed
-          key={sessionId}
-          sessionId={sessionId}
-          editable={permissions.editLearning}
-        />
+        {tab === "materials" && (
+          <SessionFeed
+            key={sessionId}
+            sessionId={sessionId}
+            editable={permissions.editLearning}
+          />
+        )}
       </Box>
       <Box hidden={tab !== "assessments"}>
         <Card>

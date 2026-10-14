@@ -25,13 +25,11 @@ export const selectUnit = (items: Unit[], id: string | null) =>
   null;
 export const changes = (items: ProgressEntry[], code: SkillCode | "total") => {
   const sorted = [...items].sort((a, b) => a.unitOrder - b.unitOrder);
-  return sorted
-    .slice(1)
-    .map((entry, i) => ({
-      label: `U${sorted[i].unitOrder} → U${entry.unitOrder}`,
-      value: difference(
-        code === "total" ? sorted[i].totalPercentage : sorted[i].skills[code],
-        code === "total" ? entry.totalPercentage : entry.skills[code],
-      ),
-    }));
+  return sorted.slice(1).map((entry, i) => ({
+    label: `U${sorted[i].unitOrder} → U${entry.unitOrder}`,
+    value: difference(
+      code === "total" ? sorted[i].totalPercentage : sorted[i].skills[code],
+      code === "total" ? entry.totalPercentage : entry.skills[code],
+    ),
+  }));
 };

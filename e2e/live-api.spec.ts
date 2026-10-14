@@ -138,14 +138,12 @@ test.describe("ASP.NET + PostgreSQL integration (isolated demo backend only)", (
       if (sheet.getCell(`A${index}`).value === bon.id) row = index;
     sheet.getCell(`D${row}`).value = 0;
     const buffer = Buffer.from(await book.xlsx.writeBuffer());
-    await page
-      .getByLabel("File Excel", { exact: true })
-      .setInputFiles({
-        name: "api-scores.xlsx",
-        mimeType:
-          "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        buffer,
-      });
+    await page.getByLabel("File Excel", { exact: true }).setInputFiles({
+      name: "api-scores.xlsx",
+      mimeType:
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      buffer,
+    });
     await page
       .getByRole("button", { name: "Kiểm tra dữ liệu", exact: true })
       .click();

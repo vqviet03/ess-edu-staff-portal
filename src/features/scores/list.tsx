@@ -44,7 +44,7 @@ export function Scores() {
         subtitle={`${a.name} · ${a.skills.length} kỹ năng · Schema v${a.schemaVersion}`}
         actions={
           <>
-            <NavButton href={route("/session/", q.context)}>
+            <NavButton back href={route("/session/", q.context)}>
               ← Phiên học
             </NavButton>
             <NavButton href={route("/import/", q.context)}>

@@ -1,4 +1,5 @@
 "use client";
+import { useSectionTab } from "@/shared/page-navigation";
 import { ClassNotificationSettings } from "@/features/notifications/class-settings";
 import {
   ClassPresenceContext,
@@ -20,11 +21,10 @@ import { useState } from "react";
 import {
   ClassDetailTabs,
   initialClassTab,
-  type ClassTab,
 } from "@/features/classes/detail-tabs";
 import { ClassProgress } from "@/features/classes/progress";
 import { ClassStudentTable } from "@/features/students/class-table";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
@@ -327,6 +327,7 @@ function Profile({
   classAccessId?: string;
 } = {}) {
   const router = useRouter(),
+    pathname = usePathname(),
     p = useSearchParams(),
     raw = p.get("entity"),
     entity: Entity =
@@ -339,11 +340,15 @@ function Profile({
   const q = useManagementDetailQuery({ entity, id }, { skip: !id }),
     [edit, setEdit] = useState(false),
     [createAccount, setCreateAccount] = useState(false),
-    [tab, setTab] = useState<ClassTab>(initialClassTab(p.get("tab"))),
-    [studentTab, setStudentTab] = useState(
-      entity === "students" && p.get("tab") === "rewards"
-        ? "rewards"
-        : "profile",
+    [tab, setTab] = useSectionTab(
+      pathname.startsWith("/manage/profile/") ? "manage/profile" : "class",
+      ["thread", "progress", "profile", "attendance"] as const,
+      initialClassTab(p.get("tab")),
+    ),
+    [studentTab, setStudentTab] = useSectionTab(
+      "manage/profile",
+      ["profile", "rewards"] as const,
+      "profile",
     ),
     [classStudentEdit, setClassStudentEdit] = useState<{
       student: ManagedStudent;
@@ -644,7 +649,7 @@ function Profile({
         subtitle={`${entityLabels[entity]} · ${publicId("loginId" in r ? r.loginId : r.id)} · ${showValue(r.status)}`}
         actions={
           <>
-            <NavButton href={`/manage/list/?entity=${entity}`}>
+            <NavButton back href={`/manage/list/?entity=${entity}`}>
               ← Danh sách
             </NavButton>
             {(entity !== "classes" || tab === "profile") && (
@@ -728,8 +733,8 @@ function Profile({
         <>
           <Tabs
             value={studentTab}
-            onChange={(_, value: string) => {
-              if (confirmLeave()) setStudentTab(value);
+            onChange={(_, value: "profile" | "rewards") => {
+              setStudentTab(value);
             }}
             sx={{ mb: 2 }}
           >

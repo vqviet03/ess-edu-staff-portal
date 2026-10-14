@@ -1,4 +1,5 @@
 "use client";
+import { DeadlineChip } from "./deadline-chip";
 import NextLink from "next/link";
 import { postShareUrl, currentPortalUrl } from "./share-links";
 import { ContentViews } from "@/features/presence/views";
@@ -266,6 +267,9 @@ export function PostSurface({
                   }}
                 />
                 {post.status === "DRAFT" && <Chip size="small" label="Nháp" />}
+                {post.assignment && (
+                  <DeadlineChip deadline={post.assignment.deadline} />
+                )}
               </Stack>
               <Typography
                 component="h2"

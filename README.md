@@ -235,3 +235,7 @@ Backend cần migration Core022, Materials011, Logs002, Notifications005 và VAP
 [Giữ đăng nhập khi đóng/mở web](docs/persistent-session.md).
 
 Chuyển API project mới và proxy cùng host Staff: [hướng dẫn](docs/staff-api-proxy.md).
+
+## Page navigation and formatting
+
+See [page architecture and navigation](docs/navigation.md) for static tab routes, Back behavior, draft/cache lifecycle, assignment deadlines and Prettier commands.

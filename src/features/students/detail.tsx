@@ -1,8 +1,8 @@
 "use client";
+import { useSectionTab } from "@/shared/page-navigation";
 import dynamic from "next/dynamic";
 import Tabs from "@mui/material/Tabs";
 import Tab from "@mui/material/Tab";
-import { confirmLeave } from "@/shared/unsaved";
 import { useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Box from "@mui/material/Box";
@@ -37,12 +37,10 @@ export function StudentDetail() {
     students = useHistoricalStudentsQuery(classId, {
       skip: !classId || !studentId || !permissions.viewLearning,
     }),
-    [tab, setTab] = useState(
-      params.get("tab") === "assignments"
-        ? "assignments"
-        : params.get("tab") === "rewards"
-          ? "rewards"
-          : "info",
+    [tab, setTab] = useSectionTab(
+      "student",
+      ["info", "report", "assignments", "rewards"] as const,
+      "info",
     ),
     [edit, setEdit] = useState(false),
     [message, setMessage] = useState("");
@@ -90,6 +88,7 @@ export function StudentDetail() {
         actions={
           <>
             <NavButton
+              back
               href={`/class/?classId=${encodeURIComponent(classId)}&tab=profile`}
             >
               ← Hồ sơ lớp học
@@ -111,8 +110,8 @@ export function StudentDetail() {
         value={tab}
         variant="scrollable"
         aria-label="Hồ sơ học sinh"
-        onChange={(_, v: string) => {
-          if (confirmLeave()) setTab(v);
+        onChange={(_, v: "info" | "report" | "assignments" | "rewards") => {
+          setTab(v);
         }}
         sx={{ mb: 2 }}
       >

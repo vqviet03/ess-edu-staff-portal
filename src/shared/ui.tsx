@@ -1,4 +1,5 @@
 "use client";
+import { usePageBack } from "./page-navigation";
 import { AppIcon } from "@/features/pwa/app-icon";
 import { Suspense, useEffect, type ReactNode } from "react";
 import Link from "next/link";
@@ -132,13 +133,32 @@ export function NavButton({
   href,
   children,
   primary = false,
+  back = false,
 }: {
   href: string;
   children: ReactNode;
   primary?: boolean;
+  back?: boolean;
 }) {
+  const goBack = usePageBack(href);
   return (
     <Button
+      data-navigation-back={back || undefined}
+      onClick={
+        back
+          ? (event) => {
+              if (
+                !event.metaKey &&
+                !event.ctrlKey &&
+                !event.shiftKey &&
+                !event.altKey
+              ) {
+                event.preventDefault();
+                goBack();
+              }
+            }
+          : undefined
+      }
       component={Link}
       href={href}
       variant={primary ? "contained" : "outlined"}

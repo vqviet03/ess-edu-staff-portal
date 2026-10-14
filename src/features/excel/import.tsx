@@ -119,7 +119,9 @@ export function ExcelImport() {
         title="Import từ Excel"
         subtitle={`${a.name} · Tải mẫu theo schema v${a.schemaVersion} hiện tại.`}
         actions={
-          <NavButton href={route("/scores/", q.context)}>← Bảng điểm</NavButton>
+          <NavButton back href={route("/scores/", q.context)}>
+            ← Bảng điểm
+          </NavButton>
         }
       />
       <Stack

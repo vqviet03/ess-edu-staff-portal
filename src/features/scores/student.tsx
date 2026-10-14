@@ -311,7 +311,9 @@ export function StudentScore() {
         title={q.canEdit ? "Nhập điểm học sinh" : "Báo cáo học sinh · Chỉ xem"}
         subtitle={a.name}
         actions={
-          <NavButton href={route("/scores/", q.context)}>← Bảng điểm</NavButton>
+          <NavButton back href={route("/scores/", q.context)}>
+            ← Bảng điểm
+          </NavButton>
         }
       />
       <ReadOnlyNotice editable={q.canEdit && s.status === "ACTIVE"} />

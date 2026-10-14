@@ -1,6 +1,8 @@
 "use client";
+import { useMemo } from "react";
+import { useDebouncedValue } from "@/shared/debounced-value";
 import { useWorkspace } from "@/features/access/hooks";
-import { useState } from "react";
+import { useRouteState } from "@/shared/route-state";
 import Box from "@mui/material/Box";
 import MenuItem from "@mui/material/MenuItem";
 import Stack from "@mui/material/Stack";
@@ -24,17 +26,23 @@ import {
 } from "@/shared/ui";
 export function Home() {
   const { selected } = useWorkspace();
-  const [search, setSearch] = useState(""),
-    [status, setStatus] = useState(""),
-    [page, setPage] = useState(0),
-    [pageSize, setPageSize] = useState(10);
-  const q = useClassesQuery({
-      workspace: selected ?? "teacher",
-      search,
-      status,
-      page: page + 1,
-      pageSize,
-    }),
+  const [search, setSearch] = useRouteState(`classes:${selected}:search`, ""),
+    [status, setStatus] = useRouteState(`classes:${selected}:status`, ""),
+    [page, setPage] = useRouteState(`classes:${selected}:page`, 0),
+    [pageSize, setPageSize] = useRouteState(`classes:${selected}:pageSize`, 10);
+  const request = useDebouncedValue(
+    useMemo(
+      () => ({
+        workspace: selected ?? "teacher",
+        search,
+        status,
+        page: page + 1,
+        pageSize,
+      }),
+      [selected, search, status, page, pageSize],
+    ),
+  );
+  const q = useClassesQuery(request),
     rows = q.currentData?.data ?? [];
   return (
     <>

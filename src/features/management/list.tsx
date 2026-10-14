@@ -1,7 +1,9 @@
 "use client";
+import { useDebouncedValue } from "@/shared/debounced-value";
+import { useRouteState } from "@/shared/route-state";
 import { publicId } from "@/shared/public-id";
 import { exportPrefix } from "@/features/settings/branding";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import Alert from "@mui/material/Alert";
@@ -208,14 +210,23 @@ function ManagementList() {
   return <EntityList key={entity} entity={entity} />;
 }
 function EntityList({ entity }: { entity: Entity }) {
-  const [filter, setFilter] = useState<ListFilter>({ search: "", status: "" }),
-    [page, setPage] = useState(1),
+  const [filter, setFilter] = useRouteState<ListFilter>(
+      `management:${entity}:filter`,
+      { search: "", status: "" },
+    ),
+    [page, setPage] = useRouteState(`management:${entity}:page`, 1),
     [selection, setSelection] = useState<Selection>({ mode: "IDS", ids: [] }),
     [editing, setEditing] = useState<ManagedRecord | "new" | null>(null),
     [bulk, setBulk] = useState(false),
     [message, setMessage] = useState(""),
     [error, setError] = useState("");
-  const q = useManagementListQuery({ entity, filter, page, pageSize: 10 }),
+  const request = useDebouncedValue(
+    useMemo(
+      () => ({ entity, filter, page, pageSize: 10 }),
+      [entity, filter, page],
+    ),
+  );
+  const q = useManagementListQuery(request),
     classOptions = useManagementListQuery(
       { entity: "classes", filter: {}, page: 1, pageSize: 100 },
       { skip: entity !== "students" && entity !== "teachers" },

@@ -1,4 +1,5 @@
 "use client";
+import { BackAction } from "./back-action";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
@@ -18,7 +19,6 @@ import History from "@mui/icons-material/History";
 import Settings from "@mui/icons-material/SettingsOutlined";
 import MenuOpen from "@mui/icons-material/MenuOpen";
 import Menu from "@mui/icons-material/Menu";
-import ArrowBack from "@mui/icons-material/ArrowBack";
 import Badge from "@mui/material/Badge";
 import { libraryApi } from "@/api/library-api";
 import Box from "@mui/material/Box";
@@ -281,21 +281,17 @@ export function BackButton() {
   if (["/home/", "/login/", "/login/link/", "/activate/"].includes(pathname))
     return null;
   let target = "/home/";
-  if (pathname === "/manage/profile/")
+  if (pathname.startsWith("/manage/profile/"))
     target = `/manage/list/?entity=${encodeURIComponent(p.get("entity") ?? "students")}`;
-  if (["/session/", "/reports/", "/student/"].includes(pathname))
-    target = `/class/?classId=${encodeURIComponent(p.get("classId") ?? "")}&tab=${pathname === "/session/" ? "progress" : "profile"}`;
+  if (["session", "reports", "student"].includes(pathname.split("/")[1]))
+    target = `/class/?classId=${encodeURIComponent(p.get("classId") ?? "")}&tab=${pathname.startsWith("/session/") ? "progress" : "profile"}`;
   if (pathname === "/assessment/")
     target = `/session/?${new URLSearchParams({ classId: p.get("classId") ?? "", sessionId: p.get("sessionId") ?? "" })}`;
   if (["/scores/", "/student-score/", "/import/"].includes(pathname))
     target = `/assessment/?${new URLSearchParams({ classId: p.get("classId") ?? "", sessionId: p.get("sessionId") ?? "", assessmentId: p.get("assessmentId") ?? "" })}`;
   return (
     <Box>
-      <Tooltip title="Quay lại">
-        <IconButton component={Link} href={target} aria-label="Quay lại">
-          <ArrowBack />
-        </IconButton>
-      </Tooltip>
+      <BackAction fallback={target} />
     </Box>
   );
 }

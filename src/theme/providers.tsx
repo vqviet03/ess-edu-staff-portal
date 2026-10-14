@@ -1,4 +1,6 @@
 "use client";
+import { RouteStateProvider } from "@/shared/route-state";
+import { NavigationRuntime } from "@/shared/page-navigation";
 import {
   createContext,
   useContext,
@@ -149,21 +151,24 @@ export function Providers({ children }: { children: ReactNode }) {
   );
   return (
     <Provider store={store}>
-      <AppRouterCacheProvider>
-        <Preferences.Provider value={{ mode, setMode }}>
-          <ThemeProvider theme={theme}>
-            <CssBaseline />
-            <PwaRuntime />
-            <AuthRuntime />
-            <WorkspaceRuntime />
-            <OperationsRuntime />
-            <UnsavedRuntime />
-            <AppDisplayProvider storageKey="ess.staff.zoom">
-              {children}
-            </AppDisplayProvider>
-          </ThemeProvider>
-        </Preferences.Provider>
-      </AppRouterCacheProvider>
+      <NavigationRuntime />
+      <RouteStateProvider>
+        <AppRouterCacheProvider>
+          <Preferences.Provider value={{ mode, setMode }}>
+            <ThemeProvider theme={theme}>
+              <CssBaseline />
+              <PwaRuntime />
+              <AuthRuntime />
+              <WorkspaceRuntime />
+              <OperationsRuntime />
+              <UnsavedRuntime />
+              <AppDisplayProvider storageKey="ess.staff.zoom">
+                {children}
+              </AppDisplayProvider>
+            </ThemeProvider>
+          </Preferences.Provider>
+        </AppRouterCacheProvider>
+      </RouteStateProvider>
     </Provider>
   );
 }

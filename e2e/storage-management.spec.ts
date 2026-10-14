@@ -161,11 +161,9 @@ test("manager adds a private drive, browses its files and queues transfer on mob
   await expect(browser.getByText(file.id, { exact: false })).toHaveCount(0);
   await browser.getByRole("checkbox", { name: "Chọn Bài học.pdf" }).check();
   await browser.getByRole("button", { name: "Chuyển sang ổ khác" }).click();
-  const transfer = page
-    .getByRole("dialog")
-    .filter({
-      has: page.getByText("Chuyển file sang ổ khác", { exact: true }),
-    });
+  const transfer = page.getByRole("dialog").filter({
+    has: page.getByText("Chuyển file sang ổ khác", { exact: true }),
+  });
   await transfer.getByLabel("Ổ đích cùng nhóm").click();
   await page.getByRole("option", { name: /Văn bản bổ sung/ }).click();
   await transfer.getByLabel("Lý do chuyển").fill("Cân bằng dung lượng");

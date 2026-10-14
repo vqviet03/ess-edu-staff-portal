@@ -1,11 +1,10 @@
 "use client";
+import { useRouteState } from "@/shared/route-state";
 import { NotificationActionPriority } from "@/features/notifications/action-priority";
 import { NotificationPrioritySelect } from "@/features/notifications/priority";
 import NextLink from "next/link";
 import Button from "@mui/material/Button";
-import IconButton from "@mui/material/IconButton";
-import Tooltip from "@mui/material/Tooltip";
-import ArrowBack from "@mui/icons-material/ArrowBack";
+import { BackAction } from "@/shared/back-action";
 import { usePostTarget } from "./post-target";
 import { Comments } from "./comments";
 import { IconAction } from "@/shared/icon-action";
@@ -213,7 +212,11 @@ export function SessionFeed({
   const { selected } = useWorkspace();
   const me = useAppSelector((s) => s.auth.session?.teacher);
   const workspace = selected ?? undefined;
-  const [cursor, setCursor] = useState<string>(),
+  const scope = `posts:${classId ?? ""}:${sessionId ?? ""}`;
+  const [cursor, setCursor] = useRouteState<string | undefined>(
+      `${scope}:cursor`,
+      undefined,
+    ),
     sessionList = usePostsQuery(
       { sessionId: sessionId ?? "", cursor, workspace },
       { skip: !sessionId },
@@ -227,17 +230,25 @@ export function SessionFeed({
       skip: !classId || !editable,
     }),
     [open, setOpen] = useState(false),
-    [draft, setDraft] = useState<PostInput>(() => emptyDraft(sessionId)),
-    [editingId, setEditingId] = useState<string>(),
-    [chosen, setChosen] = useState<Record<string, MaterialFile>>({}),
+    [draft, setDraft] = useRouteState<PostInput>(`${scope}:draft`, () =>
+      emptyDraft(sessionId),
+    ),
+    [editingId, setEditingId] = useRouteState<string | undefined>(
+      `${scope}:editing`,
+      undefined,
+    ),
+    [chosen, setChosen] = useRouteState<Record<string, MaterialFile>>(
+      `${scope}:chosen`,
+      {},
+    ),
     [picker, setPicker] = useState(false),
     [upload, setUpload] = useState(false),
     [error, setError] = useState<unknown>(),
     [success, setSuccess] = useState(""),
     [save, state] = useSavePostMutation(),
-    [dirty, setDirty] = useState(false);
-  useUnsaved(dirty);
-  // This component remains mounted across the two session tabs; drafts and scroll containers survive switching.
+    [dirty, setDirty] = useRouteState(`${scope}:dirty`, false);
+  useUnsaved(dirty && open);
+  // Drafts survive route transitions; API subscriptions only exist while this page is visible.
   const add = (files: MaterialFile[]) => {
     setChosen((old) => ({
       ...old,
@@ -718,15 +729,10 @@ export function PostDetailPage({ postId }: { postId: string }) {
       />
       {q.data && target && (
         <>
-          <Tooltip title="Về thread">
-            <IconButton
-              component={NextLink}
-              href={`/class/?classId=${encodeURIComponent(q.data.classId)}&tab=thread`}
-              aria-label="Về thread"
-            >
-              <ArrowBack />
-            </IconButton>
-          </Tooltip>
+          <BackAction
+            label="Về thread"
+            fallback={`/class/thread/?classId=${encodeURIComponent(q.data.classId)}`}
+          />
           <PostCard
             detail
             targetComment={target?.comment}

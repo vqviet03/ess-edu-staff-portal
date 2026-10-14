@@ -39,7 +39,7 @@ export function AssessmentDetail() {
         subtitle={`${a.name} · Schema v${a.schemaVersion}`}
         actions={
           <>
-            <NavButton href={route("/session/", q.context)}>
+            <NavButton back href={route("/session/", q.context)}>
               ← Phiên học
             </NavButton>
             <NavButton href={route("/scores/", q.context)}>Bảng điểm</NavButton>

@@ -100,6 +100,7 @@ export function StudentReports({
         actions={
           <>
             <NavButton
+              back
               href={
                 classId
                   ? `/class/?classId=${encodeURIComponent(classId)}`
