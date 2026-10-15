@@ -1240,6 +1240,7 @@ for (const screen of [
     ).toBeInViewport();
     await item.getByRole("combobox", { name: "Nhóm", exact: true }).click();
     await page.getByRole("option", { name: "Hướng dẫn", exact: true }).click();
+    await expect(page.locator('[role="listbox"]')).toHaveCount(0);
     await page.screenshot({
       path: `test-results/post-editor-${screen.width}-${screen.mode}.png`,
     });
