@@ -61,11 +61,13 @@ export function UploadDialog({
   source,
   sessionId,
   postId,
+  rewardGiftId,
   close,
   added,
 }: {
   folderId: string | null;
-  source?: "avatar" | "post";
+  source?: "avatar" | "post" | "reward";
+  rewardGiftId?: string;
   sessionId?: string;
   postId?: string;
   close: () => void;
@@ -150,6 +152,7 @@ export function UploadDialog({
                   ? "session"
                   : (source ?? "library"),
           sourcePostId: postId,
+          rewardGiftId,
           sourceSessionId: sessionId,
           thumbnailMime: thumb?.type,
           thumbnailBytes: thumb?.size ?? 0,

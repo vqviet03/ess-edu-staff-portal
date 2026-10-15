@@ -176,6 +176,7 @@ function TeacherClassDashboard({
           </NavButton>
         }
       />
+      <NavButton href={`/rewards/redeem/?classKey=${id}`}>Đổi quà hộ</NavButton>
       <ClassRewardActions
         classId={c.id}
         name={c.name}

@@ -25,7 +25,13 @@ export function notificationResourceTags(
       { type: "Attendance", ...id },
       { type: "Rewards", ...id },
     ];
-  if (type === "REWARD") return [{ type: "Rewards", ...id }];
+  if (type === "REWARD")
+    return [
+      { type: "Rewards", ...id },
+      { type: "GiftCart", ...id },
+      { type: "Redemption", ...id },
+      { type: "Gift", ...id },
+    ];
   if (type === "SCORE") return ["Reports", "Assessments"];
   if (type === "SOCIAL" || type === "REPLY") return ["Posts", "Comments"];
   if (type === "MATERIAL")

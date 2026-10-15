@@ -35,6 +35,7 @@ export interface MaterialFile {
   authorName: string;
   authorAvatar?: import("@/features/profile/models").AvatarChoice | null;
   uploadedBy: string;
+  rewardGiftId?: string;
   uploadSource:
     | "session"
     | "library"
@@ -42,7 +43,8 @@ export interface MaterialFile {
     | "avatar"
     | "post"
     | "assignment"
-    | "submission";
+    | "submission"
+    | "reward";
   sourceSessionId: string | null;
   sourcePostId: string | null;
   storageId?: string;
@@ -188,6 +190,7 @@ export interface UploadInput {
   sizeBytes: number;
   storageId: string;
   folderId: string | null;
+  rewardGiftId?: string;
   uploadSource:
     | "session"
     | "library"
@@ -195,7 +198,8 @@ export interface UploadInput {
     | "avatar"
     | "post"
     | "assignment"
-    | "submission";
+    | "submission"
+    | "reward";
   sourceSessionId?: string;
   sourcePostId?: string;
   thumbnailMime?: string;

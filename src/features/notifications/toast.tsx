@@ -1,4 +1,5 @@
 "use client";
+import { staffGiftNoticeHref } from "@/features/gifts/links";
 import { useAppSelector } from "@/store";
 import { useNotificationPreferencesQuery } from "@/api/pwa-api";
 import { wantsNotification } from "@/features/pwa/models";
@@ -43,7 +44,7 @@ export function NotificationToast() {
   }, [preferences.data?.types]);
   const notice = queue[0],
     close = () => setQueue((q) => q.slice(1)),
-    href = notice ? notice.href : null;
+    href = notice ? staffGiftNoticeHref(notice.href) : null;
   return (
     <Snackbar
       key={notice?.id}

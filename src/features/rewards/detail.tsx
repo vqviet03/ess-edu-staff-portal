@@ -1,4 +1,7 @@
 "use client";
+import Link from "next/link";
+import Button from "@mui/material/Button";
+import { GiftHistory } from "@/features/gifts/shared";
 import { useState } from "react";
 import dynamic from "next/dynamic";
 import Box from "@mui/material/Box";
@@ -360,6 +363,14 @@ export function StudentRewards({
             studentId={studentId}
             name={name}
           />
+          <Button
+            component={Link}
+            href="/rewards/redeem/"
+            sx={{ alignSelf: "flex-start" }}
+          >
+            Đổi quà hộ
+          </Button>
+          <GiftHistory classId={valid} studentId={studentId} />
         </>
       ) : !query.isLoading && !query.error ? (
         <Feedback empty="Học sinh chưa có lớp để xem tích luỹ điểm." />
