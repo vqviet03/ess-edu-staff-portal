@@ -1,4 +1,5 @@
 "use client";
+import { RealtimeBoundary } from "@/shared/realtime-activity";
 import { RouteStateProvider } from "@/shared/route-state";
 import { NavigationRuntime } from "@/shared/page-navigation";
 import {
@@ -157,14 +158,16 @@ export function Providers({ children }: { children: ReactNode }) {
           <Preferences.Provider value={{ mode, setMode }}>
             <ThemeProvider theme={theme}>
               <CssBaseline />
-              <PwaRuntime />
-              <AuthRuntime />
-              <WorkspaceRuntime />
-              <OperationsRuntime />
-              <UnsavedRuntime />
-              <AppDisplayProvider storageKey="ess.staff.zoom">
-                {children}
-              </AppDisplayProvider>
+              <RealtimeBoundary>
+                <PwaRuntime />
+                <AuthRuntime />
+                <WorkspaceRuntime />
+                <OperationsRuntime />
+                <UnsavedRuntime />
+                <AppDisplayProvider storageKey="ess.staff.zoom">
+                  {children}
+                </AppDisplayProvider>
+              </RealtimeBoundary>
             </ThemeProvider>
           </Preferences.Provider>
         </AppRouterCacheProvider>
