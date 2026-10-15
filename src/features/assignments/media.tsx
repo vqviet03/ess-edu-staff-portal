@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useRef, useState, type SyntheticEvent } from "react";
+import { useMediaCleanup } from "@/shared/media-lifecycle";
 import Stack from "@mui/material/Stack";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
@@ -44,13 +45,22 @@ function MediaItem({
     [url, setUrl] = useState(""),
     [view, setView] = useState(false),
     host = useRef<HTMLDivElement>(null);
+  useMediaCleanup(host);
+  const needsOriginal = Boolean(onDimensions);
   useEffect(() => {
     if (!f || !f.mimeType.startsWith("image/")) return;
     let live = true;
     const observer = new IntersectionObserver((entries) => {
       if (entries.some((e) => e.isIntersecting)) {
         observer.disconnect();
-        void load({ id: f.id, purpose: "preview" }, true)
+        void load(
+          {
+            id: f.id,
+            purpose: f.thumbnailUrl && !needsOriginal ? "thumbnail" : "preview",
+            ...(f.thumbnailUrl && !needsOriginal ? { width: 1280 } : {}),
+          },
+          true,
+        )
           .unwrap()
           .then((value) => {
             if (live) setUrl(value);
@@ -63,7 +73,7 @@ function MediaItem({
       live = false;
       observer.disconnect();
     };
-  }, [f, load]);
+  }, [f, load, needsOriginal]);
   if (!f)
     return (
       <Typography color="text.secondary">
@@ -98,7 +108,7 @@ function MediaItem({
                 component={f.mimeType.startsWith("image/") ? "img" : "video"}
                 src={url}
                 controls={f.mimeType.startsWith("video/")}
-                preload="metadata"
+                preload={needsOriginal ? "metadata" : "none"}
                 onLoad={(
                   event: SyntheticEvent<HTMLImageElement | HTMLVideoElement>,
                 ) => {

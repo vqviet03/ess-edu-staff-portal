@@ -97,7 +97,12 @@ export default function PdfViewer({
     error = failure?.url === url ? failure.error : undefined;
   useEffect(() => {
     let active = true;
-    const task = getDocument({ url, isEvalSupported: false });
+    const task = getDocument({
+      url,
+      isEvalSupported: false,
+      disableAutoFetch: true,
+      disableStream: true,
+    });
     task.promise
       .then((pdf) => {
         if (active) setLoaded({ url, pdf });

@@ -1,5 +1,6 @@
 "use client";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { releaseMedia } from "@/shared/media-lifecycle";
 import Box from "@mui/material/Box";
 import IconButton from "@mui/material/IconButton";
 import Slider from "@mui/material/Slider";
@@ -25,6 +26,16 @@ export function InlineAudio({ file }: { file: MaterialFile }) {
     [speed, setSpeed] = useState(1),
     [error, setError] = useState<unknown>(),
     [load, state] = useLazyContentQuery();
+  useEffect(() => {
+    const element = audio.current;
+    return () => {
+      if (element) releaseMedia(element);
+    };
+  }, []);
+  useEffect(() => {
+    if (source && audio.current)
+      void audio.current.play().catch((e) => setError(e));
+  }, [source]);
   const play = async () => {
     setError(undefined);
     try {
@@ -125,6 +136,7 @@ export function InlineAudio({ file }: { file: MaterialFile }) {
       </Stack>
       <audio
         ref={audio}
+        preload="none"
         src={source}
         onLoadedMetadata={() => {
           if (audio.current) {
@@ -134,7 +146,6 @@ export function InlineAudio({ file }: { file: MaterialFile }) {
                 : 0,
             );
             audio.current.playbackRate = speed;
-            void audio.current.play().catch((e) => setError(e));
           }
         }}
         onTimeUpdate={() => setCurrent(audio.current?.currentTime ?? 0)}

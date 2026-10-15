@@ -1,4 +1,5 @@
 "use client";
+import { useMediaCleanup, releaseMedia } from "@/shared/media-lifecycle";
 import { downloadName } from "./utils";
 import dynamic from "next/dynamic";
 import { useRef, useState } from "react";
@@ -28,6 +29,14 @@ export function MaterialViewer({
   file: Pick<MaterialFile, "id" | "displayName" | "mimeType">;
   close: () => void;
 }) {
+  const mediaRoot = useRef<HTMLDivElement>(null);
+  useMediaCleanup(mediaRoot);
+  const closePreview = () => {
+    mediaRoot.current
+      ?.querySelectorAll<HTMLMediaElement>("audio,video")
+      .forEach(releaseMedia);
+    close();
+  };
   const access = useContentQuery({ id: file.id, purpose: "preview" }),
     [download, state] = useLazyContentQuery(),
     [error, setError] = useState<unknown>(),
@@ -56,7 +65,7 @@ export function MaterialViewer({
     <Dialog
       open
       fullScreen
-      onClose={close}
+      onClose={closePreview}
       aria-labelledby="material-preview-title"
       data-testid="material-preview"
       slotProps={{
@@ -86,13 +95,14 @@ export function MaterialViewer({
             </IconButton>
           </Tooltip>
           <Tooltip title="Đóng">
-            <IconButton aria-label="Đóng bản xem trước" onClick={close}>
+            <IconButton aria-label="Đóng bản xem trước" onClick={closePreview}>
               <Close />
             </IconButton>
           </Tooltip>
         </Stack>
       </DialogTitle>
       <DialogContent
+        ref={mediaRoot}
         data-testid="preview-content"
         sx={{
           p: { xs: 0.5, md: 1 },
@@ -139,7 +149,7 @@ export function MaterialViewer({
               <audio
                 ref={audio}
                 controls
-                preload="metadata"
+                preload="none"
                 src={url}
                 style={{ width: "100%" }}
                 onLoadedMetadata={() => {
@@ -172,7 +182,7 @@ export function MaterialViewer({
             >
               <video
                 controls
-                preload="metadata"
+                preload="none"
                 src={url}
                 style={{
                   maxWidth: "100%",

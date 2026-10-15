@@ -1,3 +1,8 @@
+import { REALTIME_ACTIVITY, realtimeAwake } from "@/shared/realtime-activity";
+import {
+  createRealtimeSocket,
+  type RealtimeSocket,
+} from "@/shared/realtime-socket";
 import {
   presenceContext,
   PRESENCE_CONTEXT_EVENT,
@@ -42,7 +47,8 @@ export const operationsApi = api.injectEndpoints({
         },
       ) {
         if (apiConfiguration.mock || typeof window === "undefined") return;
-        let socket: WebSocket | undefined,
+        let socket: RealtimeSocket | undefined,
+          socketContext: string | null = null,
           stopped = false,
           authBlocked = false;
         const verifySession = createSocketSessionCheck(
@@ -75,7 +81,8 @@ export const operationsApi = api.injectEndpoints({
         };
         const auditSignals = new Set<string>();
         const allowed = () =>
-          foregroundSocketAllowed(document.hidden, navigator.onLine, stopped);
+          foregroundSocketAllowed(document.hidden, navigator.onLine, stopped) &&
+          realtimeAwake();
         const pause = () => {
           disconnect?.();
           disconnect = undefined;
@@ -93,6 +100,11 @@ export const operationsApi = api.injectEndpoints({
           });
         };
         const sendContext = () => {
+          if (socket && socketContext !== presenceContext()) {
+            pause();
+            connect();
+            return;
+          }
           if (socket?.readyState === WebSocket.OPEN) {
             presenceConnection(false);
             presenceConnection(true);
@@ -115,7 +127,12 @@ export const operationsApi = api.injectEndpoints({
             return;
           const url = new URL(apiConfiguration.baseUrl + "/events/ws");
           url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
-          const current = new WebSocket(url);
+          socketContext = presenceContext();
+          const current = createRealtimeSocket(
+            url.toString(),
+            session.accessToken,
+            socketContext,
+          );
           socket = current;
           current.onopen = () =>
             current.send(
@@ -236,6 +253,7 @@ export const operationsApi = api.injectEndpoints({
         try {
           await cacheDataLoaded;
           window.addEventListener(PRESENCE_CONTEXT_EVENT, sendContext);
+          window.addEventListener(REALTIME_ACTIVITY, resume);
           document.addEventListener("visibilitychange", resume);
           window.addEventListener("offline", pause);
           window.addEventListener("online", resume);
@@ -248,6 +266,7 @@ export const operationsApi = api.injectEndpoints({
         } finally {
           stopped = true;
           window.removeEventListener(PRESENCE_CONTEXT_EVENT, sendContext);
+          window.removeEventListener(REALTIME_ACTIVITY, resume);
           document.removeEventListener("visibilitychange", resume);
           window.removeEventListener("offline", pause);
           window.removeEventListener("online", resume);
