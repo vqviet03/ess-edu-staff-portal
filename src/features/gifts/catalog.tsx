@@ -1,5 +1,5 @@
 "use client";
-import { memo, useState } from "react";
+import { memo, useCallback, useState } from "react";
 import {
   Alert,
   Badge,
@@ -206,19 +206,28 @@ export function GiftCatalogView({
     [setCart, setCartState] = useSetGiftCartMutation();
   const balance = cart.currentData?.balanceBefore ?? 0,
     rows = gifts.currentData?.items ?? [];
-  async function add(g: Gift) {
-    const previous =
-      cart.currentData?.items.find((i) => i.gift.id === g.id)?.quantity ?? 0;
-    try {
-      await setCart({
-        classId,
-        studentId,
-        giftId: g.id,
-        quantity: Math.min(previous + 1, 99),
-        expectedPoints: g.points,
-      }).unwrap();
-    } catch {}
-  }
+  const add = useCallback(
+    async (g: Gift) => {
+      const previous =
+        cart.currentData?.items.find((i) => i.gift.id === g.id)?.quantity ?? 0;
+      try {
+        await setCart({
+          classId,
+          studentId,
+          giftId: g.id,
+          quantity: Math.min(previous + 1, 99),
+          expectedPoints: g.points,
+        }).unwrap();
+      } catch {}
+    },
+    [cart.currentData, classId, studentId, setCart],
+  );
+  const toggleFavorite = useCallback(
+    (g: Gift) => {
+      void favorite({ classId, giftId: g.id, add: !g.favorite });
+    },
+    [favorite, classId],
+  );
   const count =
     cart.currentData?.items.reduce((n, i) => n + i.quantity, 0) ?? 0;
   return (
@@ -376,10 +385,8 @@ export function GiftCatalogView({
                 onOpen={setOpen}
                 student={student}
                 busy={setCartState.isLoading || favoriteState.isLoading}
-                onFavorite={(g) =>
-                  void favorite({ classId, giftId: g.id, add: !g.favorite })
-                }
-                onAdd={(g) => void add(g)}
+                onFavorite={toggleFavorite}
+                onAdd={add}
               />
             ))}
           </Box>
