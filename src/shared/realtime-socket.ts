@@ -19,6 +19,23 @@ export function createRealtimeSocket(
     return new WebSocket(url);
   return new SharedSocket(url, token, context);
 }
+// A new tab without a cursor must not discard the owner's replay position.
+export function earlierCursor(
+  current: unknown,
+  incoming: unknown,
+): string | undefined {
+  const valid = (value: unknown): string | undefined =>
+    typeof value === "string" && /^\d+$/.test(value) ? value : undefined;
+  const left = valid(current),
+    right = valid(incoming);
+  return !left
+    ? right
+    : !right
+      ? left
+      : BigInt(left) <= BigInt(right)
+        ? left
+        : right;
+}
 class SharedSocket implements RealtimeSocket {
   readyState: number = WebSocket.CONNECTING;
   onopen: WebSocket["onopen"] = null;
@@ -70,11 +87,7 @@ class SharedSocket implements RealtimeSocket {
           !this.peers.has(sender)
         ) {
           this.peers.add(sender);
-          if (
-            data === undefined ||
-            Number(data) < Number(this.auth.cursor ?? Infinity)
-          )
-            this.auth.cursor = data;
+          this.auth.cursor = earlierCursor(this.auth.cursor, data);
           this.connect();
         }
         if (kind === "command" && this.leader && typeof data === "string")
