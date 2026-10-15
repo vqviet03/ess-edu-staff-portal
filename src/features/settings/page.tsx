@@ -4,7 +4,7 @@ import { PortalBrandingEditor } from "./portal-branding";
 import { defaultBranding } from "@/features/pwa/models";
 import { NotificationRetentionSettings } from "./notification-retention";
 import { publicId } from "@/shared/public-id";
-import Box from "@mui/material/Box";
+import { SvgLogo } from "./svg-logo";
 import MenuBook from "@mui/icons-material/MenuBook";
 import { useState } from "react";
 import Alert from "@mui/material/Alert";
@@ -236,13 +236,7 @@ function ProposalCard({
                 }}
               >
                 {b.iconSvg ? (
-                  <Box
-                    component="img"
-                    src={`data:image/svg+xml,${encodeURIComponent(b.iconSvg)}`}
-                    width={40}
-                    height={40}
-                    alt=""
-                  />
+                  <SvgLogo svg={b.iconSvg} label="" size={40} />
                 ) : (
                   <MenuBook />
                 )}

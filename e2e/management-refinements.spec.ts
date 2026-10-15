@@ -120,3 +120,58 @@ test("manager creates a branding proposal without changing the current name", as
     ),
   ).toBeTruthy();
 });
+
+test("manager uploads 10 MB logo, rejects larger files and proposes transparent canvas", async ({
+  page,
+}) => {
+  await installHttpFixture(page);
+  await login(page);
+  await page.goto(`${base}/manage/settings/`);
+  const upload = page.locator('input[type="file"][accept*="svg"]').first();
+  const limit = 10 * 1024 * 1024;
+  await upload.setInputFiles({
+    name: "too-large.svg",
+    mimeType: "image/svg+xml",
+    buffer: Buffer.alloc(limit + 1, 32),
+  });
+  await expect(
+    page.getByRole("alert").filter({ hasText: "SVG tối đa 10 MB." }),
+  ).toBeVisible();
+  const svg = Buffer.from(
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0L24 24"/></svg>',
+  );
+  await upload.setInputFiles({
+    name: "large-logo.svg",
+    mimeType: "image/svg+xml",
+    buffer: Buffer.concat([svg, Buffer.alloc(limit - svg.length, 32)]),
+  });
+  await expect(
+    page.getByRole("alert").filter({ hasText: "SVG tối đa 10 MB." }),
+  ).toHaveCount(0);
+  await expect(
+    page.getByRole("img", { name: "Ứng dụng học sinh", exact: true }),
+  ).toHaveAttribute("src", /^blob:/);
+  const color = page.getByLabel("Màu nền · Ứng dụng học sinh", { exact: true });
+  await color.fill("#fedcba");
+  const transparent = page.getByRole("checkbox", {
+    name: "Nền trong suốt · Ứng dụng học sinh",
+    exact: true,
+  });
+  await transparent.check();
+  await expect(color).toBeDisabled();
+  await transparent.uncheck();
+  await expect(color).toHaveValue("#fedcba");
+  await transparent.check();
+  await page.getByLabel("Lý do thay đổi").fill("Cập nhật logo nền trong suốt");
+  const request = page.waitForRequest(
+    (r) =>
+      r.method() === "POST" &&
+      new URL(r.url()).pathname.endsWith("/manager/settings/proposals"),
+  );
+  page.on("dialog", (d) => void d.accept());
+  await page.getByRole("button", { name: "Gửi đề xuất thay đổi" }).click();
+  const payload = (await request).postDataJSON();
+  expect(Buffer.byteLength(payload.portals.student.iconSvg)).toBe(limit);
+  expect(payload.portals.student.background).toBe("transparent");
+  expect(payload.portals.staff.background).not.toBe("transparent");
+});

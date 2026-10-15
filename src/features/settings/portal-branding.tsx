@@ -1,9 +1,11 @@
 "use client";
-import Box from "@mui/material/Box";
+import { SvgLogo } from "./svg-logo";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import TextField from "@mui/material/TextField";
 import Button from "@mui/material/Button";
+import Checkbox from "@mui/material/Checkbox";
+import FormControlLabel from "@mui/material/FormControlLabel";
 import Alert from "@mui/material/Alert";
 import MenuBook from "@mui/icons-material/MenuBook";
 import { useState } from "react";
@@ -18,6 +20,9 @@ export function PortalBrandingEditor({
   onChange: (value: PortalBranding) => void;
 }) {
   const [error, setError] = useState("");
+  const [opaqueBackground, setOpaqueBackground] = useState(
+    value.background === "transparent" ? "#e6f2e9" : value.background,
+  );
   return (
     <Stack spacing={1.5}>
       <Typography variant="subtitle1">{label}</Typography>
@@ -38,18 +43,37 @@ export function PortalBrandingEditor({
         <TextField
           label={`Màu nền · ${label}`}
           type="color"
-          value={value.background}
-          onChange={(e) => onChange({ ...value, background: e.target.value })}
+          value={
+            value.background === "transparent" ? "#e6f2e9" : value.background
+          }
+          disabled={value.background === "transparent"}
+          onChange={(e) => {
+            setOpaqueBackground(e.target.value);
+            onChange({ ...value, background: e.target.value });
+          }}
         />
       </Stack>
+      <FormControlLabel
+        label={`Nền trong suốt · ${label}`}
+        control={
+          <Checkbox
+            checked={value.background === "transparent"}
+            onChange={(_, checked) =>
+              onChange({
+                ...value,
+                background: checked ? "transparent" : opaqueBackground,
+              })
+            }
+          />
+        }
+      />
       <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
         {value.iconSvg ? (
-          <Box
-            component="img"
-            src={`data:image/svg+xml,${encodeURIComponent(value.iconSvg)}`}
-            width={48}
-            height={48}
-            alt={label}
+          <SvgLogo
+            svg={value.iconSvg}
+            label={label}
+            size={48}
+            background={value.background}
           />
         ) : (
           <MenuBook
@@ -71,8 +95,8 @@ export function PortalBrandingEditor({
               const f = e.target.files?.[0];
               e.target.value = "";
               if (!f) return;
-              if (f.size > 32768) {
-                setError("SVG tối đa 32 KB.");
+              if (f.size > 10 * 1024 * 1024) {
+                setError("SVG tối đa 10 MB.");
                 return;
               }
               setError("");
