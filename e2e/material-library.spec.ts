@@ -47,7 +47,7 @@ const file = (id: string, folderId: string): MaterialFile => ({
   createdAt: "2026-10-06T00:00:00Z",
   updatedAt: "2026-10-06T00:00:00Z",
 });
-async function fixture(page: Page, withPost = false) {
+async function fixture(page: Page, withPost = false, longName?: string) {
   await installHttpFixture(page);
   const folders: Folder[] = [
       {
@@ -73,7 +73,10 @@ async function fixture(page: Page, withPost = false) {
       },
     ],
     files = [
-      file("a", "one"),
+      {
+        ...file("a", "one"),
+        displayName: longName ?? file("a", "one").displayName,
+      },
       file("b", "two"),
       {
         ...file("audio", "one"),
@@ -102,7 +105,16 @@ async function fixture(page: Page, withPost = false) {
           version: 1,
           canEdit: true,
           canDelete: true,
-          attachments: [],
+          attachments: longName
+            ? [
+                {
+                  materialId: files[0].id,
+                  group: "LESSON",
+                  available: true,
+                  file: files[0],
+                },
+              ]
+            : [],
           reactions: [],
           myReaction: null,
           commentCount: 0,
@@ -1185,3 +1197,65 @@ test("pinned comments survive collapse; paging, likes, reply target and pin muta
   await expect(pinned).toHaveCount(0);
   expect(pins).toBe(1);
 });
+
+for (const screen of [
+  { width: 320, height: 740, mode: "dark" as const },
+  { width: 1280, height: 900, mode: "light" as const },
+]) {
+  test(`post editor keeps long file names readable and controls usable at ${screen.width}px`, async ({
+    page,
+  }) => {
+    await page.setViewportSize(screen);
+    await page.emulateMedia({ colorScheme: screen.mode });
+    const name =
+      "Unit 4 – Handout – Speaking – My colorful family – " +
+      "LongFilenameWithoutSpaces".repeat(5) +
+      ".pdf";
+    await fixture(page, true, name);
+    await login(page);
+    await page.goto(`${base}/class/?classId=class-green`);
+    await page
+      .getByRole("button", { name: "Thao tác bài đăng", exact: true })
+      .click();
+    await page.getByRole("menuitem", { name: "Sửa bài", exact: true }).click();
+    const dialog = page.getByRole("dialog", {
+      name: "Sửa bài đăng",
+      exact: true,
+    });
+    const item = dialog.getByTestId("post-attachment-editor");
+    await item.scrollIntoViewIfNeeded();
+    const label = item.getByTestId("post-attachment-name");
+    await expect(label).toHaveAttribute("title", name);
+    const box = (await label.boundingBox())!;
+    expect(box.width).toBeGreaterThan(150);
+    expect(box.height).toBeLessThan(48);
+    expect(
+      await dialog.evaluate((el) => el.scrollWidth <= el.clientWidth + 1),
+    ).toBe(true);
+    await expect(
+      dialog.getByRole("button", { name: "Lưu bài", exact: true }),
+    ).toBeInViewport();
+    await expect(
+      dialog.getByRole("button", { name: "Đóng trình soạn bài đăng" }),
+    ).toBeInViewport();
+    await item.getByRole("combobox", { name: "Nhóm", exact: true }).click();
+    await page.getByRole("option", { name: "Hướng dẫn", exact: true }).click();
+    await page.screenshot({
+      path: `test-results/post-editor-${screen.width}-${screen.mode}.png`,
+    });
+    await dialog.getByRole("button", { name: "Lưu bài", exact: true }).click();
+    await expect(dialog).toHaveCount(0);
+    await page
+      .getByRole("button", { name: "Thao tác bài đăng", exact: true })
+      .click();
+    await page.getByRole("menuitem", { name: "Sửa bài", exact: true }).click();
+    await expect(
+      dialog.getByRole("combobox", { name: "Nhóm", exact: true }),
+    ).toHaveText("Hướng dẫn");
+    await dialog.getByRole("button", { name: "Bỏ file khỏi bài đăng" }).click();
+    await expect(dialog.getByTestId("post-attachment-editor")).toHaveCount(0);
+    await dialog
+      .getByRole("button", { name: "Đóng / giữ nháp", exact: true })
+      .click();
+  });
+}

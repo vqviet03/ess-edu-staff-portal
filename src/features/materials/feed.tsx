@@ -378,10 +378,48 @@ export function SessionFeed({
         onClose={() => setOpen(false)}
         fullWidth
         maxWidth="sm"
-        slotProps={{ paper: { sx: { borderRadius: "24px", maxWidth: 680 } } }}
+        slotProps={{
+          paper: {
+            "aria-label": editingId ? "Sửa bài đăng" : "Tạo bài đăng",
+            sx: {
+              borderRadius: { xs: "16px", sm: "24px" },
+              maxWidth: 680,
+              minWidth: 0,
+              m: { xs: 1, sm: 4 },
+              width: { xs: "calc(100% - 16px)", sm: "calc(100% - 64px)" },
+              maxHeight: {
+                xs: "calc(100dvh - 16px)",
+                sm: "calc(100dvh - 64px)",
+              },
+            },
+          },
+        }}
       >
-        <DialogTitle>{editingId ? "Sửa bài đăng" : "Tạo bài đăng"}</DialogTitle>
-        <DialogContent sx={{ px: { xs: 1, sm: 3 } }}>
+        <DialogTitle
+          aria-label={editingId ? "Sửa bài đăng" : "Tạo bài đăng"}
+          sx={{ px: { xs: 2, sm: 3 }, py: 1.5 }}
+        >
+          <Stack
+            direction="row"
+            sx={{
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: 1,
+            }}
+          >
+            <Typography component="span" variant="h6">
+              {editingId ? "Sửa bài đăng" : "Tạo bài đăng"}
+            </Typography>
+            <IconAction
+              label="Đóng trình soạn bài đăng"
+              icon={<Close fontSize="small" />}
+              onClick={() => setOpen(false)}
+            />
+          </Stack>
+        </DialogTitle>
+        <DialogContent
+          sx={{ px: { xs: 1.5, sm: 3 }, overscrollBehavior: "contain" }}
+        >
           <Stack spacing={2} sx={{ pt: 1 }}>
             <Stack direction={{ xs: "column", sm: "row" }} spacing={1}>
               <TextField
@@ -578,15 +616,38 @@ export function SessionFeed({
                     ))}
                   </Box>
                   {draft.attachments.map((a) => (
-                    <Stack
+                    <Box
                       key={a.materialId}
-                      direction="row"
-                      spacing={1}
-                      sx={{ alignItems: "center", minWidth: 0 }}
+                      data-testid="post-attachment-editor"
+                      sx={{
+                        display: "grid",
+                        alignItems: "center",
+                        minWidth: 0,
+                        gap: 1.25,
+                        gridTemplateColumns: {
+                          xs: "minmax(0,1fr) auto",
+                          sm: "minmax(0,1fr) 148px auto",
+                        },
+                        border: "1px solid var(--post-border)",
+                        borderRadius: "12px",
+                        p: 1.25,
+                      }}
                     >
                       <Typography
                         variant="caption"
-                        sx={{ flex: 1, minWidth: 0, overflowWrap: "anywhere" }}
+                        data-testid="post-attachment-name"
+                        title={chosen[a.materialId]?.displayName ?? "Tài liệu"}
+                        sx={{
+                          gridColumn: { xs: "1 / -1", sm: "auto" },
+                          minWidth: 0,
+                          fontSize: 13,
+                          fontWeight: 500,
+                          overflowWrap: "anywhere",
+                          overflow: "hidden",
+                          display: "-webkit-box",
+                          WebkitLineClamp: 2,
+                          WebkitBoxOrient: "vertical",
+                        }}
                       >
                         {chosen[a.materialId]?.displayName ?? "Tài liệu"}
                       </Typography>
@@ -595,7 +656,7 @@ export function SessionFeed({
                         select
                         label="Nhóm"
                         value={a.group}
-                        sx={{ minWidth: 110 }}
+                        sx={{ minWidth: 0, width: "100%" }}
                         onChange={(e) => {
                           setDraft((d) => ({
                             ...d,
@@ -629,7 +690,7 @@ export function SessionFeed({
                           setDirty(true);
                         }}
                       />
-                    </Stack>
+                    </Box>
                   ))}
                 </Stack>
               }
@@ -643,7 +704,15 @@ export function SessionFeed({
             </PostSurface>
           </Stack>
         </DialogContent>
-        <DialogActions>
+        <DialogActions
+          sx={{
+            px: { xs: 1.5, sm: 3 },
+            py: 1.5,
+            borderTop: 1,
+            borderColor: "divider",
+            flexShrink: 0,
+          }}
+        >
           <Button size="small" onClick={() => setOpen(false)}>
             Đóng / giữ nháp
           </Button>
