@@ -135,7 +135,14 @@ export function GiftCatalogManager() {
         retry={query.refetch}
       />
       <TableContainer component={Paper} sx={giftStyles.surface}>
-        <Table size="small">
+        <Table
+          size="small"
+          sx={{
+            minWidth: 760,
+            "& th": { whiteSpace: "nowrap" },
+            "& td:first-of-type": { minWidth: 240 },
+          }}
+        >
           <TableHead>
             <TableRow>
               <TableCell>Danh sách</TableCell>
@@ -390,7 +397,14 @@ function CatalogDetail({ id }: { id: string }) {
                 retry={list.refetch}
               />
               <TableContainer component={Paper} sx={giftStyles.surface}>
-                <Table size="small">
+                <Table
+                  size="small"
+                  sx={{
+                    minWidth: 760,
+                    "& th": { whiteSpace: "nowrap" },
+                    "& td:first-of-type": { minWidth: 240 },
+                  }}
+                >
                   <TableHead>
                     <TableRow>
                       <TableCell>Món quà</TableCell>
@@ -631,7 +645,14 @@ function VisibilityPanel({
       ))}
       <Feedback error={matrix.error ?? visibilityState.error} />
       <TableContainer component={Paper} sx={giftStyles.surface}>
-        <Table size="small">
+        <Table
+          size="small"
+          sx={{
+            minWidth: 760,
+            "& th": { whiteSpace: "nowrap" },
+            "& td:first-of-type": { minWidth: 240 },
+          }}
+        >
           <TableHead>
             <TableRow>
               <TableCell>Món quà</TableCell>
