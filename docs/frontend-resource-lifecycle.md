@@ -36,7 +36,8 @@ Thumbnail metadata/blob requests begin only near the viewport, using existing
 protected API endpoints and responsive thumbnail sizes. Assignment display images
 prefer thumbnails when available; the staff dimension editor still reads the full
 preview so restoring original dimensions remains accurate. Audio/video do not
-preload media before playback; close/unmount pauses playback, removes sources and
+preload media before playback (the staff dimension editor retains video metadata
+loading so original-size controls still work); close/unmount pauses playback, removes sources and
 releases the media element. PDF.js stops opportunistic prefetch and retains its
 existing lazy page rendering and loading-task destruction.
 

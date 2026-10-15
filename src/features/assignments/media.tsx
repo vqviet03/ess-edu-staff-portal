@@ -108,7 +108,7 @@ function MediaItem({
                 component={f.mimeType.startsWith("image/") ? "img" : "video"}
                 src={url}
                 controls={f.mimeType.startsWith("video/")}
-                preload="none"
+                preload={needsOriginal ? "metadata" : "none"}
                 onLoad={(
                   event: SyntheticEvent<HTMLImageElement | HTMLVideoElement>,
                 ) => {
