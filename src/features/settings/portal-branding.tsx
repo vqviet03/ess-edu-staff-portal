@@ -1,5 +1,5 @@
 "use client";
-import Box from "@mui/material/Box";
+import { SvgLogo } from "./svg-logo";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import TextField from "@mui/material/TextField";
@@ -8,7 +8,7 @@ import Checkbox from "@mui/material/Checkbox";
 import FormControlLabel from "@mui/material/FormControlLabel";
 import Alert from "@mui/material/Alert";
 import MenuBook from "@mui/icons-material/MenuBook";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import type { PortalBranding } from "@/features/pwa/models";
 export function PortalBrandingEditor({
   label,
@@ -22,13 +22,6 @@ export function PortalBrandingEditor({
   const [error, setError] = useState("");
   const [opaqueBackground, setOpaqueBackground] = useState(
     value.background === "transparent" ? "#e6f2e9" : value.background,
-  );
-  const previewSrc = useMemo(
-    () =>
-      value.iconSvg
-        ? `data:image/svg+xml,${encodeURIComponent(value.iconSvg)}`
-        : undefined,
-    [value.iconSvg],
   );
   return (
     <Stack spacing={1.5}>
@@ -76,13 +69,11 @@ export function PortalBrandingEditor({
       />
       <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
         {value.iconSvg ? (
-          <Box
-            component="img"
-            src={previewSrc}
-            width={48}
-            height={48}
-            alt={label}
-            sx={{ bgcolor: value.background }}
+          <SvgLogo
+            svg={value.iconSvg}
+            label={label}
+            size={48}
+            background={value.background}
           />
         ) : (
           <MenuBook

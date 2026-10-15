@@ -148,6 +148,9 @@ test("manager uploads 10 MB logo, rejects larger files and proposes transparent 
   await expect(
     page.getByRole("alert").filter({ hasText: "SVG tối đa 10 MB." }),
   ).toHaveCount(0);
+  await expect(
+    page.getByRole("img", { name: "Ứng dụng học sinh", exact: true }),
+  ).toHaveAttribute("src", /^blob:/);
   const color = page.getByLabel("Màu nền · Ứng dụng học sinh", { exact: true });
   await color.fill("#fedcba");
   const transparent = page.getByRole("checkbox", {
