@@ -380,6 +380,9 @@ export function AssignmentEditor({
                     onChange={(e) =>
                       setDraft((d) => ({
                         ...d,
+                        lateWindowMinutes: e.target.value
+                          ? d.lateWindowMinutes
+                          : null,
                         deadline: e.target.value
                           ? new Date(e.target.value).toISOString()
                           : null,
@@ -419,12 +422,37 @@ export function AssignmentEditor({
                       <Checkbox
                         checked={draft.allowLate}
                         onChange={(_, v) =>
-                          setDraft((d) => ({ ...d, allowLate: v }))
+                          setDraft((d) => ({
+                            ...d,
+                            allowLate: v,
+                            lateWindowMinutes: v ? d.lateWindowMinutes : null,
+                          }))
                         }
                       />
                     }
                     label="Cho phép nộp muộn"
                   />
+                  {draft.allowLate && (
+                    <TextField
+                      label="Đóng sau hạn (phút)"
+                      type="number"
+                      value={draft.lateWindowMinutes ?? ""}
+                      disabled={!draft.deadline}
+                      size="small"
+                      helperText="Để trống: nhận nộp muộn không giới hạn."
+                      slotProps={{ htmlInput: { min: 1, step: 1 } }}
+                      onChange={(e) =>
+                        setDraft((d) => ({
+                          ...d,
+                          lateWindowMinutes:
+                            e.target.value === ""
+                              ? null
+                              : Number(e.target.value),
+                        }))
+                      }
+                      sx={{ maxWidth: 280 }}
+                    />
+                  )}
                 </Box>
               </Stack>
             </Paper>

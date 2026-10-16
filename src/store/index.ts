@@ -67,7 +67,7 @@ export function makeStore(service = api) {
       if (before.operations.librarySnapshot) {
         const tags = action.payload.items
           .filter((n) => !before.operations.libraryNotices[n.id])
-          .flatMap((n) => notificationResourceTags(n.type, n.classId));
+          .flatMap((n) => notificationResourceTags(n.type, n.classId, n.href));
         if (tags.length) runtime.dispatch(service.util.invalidateTags(tags));
       }
     },
@@ -104,6 +104,7 @@ export function makeStore(service = api) {
       const tags = notificationResourceTags(
         action.payload.notice.type,
         action.payload.notice.classId,
+        action.payload.notice.href,
       );
       if (tags.length) runtime.dispatch(service.util.invalidateTags(tags));
     },

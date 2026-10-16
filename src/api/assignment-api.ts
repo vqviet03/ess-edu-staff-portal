@@ -116,6 +116,47 @@ export const assignmentApi = api
                 "AssignmentReport",
               ],
       }),
+      setSubmissionWindow: b.mutation<
+        Assignment,
+        {
+          id: string;
+          version: number;
+          closed: boolean;
+          lateWindowMinutes: number | null;
+        }
+      >({
+        query: ({ id, ...body }) =>
+          write(`/assignments/${id}/submission-window`, body, "PUT"),
+        transformResponse: unwrap<Assignment>,
+        async onQueryStarted(arg, { dispatch, queryFulfilled }) {
+          try {
+            const { data } = await queryFulfilled;
+            dispatch(
+              assignmentApi.util.upsertQueryData(
+                "assignment",
+                { id: arg.id },
+                data,
+              ),
+            );
+          } catch {}
+        },
+      }),
+      reopenSubmission: b.mutation<
+        Submission,
+        { id: string; submissionId: string; version: number; reason: string }
+      >({
+        query: ({ id, submissionId, ...body }) =>
+          write(`/assignments/${id}/submissions/${submissionId}/reopen`, body),
+        transformResponse: unwrap<Submission>,
+        invalidatesTags: (_, error, q) =>
+          error
+            ? []
+            : [
+                { type: "AssignmentSubmissions", id: q.id },
+                { type: "AssignmentSubmissions", id: q.submissionId },
+                "AssignmentReport",
+              ],
+      }),
       removeAssignment: b.mutation<
         { deleted: boolean },
         { id: string; version: number; reason: string }
@@ -413,6 +454,8 @@ export const {
   useSubmitAssignmentMutation,
   useAssignmentSubmissionsQuery,
   useAssignmentSubmissionQuery,
+  useSetSubmissionWindowMutation,
+  useReopenSubmissionMutation,
   useGradeAssignmentMutation,
   usePublishAssignmentGradeMutation,
   useAssignmentReportQuery,
