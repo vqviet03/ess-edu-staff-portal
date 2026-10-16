@@ -5,6 +5,8 @@ export function notificationResourceTags(
 ): Parameters<typeof api.util.invalidateTags>[0] {
   if (type === "ASSIGNMENT")
     return [
+      "AssignmentForm",
+      "AssignmentSubmissions",
       { type: "LearningAssignments", ...(classId ? { id: classId } : {}) },
       "Posts",
       "AssignmentReport",

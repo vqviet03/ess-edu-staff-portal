@@ -26,6 +26,8 @@ import {
 import { Feedback } from "@/shared/ui";
 import { useUnsaved } from "@/shared/unsaved";
 import { errorMessage } from "@/api/base-query";
+import { ReopenSubmissionButton } from "./acceptance";
+import { AssignmentPlayer } from "./player";
 import { AssignmentMedia, RichContent } from "./media";
 import {
   numberLabel,
@@ -164,12 +166,23 @@ export function SubmissionList({ assignment }: { assignment: Assignment }) {
                       {statusLabels[s.status] ?? s.status}
                     </TableCell>
                     <TableCell>
-                      <Button
-                        component={Link}
-                        href={`/assignment/?assignmentId=${assignment.id}&classId=${assignment.classId}&submissionId=${s.id}&mode=grade`}
+                      <Stack
+                        direction="row"
+                        sx={{ alignItems: "center", gap: 0.5 }}
                       >
-                        {assignment.canEdit ? "Chấm bài" : "Xem bài nộp"}
-                      </Button>
+                        <Button
+                          component={Link}
+                          href={`/assignment/?assignmentId=${assignment.id}&classId=${assignment.classId}&submissionId=${s.id}&mode=grade`}
+                        >
+                          {assignment.canEdit && s.submittedAt
+                            ? "Chấm bài"
+                            : "Xem bài nộp"}
+                        </Button>
+                        <ReopenSubmissionButton
+                          assignment={assignment}
+                          submission={s}
+                        />
+                      </Stack>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -286,6 +299,27 @@ function GradeForm({
             : ""}{" "}
           · Phiên bản {assignment.schemaVersion}
         </Typography>
+        <Stack direction="row" sx={{ justifyContent: "flex-end" }}>
+          <ReopenSubmissionButton
+            assignment={assignment}
+            submission={draft}
+            disabled={dirty || state.isLoading || publishing.isLoading}
+            onReopened={(s) => {
+              setDraft(s);
+              setSaved(JSON.stringify(s));
+              setMessage("Đã mở lại bài nộp cho học sinh.");
+            }}
+          />
+        </Stack>
+        {!draft.submittedAt && (
+          <>
+            <Alert severity="info">
+              Bài đã được mở lại. Học sinh đang chỉnh sửa; chỉ chấm khi học sinh
+              nộp lại.
+            </Alert>
+            <AssignmentPlayer assignment={assignment} initial={draft} preview />
+          </>
+        )}
         {!assignment.canEdit && (
           <Alert severity="info">
             Chỉ xem. Chấm điểm yêu cầu vai trò giảng viên và phân công hiện tại
@@ -524,6 +558,7 @@ function GradeForm({
           <Button
             disabled={
               !assignment.canEdit ||
+              !draft.submittedAt ||
               !valid ||
               state.isLoading ||
               publishing.isLoading
@@ -540,6 +575,7 @@ function GradeForm({
             variant="contained"
             disabled={
               !assignment.canEdit ||
+              !draft.submittedAt ||
               !valid ||
               total == null ||
               state.isLoading ||

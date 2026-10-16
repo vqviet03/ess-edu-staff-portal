@@ -222,3 +222,172 @@ test("canceling a new assignment does not create a server draft", async ({
   await expect(page).toHaveURL(/\/class\/thread\//);
   expect(counts.writes).toBe(0);
 });
+
+async function acceptanceSetup(page: Page, account = "GV0001") {
+  await setup(page, account);
+  const form: Assignment = {
+    ...assignment,
+    status: "PUBLISHED",
+    deadline: new Date(Date.now() + 86400000).toISOString(),
+    submissionWindow: {
+      closed: false,
+      lateWindowMinutes: null,
+      closesAt: null,
+      open: true,
+    },
+  };
+  let sub = {
+    id: "submission-one",
+    assignmentId: form.id,
+    assignmentVersionId: form.assignmentVersionId,
+    studentId: "HV001",
+    studentName: "Học sinh An",
+    studentNickname: "An",
+    submittedAt: new Date().toISOString() as string | null,
+    publishedAt: null,
+    version: 2,
+    attempt: 1,
+    status: "PENDING_GRADING",
+    isLate: false,
+    answers: [],
+    grades: [],
+    overallComment: "",
+    overallAdvice: "",
+    totalMax: 1,
+    totalScore: null,
+    percentage: null,
+  };
+  let writes = 0;
+  await page.route("**/assignments/assignment-preview**", async (route) => {
+    const path = new URL(route.request().url()).pathname;
+    const headers = {
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Headers": "*",
+      "Access-Control-Allow-Methods": "GET,POST,PUT,OPTIONS",
+    };
+    if (route.request().method() === "OPTIONS")
+      return route.fulfill({ status: 204, headers });
+    if (path.endsWith("/submission-window")) {
+      const body = route.request().postDataJSON();
+      expect(body.version).toBe(form.version);
+      writes++;
+      form.submissionWindow = {
+        closed: body.closed,
+        lateWindowMinutes: body.lateWindowMinutes,
+        closesAt: body.lateWindowMinutes
+          ? new Date(
+              Date.parse(form.deadline!) + body.lateWindowMinutes * 60000,
+            ).toISOString()
+          : null,
+        open: !body.closed,
+      };
+      form.version++;
+      return route.fulfill({ headers, json: { data: form } });
+    }
+    if (path.endsWith("/reopen")) {
+      expect(route.request().postDataJSON()).toMatchObject({
+        version: 2,
+        reason: "Giảng viên cho phép nộp lại",
+      });
+      writes++;
+      sub = {
+        ...sub,
+        submittedAt: null,
+        version: 3,
+        attempt: 2,
+        status: "REOPENED",
+      };
+      return route.fulfill({ headers, json: { data: sub } });
+    }
+    if (path.endsWith("/submissions"))
+      return route.fulfill({
+        headers,
+        json: {
+          data: {
+            items: [sub],
+            nextCursor: null,
+            summary: {
+              assigned: 1,
+              submitted: sub.submittedAt ? 1 : 0,
+              awaitingGrading: sub.submittedAt ? 1 : 0,
+              graded: 0,
+              notSubmitted: sub.submittedAt ? 0 : 1,
+            },
+          },
+        },
+      });
+    return route.fulfill({ headers, json: { data: form } });
+  });
+  await page.goto(
+    `${base}/assignment/?classId=class-green&assignmentId=assignment-preview`,
+  );
+  return { writes: () => writes };
+}
+
+test("teacher sets an automatic cutoff, closes manually and reopens an individual submission with confirmation", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  const fixture = await acceptanceSetup(page);
+  await page.getByLabel("Đóng sau hạn (phút)").fill("90");
+  await page
+    .getByRole("button", { name: "Lưu thời gian nhận bài", exact: true })
+    .click();
+  await expect(page.getByText(/Mốc đóng:/)).toBeVisible();
+  expect(fixture.writes()).toBe(1);
+  await page
+    .getByRole("button", { name: "Đóng nhận bài thủ công", exact: true })
+    .click();
+  await page
+    .getByRole("dialog")
+    .getByRole("button", { name: "Hủy", exact: true })
+    .click();
+  expect(fixture.writes()).toBe(1);
+  await page
+    .getByRole("button", { name: "Đóng nhận bài thủ công", exact: true })
+    .click();
+  await page
+    .getByRole("dialog")
+    .getByRole("button", { name: "Xác nhận", exact: true })
+    .click();
+  await expect(
+    page.getByRole("button", { name: "Mở nhận bài", exact: true }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Xem bài nộp", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Mở lại bài nộp", exact: true })
+    .click();
+  const dialog = page.getByRole("dialog");
+  await expect(
+    dialog.getByText(/Riêng học sinh này được nộp lại/),
+  ).toBeVisible();
+  await dialog
+    .getByRole("button", { name: "Mở lại bài nộp", exact: true })
+    .click();
+  await expect(
+    page.getByText("Đã mở lại · Chờ nộp lại", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Mở lại bài nộp", exact: true }),
+  ).toBeDisabled();
+  expect(fixture.writes()).toBe(3);
+  await expect(
+    page.getByRole("button", { name: "Mở nhận bài", exact: true }),
+  ).toBeVisible();
+});
+
+test("manager sees submission controls read-only and cannot reopen students", async ({
+  page,
+}) => {
+  const fixture = await acceptanceSetup(page, "MG0001");
+  await expect(page.getByLabel("Đóng sau hạn (phút)")).toBeDisabled();
+  await expect(
+    page.getByRole("button", { name: "Đóng nhận bài thủ công", exact: true }),
+  ).toBeDisabled();
+  await page.getByRole("button", { name: "Xem bài nộp", exact: true }).click();
+  await expect(page.getByText(/Học sinh An/)).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Mở lại bài nộp", exact: true }),
+  ).toHaveCount(0);
+  expect(fixture.writes()).toBe(0);
+});

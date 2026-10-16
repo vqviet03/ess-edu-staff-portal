@@ -9,6 +9,7 @@ import Button from "@mui/material/Button";
 import IconButton from "@mui/material/IconButton";
 import Tooltip from "@mui/material/Tooltip";
 import Edit from "@mui/icons-material/EditOutlined";
+import { SubmissionWindow } from "./acceptance";
 import { RichContent } from "./media";
 import { DeadlineChip } from "@/features/materials/deadline-chip";
 import { BackAction } from "@/shared/back-action";
@@ -141,6 +142,15 @@ function AssignmentContent() {
             <Stack direction="row">
               <DeadlineChip deadline={query.data.deadline} />
             </Stack>
+            {query.data.status === "PUBLISHED" && (
+              <SubmissionWindow
+                key={`${id}:${query.data.version}`}
+                assignment={{
+                  ...query.data,
+                  canEdit: access.editLearning && query.data.canEdit,
+                }}
+              />
+            )}
             <Preview
               key={`${id}:${query.data.assignmentVersionId}`}
               assignment={query.data}

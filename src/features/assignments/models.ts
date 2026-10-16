@@ -50,10 +50,19 @@ export interface Assignment {
   status: "DRAFT" | "PUBLISHED" | "WITHDRAWN";
   deadline: string | null;
   allowLate: boolean;
+  lateWindowMinutes?: number | null;
   publishedAt: string | null;
   version: number;
   assignmentVersionId: string;
   schemaVersion: number;
+  submissionWindow?: {
+    closed: boolean;
+    allowLate?: boolean;
+    deadline?: string | null;
+    lateWindowMinutes: number | null;
+    closesAt: string | null;
+    open: boolean;
+  };
   canEdit: boolean;
   canEditSchema?: boolean;
   totalMax: number;
@@ -94,6 +103,9 @@ export interface Submission {
   studentId: string;
   studentName: string;
   studentNickname: string | null;
+  attempt?: number;
+  reopenedAt?: string | null;
+  submissionOpen?: boolean;
   submittedAt: string | null;
   publishedAt: string | null;
   version: number;
@@ -131,6 +143,7 @@ export interface AssignmentWrite {
   unitNumber: number | null;
   deadline: string | null;
   allowLate: boolean;
+  lateWindowMinutes?: number | null;
   version: number;
   questions: QuestionWrite[];
 }
@@ -224,6 +237,7 @@ export function validLink(value: string) {
 }
 export const statusLabels: Record<string, string> = {
   DRAFT: "Bản nháp",
+  REOPENED: "Đã mở lại · Chờ nộp lại",
   PUBLISHED: "Đã công bố",
   WITHDRAWN: "Đã thu hồi",
   OVERDUE: "Quá hạn chưa nộp",
@@ -250,6 +264,7 @@ export function schemaWrite(a: Assignment): AssignmentWrite {
     unitNumber: a.unitNumber,
     deadline: a.deadline,
     allowLate: a.allowLate,
+    lateWindowMinutes: a.lateWindowMinutes ?? null,
     version: a.version,
     questions: a.questions.map((q) => ({
       type: q.type,
