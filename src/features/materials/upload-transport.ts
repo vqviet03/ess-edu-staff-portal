@@ -1,7 +1,13 @@
+import type { AssignmentUploadAttempt } from "@/features/assignments/upload-attempt";
 // Blobs and callbacks stay outside Redux; mutation arguments contain only serializable IDs.
 export const uploadBuffers = new Map<
   string,
-  { file: File; thumbnail: Blob | null; progress: (progress: number) => void }
+  {
+    file: File;
+    thumbnail: Blob | null;
+    progress: (progress: number) => void;
+    assignment?: AssignmentUploadAttempt;
+  }
 >();
 export function putSigned(
   url: string,

@@ -51,6 +51,8 @@ export function AssignmentUpload({
     [error, setError] = useState<unknown>(),
     pending = useRef<ReturnType<typeof upload> | null>(null),
     input = useRef<HTMLInputElement>(null),
+    buffer = useRef<{ id: string; original: File } | null>(null),
+    sending = useRef(false),
     live = useRef(true),
     [retry, setRetry] = useState<File>();
   useEffect(() => {
@@ -58,28 +60,35 @@ export function AssignmentUpload({
     return () => {
       live.current = false;
       pending.current?.abort();
+      if (buffer.current) uploadBuffers.delete(buffer.current.id);
     };
   }, []);
   const send = useCallback(
     async (original: File) => {
-      if (pending.current) return;
+      if (sending.current) return;
+      sending.current = true;
       setError(undefined);
       onBusy?.(true);
       setProgress(0);
       try {
-        const file = await compressImage(original);
-        if (file.size > 100 * 1024 * 1024)
-          throw new Error("File tối đa 100 MB.");
-        const thumbnail = await imageThumb(file);
-        if (!live.current) return;
-        const bufferId = crypto.randomUUID();
-        uploadBuffers.set(bufferId, {
-          file,
-          thumbnail,
-          progress: (v) => {
-            if (live.current) setProgress(v);
-          },
-        });
+        if (!buffer.current || buffer.current.original !== original) {
+          if (buffer.current) uploadBuffers.delete(buffer.current.id);
+          const file = await compressImage(original);
+          if (file.size > 100 * 1024 * 1024)
+            throw new Error("File tối đa 100 MB.");
+          const thumbnail = await imageThumb(file);
+          if (!live.current) return;
+          buffer.current = { id: crypto.randomUUID(), original };
+          uploadBuffers.set(buffer.current.id, {
+            file,
+            thumbnail,
+            progress: (v) => {
+              if (live.current) setProgress(v);
+            },
+          });
+        }
+        const bufferId = buffer.current.id;
+        const { file, thumbnail } = uploadBuffers.get(bufferId)!;
         const task = upload({
           assignmentId,
           questionId,
@@ -93,6 +102,7 @@ export function AssignmentUpload({
         });
         pending.current = task;
         const result = await task.unwrap();
+        buffer.current = null;
         if (live.current) {
           setRetry(undefined);
           onFile(result);
@@ -104,7 +114,8 @@ export function AssignmentUpload({
         }
       } finally {
         pending.current = null;
-        onBusy?.(false);
+        sending.current = false;
+        if (live.current) onBusy?.(false);
       }
     },
     [assignmentId, questionId, recordingSessionId, onBusy, onFile, upload],

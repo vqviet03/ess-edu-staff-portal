@@ -1,4 +1,5 @@
 import { api } from "./api";
+import { runAssignmentUploadAttempt } from "@/features/assignments/upload-attempt";
 import type { Envelope } from "@/types";
 import type {
   Assignment,
@@ -15,10 +16,7 @@ import type {
   UploadRequest,
 } from "@/features/assignments/models";
 import type { MaterialFile, UploadTicket } from "@/features/materials/models";
-import {
-  putSigned,
-  uploadBuffers,
-} from "@/features/materials/upload-transport";
+import { uploadBuffers } from "@/features/materials/upload-transport";
 const unwrap = <T>(r: Envelope<T>) => r.data;
 const cleanAnswers = (rows: Answer[]) =>
   rows.map(
@@ -322,52 +320,46 @@ export const assignmentApi = api
                 error: "File không còn khả dụng.",
               },
             };
-          let ticket: UploadTicket | undefined;
           try {
-            const init = await base(
-              write(`/assignments/${assignmentId}/uploads`, body),
-            );
-            if (init.error) return { error: init.error };
-            ticket = (init.data as Envelope<UploadTicket>).data;
-            await putSigned(
-              ticket.uploadUrl,
-              buffers.file,
-              buffers.file.type,
-              q.signal,
-              buffers.progress,
-            );
-            if (ticket.thumbnailUploadUrl && buffers.thumbnail)
-              await putSigned(
-                ticket.thumbnailUploadUrl,
-                buffers.thumbnail,
-                buffers.thumbnail.type,
-                q.signal,
-                () => {},
-              );
-            const result = await base(
-              write(`/material-uploads/${ticket.uploadId}/complete`, {
-                version: ticket.version,
-              }),
-            );
-            if (result.error) return { error: result.error };
-            return { data: (result.data as Envelope<MaterialFile>).data };
+            const result = await runAssignmentUploadAttempt({
+              attempt: (buffers.assignment ??= {}),
+              file: buffers.file,
+              thumbnail: buffers.thumbnail,
+              signal: q.signal,
+              progress: buffers.progress,
+              initiate: async () => {
+                const init = await base(
+                  write(`/assignments/${assignmentId}/uploads`, body),
+                );
+                if (init.error) throw init.error;
+                return (init.data as Envelope<UploadTicket>).data;
+              },
+              complete: async (ticket) => {
+                const result = await base(
+                  write(`/material-uploads/${ticket.uploadId}/complete`, {
+                    version: ticket.version,
+                  }),
+                );
+                if (result.error) throw result.error;
+                return (result.data as Envelope<MaterialFile>).data;
+              },
+            });
+            uploadBuffers.delete(bufferId);
+            return { data: result };
           } catch (e) {
-            if (ticket && !q.signal.aborted)
-              await base(
-                write(
-                  `/material-uploads/${ticket.uploadId}`,
-                  { version: ticket.version },
-                  "DELETE",
-                ),
-              );
+            // Keep the receipt for the user's retry. Never create a second
+            // upload for an OPEN recording or delete a possibly completed file.
+            if (e && typeof e === "object" && "status" in e)
+              return {
+                error:
+                  e as import("@reduxjs/toolkit/query").FetchBaseQueryError,
+              };
             return {
               error: {
                 status: "CUSTOM_ERROR",
                 error: e instanceof Error ? e.message : "Upload thất bại.",
               },
             };
-          } finally {
-            uploadBuffers.delete(bufferId);
           }
         },
       }),
