@@ -61,6 +61,7 @@ export function UploadRouting() {
               ["library", "Kho tài liệu"],
               ["avatar", "Ảnh avatar"],
               ["post", "Bài đăng trực tiếp"],
+              ["reward", "Phần thưởng"],
             ].map(([v, l]) => (
               <MenuItem key={v} value={v}>
                 {l}

@@ -10,6 +10,7 @@ import People from "@mui/icons-material/PeopleOutlined";
 import Class from "@mui/icons-material/ClassOutlined";
 import Account from "@mui/icons-material/ManageAccountsOutlined";
 import Label from "@mui/icons-material/LabelOutlined";
+import Redeem from "@mui/icons-material/Redeem";
 import Folder from "@mui/icons-material/FolderOutlined";
 import Storage from "@mui/icons-material/StorageOutlined";
 import Delete from "@mui/icons-material/DeleteOutlined";
@@ -74,6 +75,7 @@ const items: {
     entity: "labels",
     manager: true,
   },
+  { label: "Phần thưởng", href: "/rewards/catalogs/", icon: Redeem },
   { label: "Kho tài liệu", href: "/materials/", icon: Folder },
   {
     label: "Storage & dung lượng",

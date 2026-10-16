@@ -1,4 +1,5 @@
 "use client";
+import { compactControls } from "@/theme/compact";
 import { RealtimeBoundary } from "@/shared/realtime-activity";
 import { RouteStateProvider } from "@/shared/route-state";
 import { NavigationRuntime } from "@/shared/page-navigation";
@@ -144,6 +145,8 @@ export function Providers({ children }: { children: ReactNode }) {
                 },
               },
             },
+
+            ...compactControls,
           },
         },
         viVN,

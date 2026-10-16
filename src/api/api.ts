@@ -28,6 +28,10 @@ export const createStaffApi = (query = baseQuery) =>
     refetchOnReconnect: false,
     refetchOnMountOrArgChange: false,
     tagTypes: [
+      "GiftCatalog",
+      "Gift",
+      "GiftCart",
+      "Redemption",
       "LearningAssignments",
       "AssignmentForm",
       "AssignmentDraft",

@@ -7,11 +7,13 @@ export function MaterialThumbnail({
   fit = "contain",
   fill = false,
   natural = false,
+  requestedWidth,
 }: {
   id: string;
   fit?: "contain" | "cover";
   fill?: boolean;
   natural?: boolean;
+  requestedWidth?: number;
 }) {
   const container = useRef<HTMLDivElement>(null),
     [width, setWidth] = useState<number>(),
@@ -31,12 +33,17 @@ export function MaterialThumbnail({
     observer.observe(node);
     const resize = new ResizeObserver(([entry]) => {
       const pixels = entry.contentRect.width * (window.devicePixelRatio || 1);
-      if (pixels > 0) setWidth(pixels > 640 ? 1280 : pixels > 256 ? 640 : 256);
+      if (pixels > 0)
+        setWidth(
+          requestedWidth ?? (pixels > 640 ? 1280 : pixels > 256 ? 640 : 256),
+        );
     });
     resize.observe(node);
-    return () => resize.disconnect();
-    observer.disconnect();
-  }, []);
+    return () => {
+      resize.disconnect();
+      observer.disconnect();
+    };
+  }, [requestedWidth]);
   const query = useContentQuery(
     { id, purpose: "thumbnail", width },
     { skip: !width || !near },

@@ -1,4 +1,5 @@
 "use client";
+import { staffGiftNoticeHref } from "@/features/gifts/links";
 import { NotificationContent } from "@/features/notifications/content";
 import { useState } from "react";
 import Stack from "@mui/material/Stack";
@@ -297,7 +298,9 @@ export function NotificationsPage() {
               spacing={1}
               sx={{ flexWrap: "wrap" }}
             >
-              <NavButton href={n.href}>Mở nội dung</NavButton>
+              <NavButton href={staffGiftNoticeHref(n.href)}>
+                Mở nội dung
+              </NavButton>
               <Button
                 onClick={async () => {
                   try {
