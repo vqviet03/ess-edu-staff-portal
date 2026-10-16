@@ -2,11 +2,21 @@ import type { api } from "@/api/api";
 export function notificationResourceTags(
   type: string,
   classId?: string | null,
+  href?: string | null,
 ): Parameters<typeof api.util.invalidateTags>[0] {
+  let assignmentId: string | null = null;
+  try {
+    assignmentId = new URL(href ?? "", "https://ees.invalid").searchParams.get(
+      "assignmentId",
+    );
+  } catch {}
   if (type === "ASSIGNMENT")
     return [
-      "AssignmentForm",
-      "AssignmentSubmissions",
+      { type: "AssignmentForm", ...(assignmentId ? { id: assignmentId } : {}) },
+      {
+        type: "AssignmentSubmissions",
+        ...(assignmentId ? { id: assignmentId } : {}),
+      },
       { type: "LearningAssignments", ...(classId ? { id: classId } : {}) },
       "Posts",
       "AssignmentReport",
