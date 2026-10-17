@@ -409,6 +409,7 @@ test("mobile filters stage changes and profile rows navigate without selecting",
   const dialog = page.getByRole("dialog");
   await dialog.getByLabel("Trạng thái", { exact: true }).click();
   await page.getByRole("option", { name: "Tạm dừng", exact: true }).click();
+  await dialog.screenshot({ path: "test-results/compact-mobile-filters.png" });
   await page.waitForTimeout(500);
   expect(reads).toBe(beforeFilter);
   await dialog.getByRole("button", { name: "Đóng bộ lọc" }).click();

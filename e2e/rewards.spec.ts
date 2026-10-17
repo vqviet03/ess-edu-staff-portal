@@ -659,6 +659,9 @@ test("mobile schedule switches months and keeps all planned dates grouped", asyn
   await expect(
     dialog.getByText("2 buổi trong tháng", { exact: true }),
   ).toBeVisible();
+  await dialog.screenshot({
+    path: "test-results/compact-schedule-calendar-mobile.png",
+  });
   await dialog.getByLabel("Tháng học").click();
   await page
     .getByRole("option", {
