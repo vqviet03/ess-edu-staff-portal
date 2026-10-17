@@ -661,6 +661,7 @@ test("mobile schedule switches months and keeps all planned dates grouped", asyn
   ).toBeVisible();
   await dialog.screenshot({
     path: "test-results/compact-schedule-calendar-mobile.png",
+    animations: "disabled",
   });
   await dialog.getByLabel("Tháng học").click();
   await page
@@ -678,6 +679,7 @@ test("mobile schedule switches months and keeps all planned dates grouped", asyn
   await expect(dialog.getByText("01", { exact: true })).toBeVisible();
   await dialog.screenshot({
     path: "test-results/compact-schedule-months-mobile.png",
+    animations: "disabled",
   });
   await dialog
     .getByRole("button", { name: "Đóng lịch học", exact: true })

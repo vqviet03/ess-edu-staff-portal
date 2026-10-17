@@ -69,6 +69,9 @@ export function MobileFilters<T>({
             <Box
               sx={{
                 pt: 1,
+                display: "flex",
+                flexDirection: "column",
+                gap: 2,
                 "& .MuiTextField-root": { width: "100%", minWidth: 0 },
                 "& .MuiInputBase-root": { minHeight: 40 },
                 "& .MuiStack-root": { flexWrap: "wrap" },
