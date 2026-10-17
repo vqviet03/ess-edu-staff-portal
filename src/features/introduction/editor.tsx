@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { memo, useCallback, useEffect, useState } from "react";
 import { useTheme } from "@mui/material/styles";
 import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
@@ -38,6 +38,8 @@ import { errorMessage } from "@/api/base-query";
 import { IntroductionView } from "./view";
 import { defaultTexts, resolveContent, type IntroductionPage } from "./models";
 import type { MaterialFile } from "@/features/materials/models";
+// The large preview stays unchanged while typing in the text-edit dialog.
+const IntroductionPreview = memo(IntroductionView);
 function Inquiries() {
   const [cursor, setCursor] = useState<string>(),
     q = useIntroductionInquiriesQuery({ cursor });
@@ -123,10 +125,17 @@ function Editor({ initial }: { initial: IntroductionPage }) {
     setSaved(JSON.stringify(content));
     return result.version;
   }
-  function editText(key: string) {
-    setTextKey(key);
-    setValue(content.texts[key] ?? "");
-  }
+  const editText = useCallback(
+    (key: string) => {
+      setTextKey(key);
+      setValue(content.texts[key] ?? "");
+    },
+    [content.texts],
+  );
+  const editMedia = useCallback((slot: string) => {
+    setError(undefined);
+    setMediaSlot(slot);
+  }, []);
   function add(files: MaterialFile[]) {
     if (files.length !== 1) {
       setError(new Error("Chỉ chọn một file cho mỗi vị trí."));
@@ -252,20 +261,13 @@ function Editor({ initial }: { initial: IntroductionPage }) {
         sx={{ "& .ees-introduction": { width: "100%" } }}
         className={`intro-editor-${theme.palette.mode}`}
       >
-        <IntroductionView
+        <IntroductionPreview
           content={content}
           assetsBase={process.env.NEXT_PUBLIC_BASE_PATH ?? ""}
           previewMedia={previews}
           privatePreview
           onEditText={editing ? editText : undefined}
-          onEditMedia={
-            editing
-              ? (slot) => {
-                  setError(undefined);
-                  setMediaSlot(slot);
-                }
-              : undefined
-          }
+          onEditMedia={editing ? editMedia : undefined}
         />
       </Box>
       <Dialog
