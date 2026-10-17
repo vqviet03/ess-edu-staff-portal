@@ -518,8 +518,11 @@ export function GiftHistory({
             setStatus(e.target.value);
             setPage(1);
           }}
-          slotProps={{ select: { native: true } }}
-          sx={{ width: 180 }}
+          slotProps={{
+            inputLabel: { shrink: true },
+            select: { native: true },
+          }}
+          sx={{ width: 180, maxWidth: "100%" }}
         >
           <option value="">Tất cả</option>
           <option value="PENDING">Chờ giao</option>

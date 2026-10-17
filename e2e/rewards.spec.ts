@@ -684,3 +684,92 @@ test("mobile schedule switches months and keeps all planned dates grouped", asyn
     .click();
   await expect(dialog).not.toBeVisible();
 });
+
+for (const width of [390, 1440]) {
+  test(`managed student gift history uses resolved IDs at ${width}px`, async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await rewardsFixture(page);
+    const classId = "11111111-1111-4111-8111-111111111111";
+    const studentId = "22222222-2222-4222-8222-222222222222";
+    const requests: URL[] = [];
+    const headers = {
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Headers": "authorization,content-type,x-workspace",
+      "Access-Control-Allow-Methods": "GET,OPTIONS",
+    };
+    await page.route(
+      /\/v1\/classes\/[^/]+\/students\/HV1001\/rewards\?/,
+      (route) =>
+        route.fulfill({
+          headers,
+          json: {
+            data: {
+              classId,
+              studentId,
+              todayDate: vietnamToday(),
+              totals: totals(),
+              today: totals(),
+              attendance: "UNSET",
+              todayProgress: 0,
+              chart: [],
+              activities: [],
+              activityCount: 0,
+            },
+          },
+        }),
+    );
+    await page.route(/\/v1\/reward-gifts\/redemptions(?:\?|$)/, (route) => {
+      if (route.request().method() === "OPTIONS")
+        return route.fulfill({ status: 204, headers });
+      const url = new URL(route.request().url());
+      requests.push(url);
+      const valid =
+        url.searchParams.get("classId") === classId &&
+        url.searchParams.get("studentId") === studentId;
+      return route.fulfill({
+        headers,
+        status: valid ? 200 : 400,
+        json: valid
+          ? { data: { items: [], total: 0, page: 1, pageSize: 20 } }
+          : {
+              error: {
+                code: "VALIDATION_ERROR",
+                message: "Dữ liệu không hợp lệ.",
+              },
+            },
+      });
+    });
+    await login(page, "MG0001");
+    await page.goto(
+      `${base}/manage/profile/?entity=students&id=HV1001&tab=rewards`,
+    );
+    await expect(page.getByText("Chưa có yêu cầu đổi quà.")).toBeVisible();
+    expect(requests).toHaveLength(1);
+    await expect(
+      page.getByRole("alert").filter({ hasText: "Dữ liệu không hợp lệ." }),
+    ).toHaveCount(0);
+    await expect(
+      page.getByRole("link", { name: "Đổi quà hộ", exact: true }),
+    ).toHaveCount(0);
+    const status = page.getByLabel("Trạng thái", { exact: true });
+    await expect(status).toHaveValue("");
+    const field = status.locator(
+      "xpath=ancestor::div[contains(@class,'MuiFormControl-root')]",
+    );
+    await expect(field.locator("label")).toHaveAttribute("data-shrink", "true");
+    await status.selectOption("PENDING");
+    await expect
+      .poll(() => requests.at(-1)?.searchParams.get("status"))
+      .toBe("PENDING");
+    expect(
+      requests.every((url) => url.searchParams.get("studentId") === studentId),
+    ).toBe(true);
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= innerWidth,
+      ),
+    ).toBe(true);
+  });
+}

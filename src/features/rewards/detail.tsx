@@ -296,6 +296,23 @@ function ClassRewardDetail({
         />
       )}
       <StudySchedulePanel classId={classId} />
+      {detail.currentData && (
+        <>
+          {permissions.editLearning && (
+            <Button
+              component={Link}
+              href={`/rewards/redeem/?classKey=${encodeURIComponent(detail.currentData.classId)}&studentId=${encodeURIComponent(detail.currentData.studentId)}`}
+              sx={{ alignSelf: "flex-start" }}
+            >
+              Đổi quà hộ
+            </Button>
+          )}
+          <GiftHistory
+            classId={detail.currentData.classId}
+            studentId={detail.currentData.studentId}
+          />
+        </>
+      )}
       {dialog && (
         <MutationDialog
           classId={classId}
@@ -363,14 +380,6 @@ export function StudentRewards({
             studentId={studentId}
             name={name}
           />
-          <Button
-            component={Link}
-            href="/rewards/redeem/"
-            sx={{ alignSelf: "flex-start" }}
-          >
-            Đổi quà hộ
-          </Button>
-          <GiftHistory classId={valid} studentId={studentId} />
         </>
       ) : !query.isLoading && !query.error ? (
         <Feedback empty="Học sinh chưa có lớp để xem tích luỹ điểm." />
