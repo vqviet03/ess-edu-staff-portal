@@ -1,3 +1,5 @@
+import "../features/introduction/fonts.css";
+import "../../public/introduction.css";
 import type { Metadata } from "next";
 import "@fontsource/roboto/latin-400.css";
 import "@fontsource/roboto/latin-500.css";

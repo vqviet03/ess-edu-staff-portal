@@ -1,4 +1,5 @@
 "use client";
+import Public from "@mui/icons-material/Public";
 import { BackAction } from "./back-action";
 import { useEffect, useState } from "react";
 import Link from "next/link";
@@ -89,6 +90,12 @@ const items: {
     label: "Cảnh báo",
     href: "/manage/warnings/",
     icon: Warning,
+    manager: true,
+  },
+  {
+    label: "Trang giới thiệu",
+    href: "/manage/introduction/",
+    icon: Public,
     manager: true,
   },
   { label: "Nhật ký", href: "/manage/audit/", icon: History, manager: true },

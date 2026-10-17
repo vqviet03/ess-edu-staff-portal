@@ -20,15 +20,22 @@ export interface MediaDimensions {
 export function AssignmentMedia({
   media,
   onDimensions,
+  submissionAudio = false,
 }: {
   media: Media[];
   onDimensions?: (dimensions: MediaDimensions) => void;
+  submissionAudio?: boolean;
 }) {
   if (!media.length) return null;
   return (
     <Stack spacing={1}>
       {media.map((m) => (
-        <MediaItem key={m.materialId} item={m} onDimensions={onDimensions} />
+        <MediaItem
+          key={m.materialId}
+          item={m}
+          onDimensions={onDimensions}
+          submissionAudio={submissionAudio}
+        />
       ))}
     </Stack>
   );
@@ -36,9 +43,11 @@ export function AssignmentMedia({
 function MediaItem({
   item,
   onDimensions,
+  submissionAudio = false,
 }: {
   item: Media;
   onDimensions?: (dimensions: MediaDimensions) => void;
+  submissionAudio?: boolean;
 }) {
   const f = item.file,
     [load, state] = useLazyContentQuery(),
@@ -182,7 +191,7 @@ function MediaItem({
         </>
       ) : f.mimeType.startsWith("audio/") ? (
         <Box sx={{ maxWidth: 460, "--post-file": "transparent" }}>
-          <InlineAudio file={f} />
+          <InlineAudio file={f} submission={submissionAudio} />
         </Box>
       ) : (
         <Stack

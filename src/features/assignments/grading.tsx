@@ -141,9 +141,11 @@ export function SubmissionList({ assignment }: { assignment: Assignment }) {
                     </TableCell>
                     <TableCell>
                       {numberLabel(
-                        s.grades
-                          .filter((g) => g.automatic)
-                          .reduce((sum, g) => sum + (g.score ?? 0), 0),
+                        s.submittedAt
+                          ? s.grades
+                              .filter((g) => g.automatic)
+                              .reduce((sum, g) => sum + (g.score ?? 0), 0)
+                          : null,
                       )}
                       /
                       {assignment.questions
@@ -176,7 +178,9 @@ export function SubmissionList({ assignment }: { assignment: Assignment }) {
                         >
                           {assignment.canEdit && s.submittedAt
                             ? "Chấm bài"
-                            : "Xem bài nộp"}
+                            : s.submittedAt
+                              ? "Xem bài nộp"
+                              : "Xem nháp"}
                         </Button>
                         <ReopenSubmissionButton
                           assignment={assignment}
@@ -237,7 +241,7 @@ export function SubmissionGrading({
       />
       {sub.data && form.data && (
         <GradeForm
-          key={submissionId}
+          key={`${submissionId}:${sub.data.submittedAt ? "submitted" : sub.data.version}`}
           assignment={{ ...form.data, canEdit: editable && form.data.canEdit }}
           initial={sub.data}
         />
@@ -284,6 +288,28 @@ function GradeForm({
     setSaved(JSON.stringify(result));
     return result;
   }
+  if (!draft.submittedAt)
+    return (
+      <AssignmentSurface>
+        <Stack spacing={2}>
+          <Typography variant="h4">
+            Bản nháp · {draft.studentName}
+            {draft.studentNickname ? ` (${draft.studentNickname})` : ""}
+          </Typography>
+          <Alert severity="info">
+            Học sinh chưa nộp bài. Giảng viên chỉ xem bản nháp; chưa thể chấm
+            điểm.
+          </Alert>
+          <AssignmentPlayer
+            key={`${draft.id}:${draft.version}`}
+            assignment={assignment}
+            initial={draft}
+            preview
+            review
+          />
+        </Stack>
+      </AssignmentSurface>
+    );
   return (
     <AssignmentSurface>
       <Stack spacing={{ xs: 2, md: 3 }} sx={{ minWidth: 0 }}>
@@ -311,15 +337,6 @@ function GradeForm({
             }}
           />
         </Stack>
-        {!draft.submittedAt && (
-          <>
-            <Alert severity="info">
-              Bài đã được mở lại. Học sinh đang chỉnh sửa; chỉ chấm khi học sinh
-              nộp lại.
-            </Alert>
-            <AssignmentPlayer assignment={assignment} initial={draft} preview />
-          </>
-        )}
         {!assignment.canEdit && (
           <Alert severity="info">
             Chỉ xem. Chấm điểm yêu cầu vai trò giảng viên và phân công hiện tại
@@ -433,6 +450,7 @@ function GradeForm({
                     ) : null;
                   })}
                   <AssignmentMedia
+                    submissionAudio
                     media={(a?.files ?? []).map((f) => ({
                       materialId: f.id,
                       file: f,

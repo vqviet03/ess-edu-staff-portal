@@ -491,3 +491,125 @@ for (const type of ["SINGLE", "MULTIPLE"] as const) {
     });
   });
 }
+
+for (const attempt of [1, 2]) {
+  test(`teacher sees draft attempt ${attempt} once, read-only, with yellow student audio and no grading`, async ({
+    page,
+  }) => {
+    await installHttpFixture(page);
+    let writes = 0;
+    const form = {
+      ...assignment,
+      status: "PUBLISHED",
+      questions: [
+        ...assignment.questions,
+        {
+          id: "speaking-draft",
+          type: "SPEAKING",
+          content: "Câu nói trong bản nháp",
+          instructions: "",
+          rubric: "Internal rubric",
+          maxScore: 5,
+          order: 2,
+          allowUploadedAudio: false,
+          maxDurationSeconds: 30,
+          options: [],
+          media: [],
+        },
+      ],
+    };
+    const submission = {
+      id: "draft-only",
+      assignmentId: form.id,
+      assignmentVersionId: form.assignmentVersionId,
+      studentId: "bon",
+      studentName: "Hữu Văn",
+      studentNickname: "Bon",
+      submittedAt: null,
+      publishedAt: null,
+      status: "DRAFT",
+      version: attempt,
+      attempt,
+      reopenedAt: attempt === 2 ? "2026-10-16T00:00:00Z" : null,
+      isLate: false,
+      totalScore: null,
+      totalMax: 8,
+      percentage: null,
+      overallComment: "",
+      overallAdvice: "",
+      grades: [],
+      answers: form.questions.map((q) => ({
+        questionId: q.id,
+        text: q.type === "TEXT" ? "Câu trả lời đã lưu" : "",
+        link: "",
+        optionIds: [],
+        materialIds: q.type === "SPEAKING" ? ["student-audio"] : [],
+        files:
+          q.type === "SPEAKING"
+            ? [
+                {
+                  id: "student-audio",
+                  displayName: "private-name.webm",
+                  mimeType: "audio/webm",
+                  sizeBytes: 1000,
+                  status: "AVAILABLE",
+                },
+              ]
+            : [],
+      })),
+    };
+    await page.route("**/assignments/assignment-design**", (r) => {
+      if (r.request().method() === "OPTIONS")
+        return r.fulfill({
+          status: 204,
+          headers: {
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Headers":
+              "authorization,content-type,x-workspace",
+          },
+        });
+      if (r.request().method() !== "GET") writes++;
+      return r.fulfill({
+        headers: { "Access-Control-Allow-Origin": "*" },
+        json: {
+          data: r.request().url().includes("/submissions/") ? submission : form,
+        },
+      });
+    });
+    await page.goto(`${base}/login/`);
+    await page.getByLabel("ID giảng viên").fill("GV0001");
+    await page.getByLabel("Mật khẩu", { exact: true }).fill("Demo123!");
+    await page.getByRole("button", { name: "Đăng nhập", exact: true }).click();
+    await expect(page).toHaveURL(/home\//);
+    await page.goto(
+      `${base}/assignment/?classId=class-green&assignmentId=assignment-design&submissionId=draft-only&mode=grade`,
+    );
+    await expect(
+      page.getByRole("heading", { name: "Bản nháp · Hữu Văn (Bon)" }),
+    ).toBeVisible();
+    await expect(
+      page.getByText("Câu nói trong bản nháp", { exact: false }),
+    ).toHaveCount(1);
+    await expect(
+      page.getByText("Bản ghi bài nộp", { exact: true }),
+    ).toHaveCount(1);
+    await expect(
+      page.getByRole("button", { name: "Lưu chấm nháp" }),
+    ).toHaveCount(0);
+    await expect(
+      page.getByRole("button", { name: "Công bố kết quả" }),
+    ).toHaveCount(0);
+    await expect(
+      page.getByRole("button", { name: /Bỏ |Xóa |Ghi âm/ }),
+    ).toHaveCount(0);
+    const fields = page.getByRole("textbox", { name: "Câu trả lời của em" });
+    await expect(fields).toBeDisabled();
+    await expect(fields).toHaveText("Câu trả lời đã lưu");
+    const audio = page.getByRole("button", { name: "Phát Bản ghi bài nộp" });
+    await expect(audio).toBeVisible();
+    expect(
+      await audio.evaluate((el) => getComputedStyle(el).backgroundColor),
+    ).not.toBe("rgba(0, 0, 0, 0)");
+    expect(writes).toBe(0);
+  });
+}

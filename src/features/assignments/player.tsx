@@ -323,6 +323,7 @@ const QuestionCard = memo(function QuestionCard({
           >
             <Box sx={{ flex: 1, minWidth: 0 }}>
               <AssignmentMedia
+                submissionAudio
                 media={[
                   {
                     materialId: f.id,
@@ -359,10 +360,12 @@ export function AssignmentPlayer({
   assignment,
   initial,
   preview = false,
+  review = false,
 }: {
   assignment: Assignment;
   initial: Submission | null;
   preview?: boolean;
+  review?: boolean;
 }) {
   const [answers, setAnswers] = useState<Answer[]>(() =>
       assignment.questions.map(
@@ -398,7 +401,7 @@ export function AssignmentPlayer({
   }, [initial]);
   const serial = JSON.stringify(answers),
     dirty = serial !== saved,
-    readOnly = !!submission?.submittedAt;
+    readOnly = review || !!submission?.submittedAt;
   useUnsaved(!preview && !readOnly && (dirty || busy.length > 0));
   useEffect(() => {
     mounted.current = true;
@@ -611,12 +614,12 @@ export function AssignmentPlayer({
         >
           {complete} / {assignment.questions.length} câu · Xem danh sách
         </Button>
-        {preview ? (
+        {review ? null : preview ? (
           <Alert severity="info">
             Xem trước giao diện học sinh. Đáp án đúng và tiêu chí chấm không
             hiển thị ở đây.
           </Alert>
-        ) : readOnly ? (
+        ) : submission?.submittedAt ? (
           <Alert severity="success">
             Đã nộp lúc{" "}
             {new Date(submission.submittedAt!).toLocaleString("vi-VN")}.{" "}
