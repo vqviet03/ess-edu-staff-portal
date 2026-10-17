@@ -28,12 +28,16 @@ export function MobileFilters<T>({
   empty: T;
   onApply: (value: T) => void;
   title?: string;
-  children: (value: T, setValue: (value: T) => void) => ReactNode;
+  children: (
+    value: T,
+    setValue: (value: T) => void,
+    mobile: boolean,
+  ) => ReactNode;
 }) {
   const mobile = useMediaQuery(useTheme().breakpoints.down("md"));
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState(value);
-  if (!mobile) return children(value, onApply);
+  if (!mobile) return children(value, onApply, false);
   return (
     <>
       <Tooltip title={title}>
@@ -77,11 +81,12 @@ export function MobileFilters<T>({
                 "& .MuiStack-root": { flexWrap: "wrap" },
               }}
             >
-              {children(draft, setDraft)}
+              {children(draft, setDraft, true)}
             </Box>
             <Stack spacing={1.5} sx={{ mt: 2 }}>
               <Button
                 variant="contained"
+                sx={{ minHeight: 44 }}
                 onClick={() => {
                   onApply(draft);
                   setOpen(false);

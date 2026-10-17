@@ -244,6 +244,11 @@ function EntityFilters({
         )}{" "}
         <TextField
           select
+          slotProps={
+            !showSearch
+              ? { inputLabel: { shrink: true }, select: { displayEmpty: true } }
+              : undefined
+          }
           label="Trạng thái"
           value={filter.status}
           onChange={(e) => change("status", e.target.value)}
@@ -260,6 +265,14 @@ function EntityFilters({
         <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
           <TextField
             select
+            slotProps={
+              !showSearch
+                ? {
+                    inputLabel: { shrink: true },
+                    select: { displayEmpty: true },
+                  }
+                : undefined
+            }
             label="Lớp"
             value={filter.classId ?? ""}
             onChange={(e) => change("classId", e.target.value)}
@@ -273,6 +286,14 @@ function EntityFilters({
           </TextField>
           <TextField
             select
+            slotProps={
+              !showSearch
+                ? {
+                    inputLabel: { shrink: true },
+                    select: { displayEmpty: true },
+                  }
+                : undefined
+            }
             label="Tài khoản"
             value={filter.accountStatus ?? ""}
             onChange={(e) => change("accountStatus", e.target.value)}
@@ -287,6 +308,14 @@ function EntityFilters({
           {entity === "teachers" && (
             <TextField
               select
+              slotProps={
+                !showSearch
+                  ? {
+                      inputLabel: { shrink: true },
+                      select: { displayEmpty: true },
+                    }
+                  : undefined
+              }
               label="Vai trò"
               value={filter.role ?? ""}
               onChange={(e) => change("role", e.target.value)}

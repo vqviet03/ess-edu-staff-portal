@@ -747,7 +747,7 @@ export function MaterialBrowser({
             setCursor(undefined);
           }}
         >
-          {(value, update) => (
+          {(value, update, mobile) => (
             <Stack
               direction={{ xs: "column", md: "row" }}
               useFlexGap
@@ -756,6 +756,14 @@ export function MaterialBrowser({
             >
               <TextField
                 select
+                slotProps={
+                  mobile
+                    ? {
+                        inputLabel: { shrink: true },
+                        select: { displayEmpty: true },
+                      }
+                    : undefined
+                }
                 size="small"
                 label="Phạm vi"
                 value={value.scope}
@@ -769,6 +777,14 @@ export function MaterialBrowser({
               </TextField>
               <TextField
                 select
+                slotProps={
+                  mobile
+                    ? {
+                        inputLabel: { shrink: true },
+                        select: { displayEmpty: true },
+                      }
+                    : undefined
+                }
                 size="small"
                 label="Loại file"
                 value={value.type}
@@ -792,6 +808,14 @@ export function MaterialBrowser({
               </TextField>
               <TextField
                 select
+                slotProps={
+                  mobile
+                    ? {
+                        inputLabel: { shrink: true },
+                        select: { displayEmpty: true },
+                      }
+                    : undefined
+                }
                 size="small"
                 label="Sắp xếp"
                 value={value.sort}

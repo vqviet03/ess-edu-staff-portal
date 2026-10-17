@@ -81,9 +81,17 @@ export function Home() {
             setPage(0);
           }}
         >
-          {(value, update) => (
+          {(value, update, mobile) => (
             <TextField
               select
+              slotProps={
+                mobile
+                  ? {
+                      inputLabel: { shrink: true },
+                      select: { displayEmpty: true },
+                    }
+                  : undefined
+              }
               label="Trạng thái"
               value={value.status}
               onChange={(e) => {

@@ -61,7 +61,7 @@ function Dashboard() {
           title="Bộ lọc tổng quan"
           onApply={setFilter}
         >
-          {(value, update) => {
+          {(value, update, mobile) => {
             const change = (key: string, text: string) =>
               update({ ...value, [key]: text });
             return (
@@ -92,6 +92,14 @@ function Dashboard() {
                 />
                 <TextField
                   select
+                  slotProps={
+                    mobile
+                      ? {
+                          inputLabel: { shrink: true },
+                          select: { displayEmpty: true },
+                        }
+                      : undefined
+                  }
                   label="Lớp"
                   value={value.classId}
                   onChange={(e) => change("classId", e.target.value)}
@@ -106,6 +114,14 @@ function Dashboard() {
                 </TextField>
                 <TextField
                   select
+                  slotProps={
+                    mobile
+                      ? {
+                          inputLabel: { shrink: true },
+                          select: { displayEmpty: true },
+                        }
+                      : undefined
+                  }
                   label="Trạng thái lớp"
                   value={value.status}
                   onChange={(e) => change("status", e.target.value)}
