@@ -1,4 +1,5 @@
 "use client";
+import { MobileFilters } from "@/shared/mobile-filters";
 import { downloadName } from "./utils";
 import { MaterialThumbnail } from "./thumbnail";
 import {
@@ -76,6 +77,101 @@ const FileTile = memo(function FileTile({
   info: (file: MaterialFile) => void;
   tree?: boolean;
 }) {
+  if (tree)
+    return (
+      <Paper
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          gap: 0.5,
+          px: 0.75,
+          py: 1.25,
+          minWidth: 0,
+          borderRadius: "12px",
+          border: 1,
+          borderColor: selected ? "primary.main" : "divider",
+          bgcolor: selected ? "action.selected" : "background.paper",
+        }}
+      >
+        <Checkbox
+          checked={selected}
+          onChange={() => toggle(file)}
+          slotProps={{ input: { "aria-label": `Chọn ${file.displayName}` } }}
+          sx={{ flexShrink: 0 }}
+        />
+        <Button
+          onClick={() => preview(file)}
+          aria-label={`Xem ${file.displayName}`}
+          sx={{
+            flex: 1,
+            minWidth: 0,
+            textAlign: "left",
+            color: "text.primary",
+            justifyContent: "flex-start",
+            px: 0.5,
+            py: 0,
+            textTransform: "none",
+          }}
+        >
+          <Box sx={{ minWidth: 0, width: "100%" }}>
+            <Tooltip title={file.displayName}>
+              <Typography
+                variant="body2"
+                sx={{
+                  fontSize: 13,
+                  lineHeight: "19px",
+                  fontWeight: 500,
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {file.displayName}
+              </Typography>
+            </Tooltip>
+            <Typography
+              component="div"
+              variant="caption"
+              color="text.secondary"
+              sx={{
+                fontSize: 11,
+                lineHeight: "17px",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
+              }}
+            >
+              {fileKind(file.mimeType)}
+              {file.publicId ? ` · ${publicId(file.publicId)}` : ""} ·{" "}
+              {bytes(file.sizeBytes)}
+            </Typography>
+            <Typography
+              component="div"
+              variant="caption"
+              color="text.secondary"
+              sx={{
+                fontSize: 11,
+                lineHeight: "17px",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
+              }}
+            >
+              {file.authorName}
+            </Typography>
+          </Box>
+        </Button>
+        <Tooltip title={`Thông tin ${file.displayName}`}>
+          <IconButton
+            aria-label={`Thông tin ${file.displayName}`}
+            onClick={() => info(file)}
+            sx={{ width: 44, height: 44, flexShrink: 0 }}
+          >
+            <MoreVert fontSize="small" />
+          </IconButton>
+        </Tooltip>
+      </Paper>
+    );
   return (
     <Paper
       sx={{
@@ -640,66 +736,108 @@ export function MaterialBrowser({
             </IconButton>
           </span>
         </Tooltip>
-        <TextField
-          select
-          size="small"
-          label="Phạm vi"
-          value={scope}
-          onChange={(e) => {
-            setScope(e.target.value as typeof scope);
-            setCursor(undefined);
-          }}
-          sx={{ width: { xs: 135, sm: 155 } }}
-        >
-          <MenuItem value="current">Thư mục hiện tại</MenuItem>
-          <MenuItem value="all">Toàn kho</MenuItem>
-        </TextField>
-        <TextField
-          select
-          size="small"
-          label="Loại file"
-          value={type}
-          sx={{ width: 115 }}
-          onChange={(e) => {
-            setType(e.target.value);
+        <MobileFilters<{ scope: "current" | "all"; type: string; sort: string }>
+          value={{ scope, type, sort }}
+          empty={{ scope: "current", type: "", sort: "name" }}
+          title="Lọc tài liệu"
+          onApply={(next) => {
+            setScope(next.scope);
+            setType(next.type);
+            setSort(next.sort);
             setCursor(undefined);
           }}
         >
-          {[
-            ["", "Tất cả"],
-            ["pdf", "PDF"],
-            ["image", "Ảnh"],
-            ["audio", "Audio"],
-            ["video", "Video"],
-            ["other", "Khác"],
-          ].map(([v, l]) => (
-            <MenuItem key={v} value={v}>
-              {l}
-            </MenuItem>
-          ))}
-        </TextField>
-        <TextField
-          select
-          size="small"
-          label="Sắp xếp"
-          value={sort}
-          sx={{ minWidth: 140 }}
-          onChange={(e) => {
-            setSort(e.target.value);
-            setCursor(undefined);
-          }}
-        >
-          {[
-            ["name", "Tên ↑"],
-            ["name-desc", "Tên ↓"],
-            ["newest", "Mới nhất"],
-            ["size", "Dung lượng"],
-          ].map(([v, l]) => (
-            <MenuItem key={v} value={v}>
-              {l}
-            </MenuItem>
-          ))}
-        </TextField>
+          {(value, update, mobile) => (
+            <Stack
+              direction={{ xs: "column", md: "row" }}
+              useFlexGap
+              spacing={1.5}
+              sx={{ display: { xs: "flex", md: "contents" } }}
+            >
+              <TextField
+                select
+                slotProps={
+                  mobile
+                    ? {
+                        inputLabel: { shrink: true },
+                        select: { displayEmpty: true },
+                      }
+                    : undefined
+                }
+                size="small"
+                label="Phạm vi"
+                value={value.scope}
+                onChange={(e) => {
+                  update({ ...value, scope: e.target.value as typeof scope });
+                }}
+                sx={{ width: { xs: 135, sm: 155 } }}
+              >
+                <MenuItem value="current">Thư mục hiện tại</MenuItem>
+                <MenuItem value="all">Toàn kho</MenuItem>
+              </TextField>
+              <TextField
+                select
+                slotProps={
+                  mobile
+                    ? {
+                        inputLabel: { shrink: true },
+                        select: { displayEmpty: true },
+                      }
+                    : undefined
+                }
+                size="small"
+                label="Loại file"
+                value={value.type}
+                sx={{ width: 115 }}
+                onChange={(e) => {
+                  update({ ...value, type: e.target.value });
+                }}
+              >
+                {[
+                  ["", "Tất cả"],
+                  ["pdf", "PDF"],
+                  ["image", "Ảnh"],
+                  ["audio", "Audio"],
+                  ["video", "Video"],
+                  ["other", "Khác"],
+                ].map(([v, l]) => (
+                  <MenuItem key={v} value={v}>
+                    {l}
+                  </MenuItem>
+                ))}
+              </TextField>
+              <TextField
+                select
+                slotProps={
+                  mobile
+                    ? {
+                        inputLabel: { shrink: true },
+                        select: { displayEmpty: true },
+                      }
+                    : undefined
+                }
+                size="small"
+                label="Sắp xếp"
+                value={value.sort}
+                sx={{ minWidth: 140 }}
+                onChange={(e) => {
+                  update({ ...value, sort: e.target.value });
+                }}
+              >
+                {[
+                  ["name", "Tên ↑"],
+                  ["name-desc", "Tên ↓"],
+                  ["newest", "Mới nhất"],
+                  ["size", "Dung lượng"],
+                ].map(([v, l]) => (
+                  <MenuItem key={v} value={v}>
+                    {l}
+                  </MenuItem>
+                ))}
+              </TextField>
+            </Stack>
+          )}
+        </MobileFilters>
       </Stack>
       {transferOpen && (
         <StorageTransferDialog
@@ -814,7 +952,9 @@ export function MaterialBrowser({
           void files.refetch();
         }}
       />
-      <Paper sx={{ p: { xs: 1.5, md: 2 }, minHeight: 240 }}>
+      <Paper
+        sx={{ p: { xs: 1.5, md: 2 }, minHeight: mode === "tree" ? 0 : 240 }}
+      >
         {mode === "tree" && !debounced && !type && scope === "current" ? (
           <TreeBranch
             key={folderId ?? "root"}

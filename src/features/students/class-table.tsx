@@ -2,6 +2,9 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { Box, ButtonBase, Stack, Typography } from "@mui/material";
+import { ProfileAvatar } from "@/features/profile/avatar";
+import ChevronRight from "@mui/icons-material/ChevronRight";
 import IconButton from "@mui/material/IconButton";
 import Menu from "@mui/material/Menu";
 import MenuItem from "@mui/material/MenuItem";
@@ -44,7 +47,83 @@ export function ClassStudentTable({
   };
   return (
     <>
-      <TableContainer>
+      <Stack spacing={1.5} sx={{ display: { xs: "flex", md: "none" } }}>
+        {students.map((s) => (
+          <Box
+            key={s.id}
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              gap: 0.5,
+              p: 1.25,
+              borderRadius: "12px",
+              bgcolor: "background.default",
+              minWidth: 0,
+            }}
+          >
+            <ButtonBase
+              component={Link}
+              href={profileHref(s)}
+              aria-label={`Xem hồ sơ ${s.name}`}
+              onClick={(event) => {
+                if (!confirmLeave()) event.preventDefault();
+              }}
+              sx={{
+                flex: 1,
+                minWidth: 0,
+                minHeight: 44,
+                display: "flex",
+                gap: 1.25,
+                justifyContent: "flex-start",
+                textAlign: "left",
+                borderRadius: 1,
+              }}
+            >
+              <ProfileAvatar fallbackInitials name={s.name} size={36} />
+              <Box sx={{ flex: 1, minWidth: 0 }}>
+                <Typography
+                  sx={{
+                    fontSize: 14,
+                    lineHeight: "20px",
+                    fontWeight: 600,
+                    overflowWrap: "anywhere",
+                  }}
+                >
+                  {s.name}
+                  {s.nickname ? ` (${s.nickname})` : ""}
+                </Typography>
+                <Typography
+                  sx={{
+                    fontSize: 12,
+                    lineHeight: "18px",
+                    color: "text.secondary",
+                    overflowWrap: "anywhere",
+                  }}
+                >
+                  {publicId(s.publicId, s.studentCode, s.id)} ·{" "}
+                  {s.dateOfBirth
+                    ? new Date(s.dateOfBirth + "T00:00:00").toLocaleDateString(
+                        "vi-VN",
+                      )
+                    : "—"}
+                </Typography>
+                <StatusChip status={s.status} />
+              </Box>
+              <ChevronRight
+                sx={{ fontSize: 20, flexShrink: 0, color: "text.secondary" }}
+              />
+            </ButtonBase>
+            <IconButton
+              aria-label={`Thao tác học sinh ${s.name}`}
+              onClick={(e) => setMenu({ anchor: e.currentTarget, student: s })}
+              sx={{ width: 44, height: 44 }}
+            >
+              <MoreHoriz />
+            </IconButton>
+          </Box>
+        ))}
+      </Stack>
+      <TableContainer sx={{ display: { xs: "none", md: "block" } }}>
         <Table sx={{ minWidth: 650 }} aria-label="Danh sách học sinh của lớp">
           <TableHead>
             <TableRow>

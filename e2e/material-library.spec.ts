@@ -524,6 +524,21 @@ test("grid across nested folders, tree selection and mobile bounds", async ({
   await expect(
     page.getByRole("checkbox", { name: "Chọn Bài học b.pdf" }),
   ).toBeChecked();
+  const row = page
+    .getByRole("checkbox", { name: "Chọn Bài học b.pdf" })
+    .locator("xpath=ancestor::*[contains(@class,'MuiPaper-root')][1]");
+  expect((await row.boundingBox())!.height).toBeLessThan(100);
+  await page.screenshot({
+    path: "test-results/materials-compact-tree-mobile.png",
+    fullPage: true,
+  });
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  expect((await row.boundingBox())!.height).toBeLessThan(100);
+  await page.screenshot({
+    path: "test-results/materials-compact-tree-desktop.png",
+    fullPage: true,
+  });
+  await page.setViewportSize({ width: 390, height: 844 });
   await page.getByRole("button", { name: "Thư mục", exact: true }).click();
   await page.getByRole("button", { name: "Unit 1", exact: true }).click();
   await expect(page.getByText("2 file đã chọn")).toBeVisible();

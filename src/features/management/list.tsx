@@ -8,6 +8,15 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
+import useMediaQuery from "@mui/material/useMediaQuery";
+import { useTheme } from "@mui/material/styles";
+import { IconButton, Menu, Tooltip } from "@mui/material";
+import Add from "@mui/icons-material/Add";
+import MoreHoriz from "@mui/icons-material/MoreHoriz";
+import ButtonBase from "@mui/material/ButtonBase";
+import ChevronRight from "@mui/icons-material/ChevronRight";
+import { ProfileAvatar } from "@/features/profile/avatar";
+import { MobileFilters } from "@/shared/mobile-filters";
 import Button from "@mui/material/Button";
 import Checkbox from "@mui/material/Checkbox";
 import Dialog from "@mui/material/Dialog";
@@ -15,6 +24,7 @@ import DialogContent from "@mui/material/DialogContent";
 import DialogTitle from "@mui/material/DialogTitle";
 import FormControlLabel from "@mui/material/FormControlLabel";
 import MenuItem from "@mui/material/MenuItem";
+import Paper from "@mui/material/Paper";
 import Pagination from "@mui/material/Pagination";
 import Snackbar from "@mui/material/Snackbar";
 import Stack from "@mui/material/Stack";
@@ -33,7 +43,7 @@ import {
   useProfileExportMutation,
 } from "@/api/management-api";
 import { errorMessage } from "@/api/base-query";
-import { Card, Feedback, NavButton, Progress, Title } from "@/shared/ui";
+import { Feedback, NavButton, Progress, Title } from "@/shared/ui";
 import { confirmLeave, useUnsaved } from "@/shared/unsaved";
 import type {
   Entity,
@@ -209,7 +219,120 @@ function ManagementList() {
       raw && Object.hasOwn(entityLabels, raw) ? (raw as Entity) : "students";
   return <EntityList key={entity} entity={entity} />;
 }
+function EntityFilters({
+  entity,
+  filter,
+  classes,
+  change,
+  showSearch = false,
+}: {
+  entity: Entity;
+  filter: ListFilter;
+  classes?: ManagedRecord[];
+  change: (key: string, value: string) => void;
+  showSearch?: boolean;
+}) {
+  return (
+    <>
+      <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
+        {showSearch && (
+          <TextField
+            label="Tên / ID / số liên hệ"
+            value={filter.search}
+            onChange={(e) => change("search", e.target.value)}
+          />
+        )}{" "}
+        <TextField
+          select
+          slotProps={
+            !showSearch
+              ? { inputLabel: { shrink: true }, select: { displayEmpty: true } }
+              : undefined
+          }
+          label="Trạng thái"
+          value={filter.status}
+          onChange={(e) => change("status", e.target.value)}
+        >
+          <MenuItem value="">Tất cả trạng thái</MenuItem>
+          {options(entity, "status")?.map((s) => (
+            <MenuItem key={s} value={s}>
+              {showValue(s)}
+            </MenuItem>
+          ))}
+        </TextField>
+      </Stack>
+      {(entity === "students" || entity === "teachers") && (
+        <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
+          <TextField
+            select
+            slotProps={
+              !showSearch
+                ? {
+                    inputLabel: { shrink: true },
+                    select: { displayEmpty: true },
+                  }
+                : undefined
+            }
+            label="Lớp"
+            value={filter.classId ?? ""}
+            onChange={(e) => change("classId", e.target.value)}
+          >
+            <MenuItem value="">Tất cả lớp</MenuItem>
+            {classes?.map((c) => (
+              <MenuItem key={c.id} value={c.id}>
+                {recordName(c)}
+              </MenuItem>
+            ))}
+          </TextField>
+          <TextField
+            select
+            slotProps={
+              !showSearch
+                ? {
+                    inputLabel: { shrink: true },
+                    select: { displayEmpty: true },
+                  }
+                : undefined
+            }
+            label="Tài khoản"
+            value={filter.accountStatus ?? ""}
+            onChange={(e) => change("accountStatus", e.target.value)}
+          >
+            <MenuItem value="">Tất cả tài khoản</MenuItem>
+            {["PENDING", "ACTIVE", "LOCKED"].map((s) => (
+              <MenuItem key={s} value={s}>
+                {showValue(s)}
+              </MenuItem>
+            ))}
+          </TextField>
+          {entity === "teachers" && (
+            <TextField
+              select
+              slotProps={
+                !showSearch
+                  ? {
+                      inputLabel: { shrink: true },
+                      select: { displayEmpty: true },
+                    }
+                  : undefined
+              }
+              label="Vai trò"
+              value={filter.role ?? ""}
+              onChange={(e) => change("role", e.target.value)}
+            >
+              <MenuItem value="">Tất cả vai trò</MenuItem>
+              <MenuItem value="TEACHER">Giảng viên</MenuItem>
+              <MenuItem value="MANAGER">Quản lý</MenuItem>
+            </TextField>
+          )}
+        </Stack>
+      )}
+    </>
+  );
+}
+
 function EntityList({ entity }: { entity: Entity }) {
+  const mobile = useMediaQuery(useTheme().breakpoints.down("md"));
   const [filter, setFilter] = useRouteState<ListFilter>(
       `management:${entity}:filter`,
       { search: "", status: "" },
@@ -218,6 +341,8 @@ function EntityList({ entity }: { entity: Entity }) {
     [selection, setSelection] = useState<Selection>({ mode: "IDS", ids: [] }),
     [editing, setEditing] = useState<ManagedRecord | "new" | null>(null),
     [bulk, setBulk] = useState(false),
+    [mobileSelection, setMobileSelection] = useState(false),
+    [mobileMenu, setMobileMenu] = useState<HTMLElement | null>(null),
     [message, setMessage] = useState(""),
     [error, setError] = useState("");
   const request = useDebouncedValue(
@@ -273,152 +398,200 @@ function EntityList({ entity }: { entity: Entity }) {
     <>
       <Title
         title={entityLabels[entity]}
-        subtitle="Quản lý hồ sơ, trạng thái và lịch sử. Thay đổi có kiểm tra ảnh hưởng."
-        actions={
-          <>
-            <Button variant="contained" onClick={() => setEditing("new")}>
-              Thêm{" "}
-              {entity === "teachers"
-                ? "giảng viên"
-                : entityLabels[entity].toLowerCase()}
-            </Button>
-            {(entity === "students" || entity === "teachers") && (
-              <>
-                <NavButton href={`/manage/grid/?entity=${entity}`}>
-                  Thêm bằng bảng
-                </NavButton>
-                <NavButton href={`/manage/excel/?entity=${entity}`}>
-                  Excel · Nhập & xuất
-                </NavButton>
-              </>
-            )}
-          </>
+        subtitle={
+          mobile
+            ? `${total} kết quả`
+            : "Quản lý hồ sơ, trạng thái và lịch sử. Thay đổi có kiểm tra ảnh hưởng."
         }
-      />
-      <Card>
-        <Stack spacing={2}>
-          <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
-            <TextField
-              label="Tên / ID / số liên hệ"
-              value={filter.search}
-              onChange={(e) => changeFilter("search", e.target.value)}
-            />
-            <TextField
-              select
-              label="Trạng thái"
-              value={filter.status}
-              onChange={(e) => changeFilter("status", e.target.value)}
-            >
-              <MenuItem value="">Tất cả trạng thái</MenuItem>
-              {options(entity, "status")?.map((s) => (
-                <MenuItem key={s} value={s}>
-                  {showValue(s)}
-                </MenuItem>
-              ))}
-            </TextField>
-          </Stack>
-          {(entity === "students" || entity === "teachers") && (
-            <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
-              <TextField
-                select
-                label="Lớp"
-                value={filter.classId ?? ""}
-                onChange={(e) => changeFilter("classId", e.target.value)}
-              >
-                <MenuItem value="">Tất cả lớp</MenuItem>
-                {classOptions.currentData?.items.map((c) => (
-                  <MenuItem key={c.id} value={c.id}>
-                    {recordName(c)}
-                  </MenuItem>
-                ))}
-              </TextField>
-              <TextField
-                select
-                label="Tài khoản"
-                value={filter.accountStatus ?? ""}
-                onChange={(e) => changeFilter("accountStatus", e.target.value)}
-              >
-                <MenuItem value="">Tất cả tài khoản</MenuItem>
-                {["PENDING", "ACTIVE", "LOCKED"].map((s) => (
-                  <MenuItem key={s} value={s}>
-                    {showValue(s)}
-                  </MenuItem>
-                ))}
-              </TextField>
-              {entity === "teachers" && (
-                <TextField
-                  select
-                  label="Vai trò"
-                  value={filter.role ?? ""}
-                  onChange={(e) => changeFilter("role", e.target.value)}
+        actions={
+          mobile ? (
+            <Stack direction="row" spacing={0.5}>
+              <Tooltip title={`Thêm ${entityLabels[entity].toLowerCase()}`}>
+                <IconButton
+                  aria-label={`Thêm ${entityLabels[entity].toLowerCase()}`}
+                  onClick={() => setEditing("new")}
                 >
-                  <MenuItem value="">Tất cả vai trò</MenuItem>
-                  <MenuItem value="TEACHER">Giảng viên</MenuItem>
-                  <MenuItem value="MANAGER">Quản lý</MenuItem>
-                </TextField>
+                  <Add fontSize="small" />
+                </IconButton>
+              </Tooltip>
+              {(entity === "students" || entity === "teachers") && (
+                <>
+                  <Tooltip title="Thao tác hồ sơ">
+                    <IconButton
+                      aria-label="Thao tác hồ sơ"
+                      onClick={(e) => setMobileMenu(e.currentTarget)}
+                    >
+                      <MoreHoriz fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
+                  <Menu
+                    anchorEl={mobileMenu}
+                    open={!!mobileMenu}
+                    onClose={() => setMobileMenu(null)}
+                  >
+                    <MenuItem
+                      component={Link}
+                      href={`/manage/grid/?entity=${entity}`}
+                      onClick={() => setMobileMenu(null)}
+                    >
+                      Thêm bằng bảng
+                    </MenuItem>
+                    <MenuItem
+                      component={Link}
+                      href={`/manage/excel/?entity=${entity}`}
+                      onClick={() => setMobileMenu(null)}
+                    >
+                      Excel · Nhập & xuất
+                    </MenuItem>
+                  </Menu>
+                </>
               )}
             </Stack>
-          )}
-          <Alert severity="info">
-            Đã chọn{" "}
-            {selection.mode === "FILTER" &&
-            selectionCount.isFetching &&
-            !selectionCount.currentData
-              ? "đang xác nhận số lượng"
-              : count}{" "}
-            {selection.mode === "FILTER"
-              ? `trong toàn bộ ${total} kết quả theo bộ lọc`
-              : `bản ghi (các ID chọn qua các trang)`}
-            .
-          </Alert>
-          <Stack direction="row" useFlexGap sx={{ gap: 1, flexWrap: "wrap" }}>
-            <Button
-              disabled={!total}
-              onClick={() =>
-                setSelection({
-                  mode: "FILTER",
-                  filter: { ...filter },
-                  excludedIds: [],
-                })
-              }
-            >
-              Chọn tất cả {total} kết quả
-            </Button>
-            <Button
-              disabled={!count}
-              onClick={() => setSelection({ mode: "IDS", ids: [] })}
-            >
-              Bỏ chọn
-            </Button>
-            <Button disabled={!count} onClick={() => setBulk(true)}>
-              Sửa hàng loạt
-            </Button>
-            {(entity === "students" || entity === "teachers") && (
-              <Button
-                loading={exportState.isLoading}
-                onClick={async () => {
-                  try {
-                    setError("");
-                    const blob = await exportRows({
-                        entity,
-                        selection: count
-                          ? selection
-                          : { mode: "FILTER", filter, excludedIds: [] },
-                      }).unwrap(),
-                      { download } = await import("@/features/excel/workbook");
-                    download(
-                      blob,
-                      `${exportPrefix()}_${entity}_${count ? "da_chon" : "bo_loc"}.xlsx`,
-                    );
-                  } catch (e) {
-                    setError(errorMessage(e));
-                  }
+          ) : (
+            <>
+              <Button variant="contained" onClick={() => setEditing("new")}>
+                Thêm{" "}
+                {entity === "teachers"
+                  ? "giảng viên"
+                  : entityLabels[entity].toLowerCase()}
+              </Button>
+              {(entity === "students" || entity === "teachers") && (
+                <>
+                  <NavButton href={`/manage/grid/?entity=${entity}`}>
+                    Thêm bằng bảng
+                  </NavButton>
+                  <NavButton href={`/manage/excel/?entity=${entity}`}>
+                    Excel · Nhập & xuất
+                  </NavButton>
+                </>
+              )}
+            </>
+          )
+        }
+      />
+      <Paper
+        sx={{
+          p: { xs: 0, md: 2.5 },
+          bgcolor: { xs: "transparent", md: "background.paper" },
+          borderWidth: { xs: 0, md: 1 },
+          minWidth: 0,
+        }}
+      >
+        <Stack spacing={2}>
+          {mobile ? (
+            <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
+              <TextField
+                label="Tên / ID / số liên hệ"
+                value={filter.search}
+                onChange={(e) => changeFilter("search", e.target.value)}
+                sx={{ flex: 1, minWidth: 0 }}
+              />
+              <MobileFilters
+                value={filter}
+                empty={{ search: filter.search, status: "" }}
+                title={`Lọc ${entityLabels[entity].toLowerCase()}`}
+                onApply={(next) => {
+                  setFilter(next);
+                  setPage(1);
+                  setSelection({ mode: "IDS", ids: [] });
                 }}
               >
-                Xuất Excel {count ? "bản ghi chọn" : "toàn bộ bộ lọc"}
-              </Button>
-            )}
-          </Stack>
+                {(value, update) => (
+                  <EntityFilters
+                    entity={entity}
+                    filter={value}
+                    classes={classOptions.currentData?.items}
+                    change={(key, text) => update({ ...value, [key]: text })}
+                  />
+                )}
+              </MobileFilters>
+            </Stack>
+          ) : (
+            <EntityFilters
+              entity={entity}
+              filter={filter}
+              classes={classOptions.currentData?.items}
+              change={changeFilter}
+              showSearch
+            />
+          )}
+          {mobile && (
+            <Button
+              sx={{ alignSelf: "flex-start" }}
+              onClick={() => setMobileSelection((value) => !value)}
+            >
+              {mobileSelection ? "Thu gọn lựa chọn" : "Chọn nhiều"}
+            </Button>
+          )}
+          {(!mobile || mobileSelection || count > 0) && (
+            <>
+              <Alert severity="info">
+                Đã chọn{" "}
+                {selection.mode === "FILTER" &&
+                selectionCount.isFetching &&
+                !selectionCount.currentData
+                  ? "đang xác nhận số lượng"
+                  : count}{" "}
+                {selection.mode === "FILTER"
+                  ? `trong toàn bộ ${total} kết quả theo bộ lọc`
+                  : `bản ghi (các ID chọn qua các trang)`}
+                .
+              </Alert>
+              <Stack
+                direction="row"
+                useFlexGap
+                sx={{ gap: 1, flexWrap: "wrap" }}
+              >
+                <Button
+                  disabled={!total}
+                  onClick={() =>
+                    setSelection({
+                      mode: "FILTER",
+                      filter: { ...filter },
+                      excludedIds: [],
+                    })
+                  }
+                >
+                  Chọn tất cả {total} kết quả
+                </Button>
+                <Button
+                  disabled={!count}
+                  onClick={() => setSelection({ mode: "IDS", ids: [] })}
+                >
+                  Bỏ chọn
+                </Button>
+                <Button disabled={!count} onClick={() => setBulk(true)}>
+                  Sửa hàng loạt
+                </Button>
+                {(entity === "students" || entity === "teachers") && (
+                  <Button
+                    loading={exportState.isLoading}
+                    onClick={async () => {
+                      try {
+                        setError("");
+                        const blob = await exportRows({
+                            entity,
+                            selection: count
+                              ? selection
+                              : { mode: "FILTER", filter, excludedIds: [] },
+                          }).unwrap(),
+                          { download } =
+                            await import("@/features/excel/workbook");
+                        download(
+                          blob,
+                          `${exportPrefix()}_${entity}_${count ? "da_chon" : "bo_loc"}.xlsx`,
+                        );
+                      } catch (e) {
+                        setError(errorMessage(e));
+                      }
+                    }}
+                  >
+                    Xuất Excel {count ? "bản ghi chọn" : "toàn bộ bộ lọc"}
+                  </Button>
+                )}
+              </Stack>
+            </>
+          )}
           {error && <Alert severity="error">{error}</Alert>}
           {q.isLoading || (q.isFetching && !q.currentData) || q.error ? (
             <Feedback
@@ -521,39 +694,93 @@ function EntityList({ entity }: { entity: Entity }) {
                   </TableBody>
                 </Table>
               </TableContainer>
-              <Stack spacing={2} sx={{ display: { xs: "flex", md: "none" } }}>
+              <Stack spacing={1.5} sx={{ display: { xs: "flex", md: "none" } }}>
                 {rows.map((r) => (
                   <Box
                     key={r.id}
                     sx={{
-                      p: 2,
-                      border: 1,
-                      borderColor: "divider",
-                      borderRadius: 2,
+                      display: "flex",
+                      alignItems: "center",
+                      p: 1.25,
+                      gap: 1,
+                      bgcolor: "background.paper",
+                      borderRadius: "12px",
+                      minWidth: 0,
                     }}
                   >
-                    <FormControlLabel
-                      control={
-                        <Checkbox
-                          checked={checked(r.id)}
-                          onChange={(_, v) => select([r.id], v)}
-                          slotProps={{
-                            input: {
-                              "aria-label": `Chọn ${publicId("loginId" in r ? r.loginId : r.id)}`,
-                            },
-                          }}
-                        />
-                      }
-                      label={`${recordName(r)} · ${publicId("loginId" in r ? r.loginId : r.id)}`}
+                    <Checkbox
+                      checked={checked(r.id)}
+                      onChange={(_, v) => select([r.id], v)}
+                      slotProps={{
+                        input: {
+                          "aria-label": `Chọn ${publicId("loginId" in r ? r.loginId : r.id)}`,
+                        },
+                      }}
                     />
-                    <Typography>{showValue(r.status)}</Typography>
-                    {"totalUnits" in r && (
-                      <Progress
-                        completed={r.completedUnits}
-                        total={r.totalUnits}
+                    <ButtonBase
+                      component={Link}
+                      href={href(r.id)}
+                      aria-label={`Xem hồ sơ ${recordName(r)}`}
+                      sx={{
+                        display: "flex",
+                        gap: 1.25,
+                        flex: 1,
+                        minWidth: 0,
+                        justifyContent: "flex-start",
+                        textAlign: "left",
+                        borderRadius: 1,
+                        minHeight: 44,
+                      }}
+                    >
+                      {(entity === "students" || entity === "teachers") && (
+                        <ProfileAvatar
+                          fallbackInitials
+                          name={recordName(r)}
+                          size={36}
+                          value={
+                            "avatar" in r
+                              ? (r.avatar as import("@/features/profile/models").AvatarChoice)
+                              : undefined
+                          }
+                        />
+                      )}
+                      <Box sx={{ flex: 1, minWidth: 0 }}>
+                        <Typography
+                          sx={{
+                            fontSize: 14,
+                            lineHeight: "20px",
+                            fontWeight: 600,
+                            overflowWrap: "anywhere",
+                          }}
+                        >
+                          {recordName(r)}
+                        </Typography>
+                        <Typography
+                          sx={{
+                            fontSize: 12,
+                            lineHeight: "18px",
+                            color: "text.secondary",
+                            overflowWrap: "anywhere",
+                          }}
+                        >
+                          {publicId("loginId" in r ? r.loginId : r.id)} ·{" "}
+                          {showValue(r.status)}
+                        </Typography>
+                        {"totalUnits" in r && (
+                          <Progress
+                            completed={r.completedUnits}
+                            total={r.totalUnits}
+                          />
+                        )}
+                      </Box>
+                      <ChevronRight
+                        sx={{
+                          fontSize: 20,
+                          color: "text.secondary",
+                          flexShrink: 0,
+                        }}
                       />
-                    )}
-                    <NavButton href={href(r.id)}>Hồ sơ</NavButton>
+                    </ButtonBase>
                   </Box>
                 ))}
               </Stack>
@@ -571,7 +798,7 @@ function EntityList({ entity }: { entity: Entity }) {
             </>
           )}
         </Stack>
-      </Card>
+      </Paper>
       {editing && (
         <EntityEditor
           entity={entity}

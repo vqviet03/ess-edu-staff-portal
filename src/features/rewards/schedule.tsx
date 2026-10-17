@@ -1,5 +1,7 @@
 "use client";
 import { useState } from "react";
+import { useMediaQuery, useTheme, IconButton } from "@mui/material";
+import { MobileSchedule } from "./mobile-schedule";
 import { StudentNotificationSelect } from "@/features/notifications/delivery";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
@@ -600,6 +602,7 @@ export function StudySchedulePanel({
   className?: string;
   onSaved?: () => void;
 }) {
+  const mobile = useMediaQuery(useTheme().breakpoints.down("md"));
   const permissions = useClassCapabilities(classId),
     editable = permissions.editSchedule,
     query = useStudyScheduleQuery(classId, {
@@ -699,33 +702,61 @@ export function StudySchedulePanel({
       {viewing && data && (
         <Dialog
           open
+          fullScreen={mobile}
           onClose={() => setViewing(false)}
           fullWidth
           maxWidth={false}
-          slotProps={{ paper: { sx: rewardDialog(760) } }}
+          slotProps={{
+            paper: {
+              sx: mobile ? { m: 0, borderRadius: 0 } : rewardDialog(760),
+            },
+          }}
         >
-          <DialogTitle>
+          <DialogTitle
+            sx={
+              mobile
+                ? {
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    px: 2,
+                  }
+                : undefined
+            }
+          >
             <Typography component="span" sx={{ fontSize: 24, fontWeight: 700 }}>
               Lịch học của lớp
             </Typography>
+            {mobile && (
+              <IconButton
+                aria-label="Đóng lịch học"
+                onClick={() => setViewing(false)}
+              >
+                <Close />
+              </IconButton>
+            )}
           </DialogTitle>
-          <DialogContent>
-            <Stack spacing={1}>
-              {data.occurrences.length ? (
-                data.occurrences.map((o) => (
-                  <Typography key={o.date}>
-                    {displayDate(o.date)} ·{" "}
-                    {o.startTime && o.endTime
-                      ? `${o.startTime}–${o.endTime}`
-                      : "Giờ thông báo sau"}
-                  </Typography>
-                ))
-              ) : (
-                <Typography>Chưa có ngày học cụ thể.</Typography>
-              )}
-            </Stack>
+          <DialogContent sx={mobile ? { px: 2 } : undefined}>
+            {mobile ? (
+              <MobileSchedule data={data} />
+            ) : (
+              <Stack spacing={1}>
+                {data.occurrences.length ? (
+                  data.occurrences.map((o) => (
+                    <Typography key={o.date}>
+                      {displayDate(o.date)} ·{" "}
+                      {o.startTime && o.endTime
+                        ? `${o.startTime}–${o.endTime}`
+                        : "Giờ thông báo sau"}
+                    </Typography>
+                  ))
+                ) : (
+                  <Typography>Chưa có ngày học cụ thể.</Typography>
+                )}
+              </Stack>
+            )}
           </DialogContent>
-          <DialogActions>
+          <DialogActions sx={{ display: { xs: "none", md: "flex" } }}>
             <Button
               size="small"
               sx={rewardButton}
