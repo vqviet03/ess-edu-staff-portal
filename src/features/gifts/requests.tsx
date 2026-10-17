@@ -131,7 +131,7 @@ export function GiftProxy() {
           c.publicId === params.get("classKey"),
       )?.id ||
       "",
-    [student, setStudent] = useState(""),
+    [student, setStudent] = useState(params.get("studentId") ?? ""),
     recipients = useGiftRecipientsQuery(classId, {
       skip: !classId || workspace.selected !== "teacher",
     });
