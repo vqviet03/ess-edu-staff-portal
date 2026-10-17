@@ -62,10 +62,14 @@ export function UploadDialog({
   sessionId,
   postId,
   rewardGiftId,
+  multiple = true,
+  accept,
   close,
   added,
 }: {
   folderId: string | null;
+  multiple?: boolean;
+  accept?: string;
   source?: "avatar" | "post" | "reward";
   rewardGiftId?: string;
   sessionId?: string;
@@ -217,15 +221,15 @@ export function UploadDialog({
                 lý cấu hình.
               </Typography>
               <Button component="label" variant="outlined" disabled={busy}>
-                Chọn nhiều file
+                {multiple ? "Chọn nhiều file" : "Chọn file"}
                 <input
                   type="file"
                   accept={
                     source === "avatar"
                       ? "image/jpeg,image/png,image/webp"
-                      : undefined
+                      : accept
                   }
-                  multiple={source !== "avatar"}
+                  multiple={multiple && source !== "avatar"}
                   hidden
                   onChange={(e) => {
                     const chosen = Array.from(e.target.files ?? []).map(
