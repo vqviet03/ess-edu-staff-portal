@@ -612,3 +612,72 @@ test("class activities paginate sequentially without skipping the second page", 
     page.getByText("21 lượt · Trang 1", { exact: true }).first(),
   ).toBeVisible();
 });
+
+test("mobile schedule switches months and keeps all planned dates grouped", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await rewardsFixture(page);
+  const month = vietnamToday().slice(0, 7);
+  const next = new Date(`${month}-01T00:00:00Z`);
+  next.setUTCMonth(next.getUTCMonth() + 1);
+  const nextMonth = next.toISOString().slice(0, 7);
+  await page.route(/\/v1\/classes\/[^/]+\/schedule(?:\?|$)/, (route) =>
+    route.fulfill({
+      headers: {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Headers":
+          "authorization,content-type,x-workspace",
+        "Access-Control-Allow-Methods": "GET,OPTIONS",
+      },
+      json: {
+        data: {
+          version: 1,
+          effectiveFrom: `${month}-01`,
+          timeZone: "Asia/Ho_Chi_Minh",
+          configuration: {
+            mode: "FIXED",
+            cycle: "WEEKLY",
+            timeMode: "GLOBAL",
+            startTime: "19:00",
+            endTime: "21:00",
+            slots: [{ day: 7, date: null, startTime: null, endTime: null }],
+          },
+          occurrences: [`${month}-18`, `${month}-25`, `${nextMonth}-01`].map(
+            (date) => ({ date, startTime: "19:00", endTime: "21:00" }),
+          ),
+        },
+      },
+    }),
+  );
+  await login(page, "MG0001");
+  await page.goto(
+    `${base}/manage/profile/?entity=students&id=HV1001&tab=rewards`,
+  );
+  await page.getByRole("button", { name: "Xem lịch học", exact: true }).click();
+  const dialog = page.getByRole("dialog");
+  await expect(
+    dialog.getByText("2 buổi trong tháng", { exact: true }),
+  ).toBeVisible();
+  await dialog.getByLabel("Tháng học").click();
+  await page
+    .getByRole("option", {
+      name: `Tháng ${Number(nextMonth.slice(5))} / ${nextMonth.slice(0, 4)}`,
+    })
+    .click();
+  await expect(
+    dialog.getByText("1 buổi trong tháng", { exact: true }),
+  ).toBeVisible();
+  await dialog
+    .getByRole("button", { name: "Toàn bộ lịch học", exact: true })
+    .click();
+  await expect(dialog.getByText("18 · 25", { exact: true })).toBeVisible();
+  await expect(dialog.getByText("01", { exact: true })).toBeVisible();
+  await dialog.screenshot({
+    path: "test-results/compact-schedule-months-mobile.png",
+  });
+  await dialog
+    .getByRole("button", { name: "Đóng lịch học", exact: true })
+    .click();
+  await expect(dialog).not.toBeVisible();
+});

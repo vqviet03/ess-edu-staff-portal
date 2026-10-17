@@ -1,4 +1,5 @@
 "use client";
+import { MobileFilters } from "@/shared/mobile-filters";
 import { exportPrefix } from "@/features/settings/branding";
 import { useState } from "react";
 import Alert from "@mui/material/Alert";
@@ -45,60 +46,84 @@ function Dashboard() {
       page: 1,
       pageSize: 100,
     });
-  const stats = q.currentData,
-    set = (k: string, v: string) => setFilter((old) => ({ ...old, [k]: v }));
+  const stats = q.currentData;
   return (
     <>
       <Title title="Tổng quan" subtitle="Theo dõi vận hành và lớp cần xử lý" />
       <Stack
-        direction={{ xs: "column", sm: "row" }}
+        direction="row"
         useFlexGap
         sx={{ gap: 1.5, flexWrap: "wrap", mb: 2.5 }}
       >
-        <TextField
-          label="Từ ngày"
-          type="date"
-          value={filter.from}
-          onChange={(e) => set("from", e.target.value)}
-          slotProps={{ inputLabel: { shrink: true } }}
-          sx={{ width: { sm: 175 } }}
-        />
-        <TextField
-          label="Đến ngày"
-          type="date"
-          value={filter.to}
-          onChange={(e) => set("to", e.target.value)}
-          slotProps={{ inputLabel: { shrink: true } }}
-          sx={{ width: { sm: 175 } }}
-        />
-        <TextField
-          select
-          label="Lớp"
-          value={filter.classId}
-          onChange={(e) => set("classId", e.target.value)}
-          sx={{ width: { sm: 190 } }}
+        <MobileFilters
+          value={filter}
+          empty={{ from: "", to: "", classId: "", status: "" }}
+          title="Bộ lọc tổng quan"
+          onApply={setFilter}
         >
-          <MenuItem value="">Tất cả lớp</MenuItem>
-          {classes.currentData?.items.map((c) => (
-            <MenuItem key={c.id} value={c.id}>
-              {recordName(c)}
-            </MenuItem>
-          ))}
-        </TextField>
-        <TextField
-          select
-          label="Trạng thái lớp"
-          value={filter.status}
-          onChange={(e) => set("status", e.target.value)}
-          sx={{ width: { sm: 170 } }}
-        >
-          <MenuItem value="">Tất cả</MenuItem>
-          {["DRAFT", "ACTIVE", "PAUSED", "COMPLETED", "INACTIVE"].map((s) => (
-            <MenuItem key={s} value={s}>
-              {showValue(s)}
-            </MenuItem>
-          ))}
-        </TextField>
+          {(value, update) => {
+            const change = (key: string, text: string) =>
+              update({ ...value, [key]: text });
+            return (
+              <Stack
+                direction={{ xs: "column", md: "row" }}
+                useFlexGap
+                sx={{
+                  display: { xs: "flex", md: "contents" },
+                  gap: 1.5,
+                  flexWrap: "wrap",
+                }}
+              >
+                <TextField
+                  label="Từ ngày"
+                  type="date"
+                  value={value.from}
+                  onChange={(e) => change("from", e.target.value)}
+                  slotProps={{ inputLabel: { shrink: true } }}
+                  sx={{ width: { sm: 175 } }}
+                />
+                <TextField
+                  label="Đến ngày"
+                  type="date"
+                  value={value.to}
+                  onChange={(e) => change("to", e.target.value)}
+                  slotProps={{ inputLabel: { shrink: true } }}
+                  sx={{ width: { sm: 175 } }}
+                />
+                <TextField
+                  select
+                  label="Lớp"
+                  value={value.classId}
+                  onChange={(e) => change("classId", e.target.value)}
+                  sx={{ width: { sm: 190 } }}
+                >
+                  <MenuItem value="">Tất cả lớp</MenuItem>
+                  {classes.currentData?.items.map((c) => (
+                    <MenuItem key={c.id} value={c.id}>
+                      {recordName(c)}
+                    </MenuItem>
+                  ))}
+                </TextField>
+                <TextField
+                  select
+                  label="Trạng thái lớp"
+                  value={value.status}
+                  onChange={(e) => change("status", e.target.value)}
+                  sx={{ width: { sm: 170 } }}
+                >
+                  <MenuItem value="">Tất cả</MenuItem>
+                  {["DRAFT", "ACTIVE", "PAUSED", "COMPLETED", "INACTIVE"].map(
+                    (s) => (
+                      <MenuItem key={s} value={s}>
+                        {showValue(s)}
+                      </MenuItem>
+                    ),
+                  )}
+                </TextField>
+              </Stack>
+            );
+          }}
+        </MobileFilters>
         <Button
           variant="outlined"
           loading={exporting}

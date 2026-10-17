@@ -257,7 +257,7 @@ test("đường dẫn lớp của quản lý resolve ID công khai, mobile và g
   await page.getByRole("menuitem", { name: "Tối", exact: true }).click();
   await page.setViewportSize({ width: 390, height: 844 });
   await expect(
-    table(page).getByRole("row", { name: "Xem hồ sơ Hữu Văn", exact: true }),
+    page.getByRole("link", { name: "Xem hồ sơ Hữu Văn", exact: true }),
   ).toBeVisible();
   expect(
     await page.evaluate(

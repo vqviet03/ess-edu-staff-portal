@@ -22,10 +22,12 @@ export function ProfileAvatar({
   value,
   name,
   size = 36,
+  fallbackInitials = false,
 }: {
   value?: AvatarChoice | null;
   name: string;
   size?: number;
+  fallbackInitials?: boolean;
 }) {
   const image = useContentQuery(
     { id: value?.fileId ?? "", purpose: "thumbnail" },
@@ -44,7 +46,17 @@ export function ProfileAvatar({
         fontSize: size / 2,
       }}
     >
-      <Icon sx={{ fontSize: size * 0.6 }} />
+      {fallbackInitials && !value ? (
+        name
+          .trim()
+          .split(/\s+/)
+          .slice(-2)
+          .map((word) => word[0])
+          .join("")
+          .toUpperCase()
+      ) : (
+        <Icon sx={{ fontSize: size * 0.6 }} />
+      )}
     </Avatar>
   );
 }

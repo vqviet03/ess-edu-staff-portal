@@ -112,7 +112,7 @@ test("manager dashboard, navigation, readonly grades/schema, dark/mobile và dee
     page.getByRole("heading", { name: "Học sinh", exact: true }),
   ).toBeVisible();
   await expect(
-    page.getByRole("link", { name: "Hồ sơ", exact: true }).first(),
+    page.getByRole("link", { name: /^Xem hồ sơ / }).first(),
   ).toBeVisible();
   await page.screenshot({
     path: "test-results/management-students-mobile.png",
@@ -385,4 +385,52 @@ test("activation Staff mới, xóa fragment, đặt mật khẩu và từ chối
   await expect(
     page.getByText(/Link không hợp lệ, hết hạn hoặc đã dùng/),
   ).toBeVisible();
+});
+
+test("mobile filters stage changes and profile rows navigate without selecting", async ({
+  page,
+}) => {
+  let reads = 0;
+  page.on("request", (request) => {
+    if (
+      request.method() === "GET" &&
+      new URL(request.url()).pathname.endsWith("/manager/students")
+    )
+      reads++;
+  });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await login(page);
+  await go(page, "/manage/list/?entity=students");
+  const profile = page.getByRole("link", { name: /^Xem hồ sơ / }).first();
+  await expect(profile).toBeVisible();
+  const beforeFilter = reads;
+  await expect(page.getByLabel("Trạng thái", { exact: true })).toHaveCount(0);
+  await page.getByRole("button", { name: "Lọc học sinh", exact: true }).click();
+  const dialog = page.getByRole("dialog");
+  await dialog.getByLabel("Trạng thái", { exact: true }).click();
+  await page.getByRole("option", { name: "Tạm dừng", exact: true }).click();
+  await page.waitForTimeout(500);
+  expect(reads).toBe(beforeFilter);
+  await dialog.getByRole("button", { name: "Đóng bộ lọc" }).click();
+  await expect(profile).toBeVisible();
+  await page.getByRole("button", { name: "Lọc học sinh", exact: true }).click();
+  await expect(dialog.getByLabel("Trạng thái", { exact: true })).not.toHaveText(
+    "Tạm dừng",
+  );
+  await dialog.getByLabel("Trạng thái", { exact: true }).click();
+  await page.getByRole("option", { name: "Hoạt động", exact: true }).click();
+  await dialog.getByRole("button", { name: "Áp dụng bộ lọc" }).click();
+  await expect(dialog).not.toBeVisible();
+  await expect(profile).toBeVisible();
+  await page.screenshot({
+    path: "test-results/compact-students-mobile.png",
+    fullPage: true,
+  });
+  const checkbox = page.getByRole("checkbox", { name: /^Chọn / }).first();
+  await checkbox.check();
+  await expect(page).toHaveURL(/manage\/list/);
+  await expect(checkbox).toBeChecked();
+  const target = await profile.getAttribute("href");
+  await profile.click();
+  await expect(page).toHaveURL(new URL(target!, page.url()).toString());
 });

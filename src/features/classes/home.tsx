@@ -1,4 +1,5 @@
 "use client";
+import { MobileFilters } from "@/shared/mobile-filters";
 import { useMemo } from "react";
 import { useDebouncedValue } from "@/shared/debounced-value";
 import { useWorkspace } from "@/features/access/hooks";
@@ -51,7 +52,7 @@ export function Home() {
         subtitle="Theo dõi tiến độ Unit và quản lý kết quả học tập."
       />
       <Stack
-        direction={{ xs: "column", sm: "row" }}
+        direction="row"
         sx={{
           ...{ mb: 2.5 },
           gap: 2,
@@ -65,23 +66,38 @@ export function Home() {
             setSearch(e.target.value);
             setPage(0);
           }}
-          sx={{ maxWidth: { sm: 500 } }}
+          sx={{
+            flex: { xs: 1, md: "initial" },
+            minWidth: 0,
+            maxWidth: { sm: 500 },
+          }}
         />
-        <TextField
-          select
-          label="Trạng thái"
-          value={status}
-          onChange={(e) => {
-            setStatus(e.target.value);
+        <MobileFilters
+          value={{ status }}
+          empty={{ status: "" }}
+          title="Lọc lớp học"
+          onApply={(next) => {
+            setStatus(next.status);
             setPage(0);
           }}
-          sx={{ maxWidth: { sm: 240 } }}
         >
-          <MenuItem value="">Tất cả</MenuItem>
-          <MenuItem value="ACTIVE">Đang học</MenuItem>
-          <MenuItem value="COMPLETED">Hoàn thành</MenuItem>
-          <MenuItem value="PAUSED">Tạm dừng</MenuItem>
-        </TextField>
+          {(value, update) => (
+            <TextField
+              select
+              label="Trạng thái"
+              value={value.status}
+              onChange={(e) => {
+                update({ status: e.target.value });
+              }}
+              sx={{ maxWidth: { sm: 240 } }}
+            >
+              <MenuItem value="">Tất cả</MenuItem>
+              <MenuItem value="ACTIVE">Đang học</MenuItem>
+              <MenuItem value="COMPLETED">Hoàn thành</MenuItem>
+              <MenuItem value="PAUSED">Tạm dừng</MenuItem>
+            </TextField>
+          )}
+        </MobileFilters>
       </Stack>
       <Feedback
         loading={q.isFetching}
