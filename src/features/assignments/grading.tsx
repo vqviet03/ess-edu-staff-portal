@@ -141,9 +141,11 @@ export function SubmissionList({ assignment }: { assignment: Assignment }) {
                     </TableCell>
                     <TableCell>
                       {numberLabel(
-                        s.grades
-                          .filter((g) => g.automatic)
-                          .reduce((sum, g) => sum + (g.score ?? 0), 0),
+                        s.submittedAt
+                          ? s.grades
+                              .filter((g) => g.automatic)
+                              .reduce((sum, g) => sum + (g.score ?? 0), 0)
+                          : null,
                       )}
                       /
                       {assignment.questions
