@@ -50,3 +50,13 @@ test("notice signal refreshes only changed resources; schedule includes attendan
   ]);
   assert.deepEqual(notificationResourceTags("UNKNOWN", "c"), []);
 });
+
+test("canonical comment/reaction resources never invalidate academic reports", async () => {
+  const { notificationResourceTags } =
+    await import("../src/features/notifications/resource-tags");
+  for (const type of ["COMMENT", "REACTION", "REPLY"])
+    assert.deepEqual(notificationResourceTags(type, "c"), [
+      "Posts",
+      "Comments",
+    ]);
+});

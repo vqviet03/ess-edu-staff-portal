@@ -21,7 +21,6 @@ export const notificationTypes: Record<string, string> = {
   COMMENT: "Bình luận và trả lời",
   REACTION: "Tương tác",
   ASSIGNMENT: "Bài tập",
-  GRADE: "Điểm bài tập",
   SCORE: "Công bố kết quả kiểm tra",
   SUBMISSION: "Nộp bài tập",
   ASSIGNMENT_RESULT: "Kết quả bài tập",
@@ -40,10 +39,17 @@ export function wantsNotification(
   priority: string = "NORMAL",
   types: Record<string, boolean> = {},
 ) {
+  const key =
+    type === "SOCIAL" || type === "REPLY"
+      ? "COMMENT"
+      : type === "ASSIGNMENT_RESULT"
+        ? "GRADE"
+        : type;
   return (
     types[type] ??
+    types[key] ??
     (priority === "IMPORTANT" ||
-      !["REACTION", "SYSTEM", "PRESENCE", "VIEW", "REWARD"].includes(type))
+      !["REACTION", "SYSTEM", "PRESENCE", "VIEW", "REWARD"].includes(key))
   );
 }
 export const defaultBranding: PortalBranding = {

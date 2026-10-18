@@ -10,6 +10,7 @@ import {
   presenceConnection,
   type PresenceSignal,
 } from "@/features/presence/state";
+import { notificationResourceTags } from "@/features/notifications/resource-tags";
 import { showNoticeToast } from "@/features/notifications/events";
 import type { CursorPage, Notification } from "@/features/materials/models";
 import {
@@ -80,6 +81,7 @@ export const operationsApi = api.injectEndpoints({
           } catch {}
         };
         const auditSignals = new Set<string>();
+        const resourceSignals = new Set<string>();
         const allowed = () =>
           foregroundSocketAllowed(document.hidden, navigator.onLine, stopped) &&
           realtimeAwake();
@@ -153,6 +155,7 @@ export const operationsApi = api.injectEndpoints({
                   | CursorPage<Notification>;
                 cursor?: string;
                 id?: string;
+                resourceRefreshFollows?: boolean;
               };
               if (frame.type === "PRESENCE_RESET") {
                 presenceConnection(false);
@@ -200,12 +203,41 @@ export const operationsApi = api.injectEndpoints({
                 auditSignals.add(frame.id);
                 dispatch(api.util.invalidateTags(["Audit"]));
               }
+              if (frame.type === "RESOURCE_CHANGED" && frame.data) {
+                const resource = frame.data as {
+                  type?: string;
+                  classId?: string;
+                  eventId?: string;
+                  href?: string;
+                };
+                if (
+                  !resource.eventId ||
+                  !resourceSignals.has(resource.eventId)
+                ) {
+                  if (resource.eventId) resourceSignals.add(resource.eventId);
+                  if (resourceSignals.size > 256)
+                    resourceSignals.delete(
+                      resourceSignals.values().next().value!,
+                    );
+                  const tags = notificationResourceTags(
+                    resource.type ?? "",
+                    resource.classId,
+                    resource.href,
+                  );
+                  if (tags.length) dispatch(api.util.invalidateTags(tags));
+                }
+              }
               if (
                 frame.type === "NOTIFICATION" &&
                 frame.data &&
                 "isRead" in frame.data
               ) {
-                dispatch(libraryNoticeReceived({ notice: frame.data }));
+                dispatch(
+                  libraryNoticeReceived({
+                    notice: frame.data,
+                    resourceRefreshFollows: frame.resourceRefreshFollows,
+                  }),
+                );
                 showNoticeToast(frame.data);
               }
               if (
