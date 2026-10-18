@@ -106,7 +106,8 @@ export function makeStore(service = api) {
         action.payload.notice.classId,
         action.payload.notice.href,
       );
-      if (tags.length) runtime.dispatch(service.util.invalidateTags(tags));
+      if (tags.length && !action.payload.resourceRefreshFollows)
+        runtime.dispatch(service.util.invalidateTags(tags));
     },
   });
   listener.startListening({

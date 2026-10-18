@@ -16,6 +16,8 @@ import SettingsOutlined from "@mui/icons-material/SettingsOutlined";
 import type { Notification } from "@/features/materials/models";
 export function notificationStyle(type: string) {
   switch (type) {
+    case "COMMENT":
+    case "REACTION":
     case "SOCIAL":
     case "REPLY":
       return { icon: ChatBubble, color: "#6b86b9", tint: "#e9effa" };
@@ -33,6 +35,7 @@ export function notificationStyle(type: string) {
     case "APPROVAL":
     case "CONSENT":
       return { icon: ReportOutlined, color: "#b87667", tint: "#f9e8e1" };
+    case "POST":
     case "MATERIAL":
       return { icon: ArticleOutlined, color: "#689486", tint: "#e9f3ef" };
     case "SYSTEM":
@@ -45,7 +48,9 @@ export function NotificationContent({ notice: n }: { notice: Notification }) {
   const style = notificationStyle(n.type),
     Icon = style.icon,
     social =
-      ["SOCIAL", "REPLY", "MATERIAL"].includes(n.type) &&
+      ["SOCIAL", "REPLY", "MATERIAL", "COMMENT", "REACTION", "POST"].includes(
+        n.type,
+      ) &&
       !!n.actorName &&
       !!n.subject;
   return (
