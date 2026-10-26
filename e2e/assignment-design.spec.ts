@@ -613,3 +613,176 @@ for (const attempt of [1, 2]) {
     expect(writes).toBe(0);
   });
 }
+
+for (const width of [390, 1440]) {
+  test(`question groups share data and reorder without adding score rows at ${width}px`, async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width, height: 1000 });
+    await installHttpFixture(page);
+    const headers = {
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Headers": "authorization,content-type,x-workspace",
+      "Access-Control-Allow-Methods": "GET,PUT,OPTIONS",
+    };
+    await page.route("**/classes/class-green/access", (r) =>
+      r.fulfill({
+        headers,
+        json: {
+          data: {
+            classId: "class-green",
+            canView: true,
+            assignmentStatus: "ACTIVE",
+            assignmentConfirmed: true,
+            classStatus: "ACTIVE",
+            profileStatus: "ACTIVE",
+            accountStatus: "ACTIVE",
+          },
+        },
+      }),
+    );
+    let current = structuredClone(assignment);
+    let written: AssignmentWrite | undefined;
+    await page.route("**/assignments/assignment-design**", (r) =>
+      r.fulfill({ headers, json: { data: current } }),
+    );
+    await page.route(
+      "**/classes/class-green/assignments/assignment-design",
+      (r) => {
+        if (r.request().method() === "OPTIONS")
+          return r.fulfill({ status: 204, headers });
+        written = r.request().postDataJSON() as AssignmentWrite;
+        const groups = (written.groups ?? []).map((g, i) => ({
+          ...g,
+          id: `saved-group-${i}`,
+          media: [],
+        }));
+        current = {
+          ...current,
+          ...written,
+          groups,
+          version: current.version + 1,
+          questions: written.questions.map((q, i) => ({
+            ...q,
+            id: `saved-question-${i}`,
+            order: i,
+            groupId:
+              groups[
+                (written?.groups ?? []).findIndex((g) => g.id === q.groupId)
+              ]?.id ?? null,
+            media: [],
+            options: q.options.map((o, j) => ({
+              ...o,
+              id: `option-${i}-${j}`,
+              order: j,
+              media: [],
+            })),
+          })),
+        };
+        return r.fulfill({ headers, json: { data: current } });
+      },
+    );
+    await page.goto(`${base}/login/`);
+    await page.getByLabel("ID giảng viên").fill("GV0001");
+    await page.getByLabel("Mật khẩu", { exact: true }).fill("Demo123!");
+    await page.getByRole("button", { name: "Đăng nhập", exact: true }).click();
+    await expect(page).toHaveURL(/home\//);
+    await page.goto(
+      `${base}/assignment/?classId=class-green&assignmentId=assignment-design&mode=edit`,
+    );
+    await page
+      .getByRole("button", {
+        name: width < 900 ? "2 Câu hỏi" : "2 Soạn câu hỏi",
+        exact: true,
+      })
+      .click();
+    await page
+      .getByRole("button", { name: "Thêm nhóm câu hỏi", exact: true })
+      .click();
+    await page.getByLabel("Tên nhóm", { exact: true }).fill("At the beach");
+    await page
+      .getByRole("textbox", { name: "Nội dung dữ kiện chung", exact: true })
+      .fill("Read about Lily and Tom at the beach.");
+    for (const content of ["First child question", "Second child question"]) {
+      await page
+        .getByRole("button", { name: "Thêm câu hỏi vào nhóm", exact: true })
+        .click();
+      await page.getByLabel("Loại câu hỏi", { exact: true }).click();
+      await page.getByRole("option", { name: "Tự luận", exact: true }).click();
+      await page
+        .getByRole("textbox", { name: "Nội dung câu hỏi", exact: true })
+        .fill(content);
+    }
+    await page.getByLabel("Vị trí nhóm", { exact: true }).fill("1");
+    await page.getByLabel("Vị trí nhóm", { exact: true }).press("Enter");
+    await page.getByLabel("Thứ tự trong nhóm", { exact: true }).fill("1");
+    await page.getByLabel("Thứ tự trong nhóm", { exact: true }).press("Enter");
+    if (width >= 900)
+      await page
+        .getByRole("button", { name: "Kéo At the beach", exact: true })
+        .dragTo(page.getByRole("button", { name: "Kéo câu 4", exact: true }));
+    await page.getByRole("button", { name: "Lưu nháp", exact: true }).click();
+    await expect.poll(() => written?.questions.length).toBe(4);
+    expect(written?.groups).toHaveLength(1);
+    expect(written?.groups?.[0].title).toBe("At the beach");
+    const offset = width >= 900 ? 2 : 0;
+    expect(written?.questions[offset].content).toBe("Second child question");
+    expect(written?.questions[offset + 1].groupId).toBe(
+      written?.questions[offset].groupId,
+    );
+    expect(written?.questions.reduce((total, q) => total + q.maxScore, 0)).toBe(
+      5,
+    );
+    await page.screenshot({
+      path: `test-results/question-group-editor-${width}.png`,
+      fullPage: true,
+      animations: "disabled",
+    });
+    await page
+      .getByRole("button", { name: "3 Xem trước", exact: true })
+      .click();
+    await expect(page.getByTestId("shared-stimulus")).toHaveCount(1);
+    const group = page.getByRole("region", {
+      name: "At the beach",
+      exact: true,
+    });
+    await expect(
+      group.getByRole("heading", { name: /Second child question/ }),
+    ).toBeVisible();
+    await expect(
+      group.getByRole("heading", { name: /First child question/ }),
+    ).toBeVisible();
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= window.innerWidth,
+      ),
+    ).toBe(true);
+    await page.screenshot({
+      path: `test-results/question-group-preview-${width}.png`,
+      fullPage: true,
+      animations: "disabled",
+    });
+    await page.getByRole("button", { name: "Giao diện", exact: true }).click();
+    await page.getByRole("menuitem", { name: "Tối", exact: true }).click();
+    await page.keyboard.press("Escape");
+    await expect(page.locator("[data-assignment-surface]").first()).toHaveCSS(
+      "color",
+      "rgb(228, 243, 234)",
+    );
+    await page.screenshot({
+      path: `test-results/question-group-preview-dark-${width}.png`,
+      fullPage: true,
+      animations: "disabled",
+    });
+    if (width < 900) {
+      await page.reload();
+      await page
+        .getByRole("button", { name: "2 Câu hỏi", exact: true })
+        .click();
+      await expect(page.getByLabel("Tên nhóm", { exact: true })).toHaveValue(
+        "At the beach",
+      );
+      await expect(page.getByTestId("shared-stimulus-editor")).toBeVisible();
+    }
+  });
+}

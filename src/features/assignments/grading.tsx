@@ -28,6 +28,7 @@ import { useUnsaved } from "@/shared/unsaved";
 import { errorMessage } from "@/api/base-query";
 import { ReopenSubmissionButton } from "./acceptance";
 import { AssignmentPlayer } from "./player";
+import { SharedStimulus } from "./group-view";
 import { AssignmentMedia, RichContent } from "./media";
 import {
   numberLabel,
@@ -363,6 +364,14 @@ function GradeForm({
               const grade = draft.grades.find((g) => g.questionId === q.id),
                 answer = draft.answers.find((a) => a.questionId === q.id);
               if (!grade?.automatic) return null;
+              const group = assignment.groups?.find((g) => g.id === q.groupId);
+              const firstInSection = !assignment.questions
+                .slice(0, index)
+                .some(
+                  (x) =>
+                    x.groupId === q.groupId &&
+                    (x.type === "SINGLE" || x.type === "MULTIPLE"),
+                );
               return (
                 <Box
                   key={q.id}
@@ -377,6 +386,11 @@ function GradeForm({
                     alignItems: "start",
                   }}
                 >
+                  {group && firstInSection && (
+                    <Box sx={{ gridColumn: "1 / -1" }}>
+                      <SharedStimulus group={group} />
+                    </Box>
+                  )}
                   <Typography>Câu {index + 1}</Typography>
                   <Box>
                     {answer?.optionIds.map((id) => {
@@ -414,6 +428,18 @@ function GradeForm({
           return (
             <Paper sx={{ p: { xs: 2, md: 3 } }} key={q.id}>
               <Stack spacing={2}>
+                {q.groupId &&
+                  !assignment.questions
+                    .slice(0, index)
+                    .some(
+                      (x) =>
+                        x.groupId === q.groupId &&
+                        x.type !== "SINGLE" &&
+                        x.type !== "MULTIPLE",
+                    ) &&
+                  assignment.groups
+                    ?.filter((g) => g.id === q.groupId)
+                    .map((g) => <SharedStimulus key={g.id} group={g} />)}
                 <Typography sx={{ fontWeight: 700 }}>
                   Câu {index + 1} ·{" "}
                   {q.type === "TEXT"

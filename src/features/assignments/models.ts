@@ -26,8 +26,17 @@ export interface Option {
   isCorrect?: boolean | null;
   media: Media[];
 }
+export interface QuestionGroup {
+  id: string;
+  title: string;
+  content: string;
+  instructions: string;
+  order: number;
+  media: Media[];
+}
 export interface Question {
   id: string;
+  groupId?: string | null;
   type: QuestionType;
   content: string;
   instructions: string;
@@ -66,6 +75,7 @@ export interface Assignment {
   canEdit: boolean;
   canEditSchema?: boolean;
   totalMax: number;
+  groups?: QuestionGroup[];
   questions: Question[];
 }
 export type AssignmentSummary = Pick<
@@ -126,6 +136,7 @@ export interface MediaWrite {
   keepAspectRatio: boolean;
 }
 export interface QuestionWrite {
+  groupId?: string | null;
   type: QuestionType;
   content: string;
   instructions: string;
@@ -145,6 +156,7 @@ export interface AssignmentWrite {
   allowLate: boolean;
   lateWindowMinutes?: number | null;
   version: number;
+  groups?: (Omit<QuestionGroup, "media"> & { media: MediaWrite[] })[];
   questions: QuestionWrite[];
 }
 export interface Page<T> {
@@ -194,6 +206,7 @@ export interface Recording {
 export interface UploadRequest {
   assignmentId: string;
   questionId: string;
+  groupId?: string;
   originalName: string;
   mimeType: string;
   sizeBytes: number;
@@ -266,7 +279,20 @@ export function schemaWrite(a: Assignment): AssignmentWrite {
     allowLate: a.allowLate,
     lateWindowMinutes: a.lateWindowMinutes ?? null,
     version: a.version,
+    groups: (a.groups ?? [])
+      .map((g) => ({
+        ...g,
+        order: Math.max(
+          0,
+          a.questions.findIndex((q) => q.groupId === g.id) < 0
+            ? Math.min(a.questions.length, g.order)
+            : a.questions.findIndex((q) => q.groupId === g.id),
+        ),
+        media: g.media.map(media),
+      }))
+      .sort((a, b) => a.order - b.order),
     questions: a.questions.map((q) => ({
+      groupId: q.groupId ?? null,
       type: q.type,
       content: q.content,
       instructions: q.instructions,

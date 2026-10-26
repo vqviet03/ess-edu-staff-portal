@@ -32,6 +32,7 @@ export async function imageThumb(file: File): Promise<Blob | null> {
 export function AssignmentUpload({
   assignmentId,
   questionId,
+  groupId,
   accept,
   onFile,
   onBusy,
@@ -40,6 +41,7 @@ export function AssignmentUpload({
 }: {
   assignmentId: string;
   questionId: string;
+  groupId?: string;
   accept?: string;
   recordingSessionId?: string;
   fileToUpload?: File;
@@ -92,6 +94,7 @@ export function AssignmentUpload({
         const task = upload({
           assignmentId,
           questionId,
+          groupId,
           recordingSessionId,
           bufferId,
           originalName: file.name,
@@ -118,7 +121,15 @@ export function AssignmentUpload({
         if (live.current) onBusy?.(false);
       }
     },
-    [assignmentId, questionId, recordingSessionId, onBusy, onFile, upload],
+    [
+      assignmentId,
+      questionId,
+      groupId,
+      recordingSessionId,
+      onBusy,
+      onFile,
+      upload,
+    ],
   );
   const supplied = useRef<File | undefined>(undefined);
   useEffect(() => {
