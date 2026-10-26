@@ -784,5 +784,31 @@ for (const width of [390, 1440]) {
       );
       await expect(page.getByTestId("shared-stimulus-editor")).toBeVisible();
     }
+    await page
+      .getByRole("button", {
+        name: width < 900 ? "2 Câu hỏi" : "2 Soạn câu hỏi",
+        exact: true,
+      })
+      .click();
+    const longTitle = "Reading".repeat(28);
+    await page.getByLabel("Tên nhóm", { exact: true }).fill(longTitle);
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= window.innerWidth,
+      ),
+    ).toBe(true);
+    await page
+      .getByRole("button", { name: "3 Xem trước", exact: true })
+      .click();
+    await expect(
+      page
+        .getByTestId("shared-stimulus")
+        .getByRole("heading", { name: longTitle, exact: true }),
+    ).toBeVisible();
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= window.innerWidth,
+      ),
+    ).toBe(true);
   });
 }

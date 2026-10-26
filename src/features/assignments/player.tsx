@@ -550,7 +550,11 @@ export function AssignmentPlayer({
               p: 1,
             }}
           >
-            <Typography component="span" sx={{ fontSize: 14, fontWeight: 700 }}>
+            <Typography
+              component="span"
+              noWrap
+              sx={{ fontSize: 14, fontWeight: 700, maxWidth: "100%" }}
+            >
               Câu {i + 1}
               {q.groupId && assignment.groups?.find((g) => g.id === q.groupId)
                 ? ` · ${assignment.groups.find((g) => g.id === q.groupId)?.title}`

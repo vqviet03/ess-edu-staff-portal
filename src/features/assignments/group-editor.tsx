@@ -347,6 +347,8 @@ export function QuestionOutline({
               sx={{
                 justifyContent: "flex-start",
                 textAlign: "left",
+                minWidth: 0,
+                overflow: "hidden",
                 flexDirection: "column",
                 alignItems: "flex-start",
                 flex: 1,
@@ -366,7 +368,14 @@ export function QuestionOutline({
               }
             >
               {b.group ? (
-                b.group.title || "Nhóm chưa đặt tên"
+                <Typography
+                  component="span"
+                  noWrap
+                  sx={{ maxWidth: "100%" }}
+                  title={b.group.title}
+                >
+                  {b.group.title || "Nhóm chưa đặt tên"}
+                </Typography>
               ) : (
                 <>
                   <Typography
