@@ -27,6 +27,8 @@ import {
 } from "@/api/assignment-api";
 import { useUnsaved } from "@/shared/unsaved";
 import { errorMessage } from "@/api/base-query";
+import { assignmentBlocks } from "./groups";
+import { QuestionGroupView } from "./group-view";
 import { AssignmentMedia, RichContent } from "./media";
 import { AssignmentUpload } from "./upload";
 import { SpeakingRecorder } from "./recorder";
@@ -548,8 +550,15 @@ export function AssignmentPlayer({
               p: 1,
             }}
           >
-            <Typography component="span" sx={{ fontSize: 14, fontWeight: 700 }}>
+            <Typography
+              component="span"
+              noWrap
+              sx={{ fontSize: 14, fontWeight: 700, maxWidth: "100%" }}
+            >
               Câu {i + 1}
+              {q.groupId && assignment.groups?.find((g) => g.id === q.groupId)
+                ? ` · ${assignment.groups.find((g) => g.id === q.groupId)?.title}`
+                : ""}
             </Typography>
             <Typography component="span" variant="body2">
               {done ? "✓ Đã trả lời" : "Chưa trả lời"}
@@ -672,45 +681,56 @@ export function AssignmentPlayer({
             {nav}
           </Paper>
           <Stack spacing={2}>
-            {assignment.questions.map((q, i) => (
-              <Box
-                key={q.id}
-                onFocus={() => setActive(i)}
-                onPointerDown={() => setActive(i)}
-              >
-                <QuestionCard
-                  preview={preview}
-                  q={q}
-                  a={answers[i]}
-                  index={i}
-                  assignmentId={assignment.id}
-                  readOnly={readOnly}
-                  onChange={change}
-                  onBusy={changeBusy}
-                />
-                {submission?.publishedAt && (
-                  <Paper sx={{ p: 2, bgcolor: "action.selected", mt: 1 }}>
-                    {(() => {
-                      const g = submission.grades.find(
-                        (g) => g.questionId === q.id,
-                      );
-                      return (
-                        <>
-                          <Typography sx={{ fontWeight: 700 }}>
-                            {numberLabel(g?.score)} / {q.maxScore} điểm
-                          </Typography>
-                          {g?.comment && <Typography>{g.comment}</Typography>}
-                          {g?.advice && (
-                            <Typography color="text.secondary">
-                              {g.advice}
-                            </Typography>
-                          )}
-                        </>
-                      );
-                    })()}
-                  </Paper>
-                )}
-              </Box>
+            {assignmentBlocks(assignment).map((block) => (
+              <QuestionGroupView key={block.id} group={block.group}>
+                {block.questions.map((q) => {
+                  const i = assignment.questions.findIndex(
+                    (x) => x.id === q.id,
+                  );
+                  return (
+                    <Box
+                      key={q.id}
+                      onFocus={() => setActive(i)}
+                      onPointerDown={() => setActive(i)}
+                    >
+                      <QuestionCard
+                        preview={preview}
+                        q={q}
+                        a={answers[i]}
+                        index={i}
+                        assignmentId={assignment.id}
+                        readOnly={readOnly}
+                        onChange={change}
+                        onBusy={changeBusy}
+                      />
+                      {submission?.publishedAt && (
+                        <Paper sx={{ p: 2, bgcolor: "action.selected", mt: 1 }}>
+                          {(() => {
+                            const g = submission.grades.find(
+                              (g) => g.questionId === q.id,
+                            );
+                            return (
+                              <>
+                                <Typography sx={{ fontWeight: 700 }}>
+                                  {numberLabel(g?.score)} / {q.maxScore} điểm
+                                </Typography>
+                                {g?.comment && (
+                                  <Typography>{g.comment}</Typography>
+                                )}
+                                {g?.advice && (
+                                  <Typography color="text.secondary">
+                                    {g.advice}
+                                  </Typography>
+                                )}
+                              </>
+                            );
+                          })()}
+                        </Paper>
+                      )}
+                    </Box>
+                  );
+                })}
+              </QuestionGroupView>
             ))}
             {!preview && !readOnly && (
               <Stack

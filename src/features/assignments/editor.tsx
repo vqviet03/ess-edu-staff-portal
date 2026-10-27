@@ -9,7 +9,6 @@ import Paper from "@mui/material/Paper";
 import Typography from "@mui/material/Typography";
 import Button from "@mui/material/Button";
 import TextField from "@mui/material/TextField";
-import InputAdornment from "@mui/material/InputAdornment";
 import MenuItem from "@mui/material/MenuItem";
 import Checkbox from "@mui/material/Checkbox";
 import FormControlLabel from "@mui/material/FormControlLabel";
@@ -36,7 +35,14 @@ import { useThreadSessionsQuery } from "@/api/library-api";
 import { useUnsaved } from "@/shared/unsaved";
 import { errorMessage } from "@/api/base-query";
 import { MaterialBrowser } from "@/features/materials/browser";
-import { AssignmentMedia, type MediaDimensions } from "./media";
+import { MediaEditor } from "./media-editor";
+import { GroupEditor, QuestionOutline } from "./group-editor";
+import {
+  assignmentBlocks,
+  moveBlock,
+  moveQuestion,
+  assignGroup,
+} from "./groups";
 import { AssignmentPlayer } from "./player";
 import { AssignmentUpload } from "./upload";
 import {
@@ -119,6 +125,10 @@ export function AssignmentEditor({
     ),
     [step, setStep] = useState(0),
     [active, setActive] = useState(0),
+    [activeGroup, setActiveGroup] = useState<string | null>(
+      () => initial?.questions[0]?.groupId ?? null,
+    ),
+    [deleteGroup, setDeleteGroup] = useState<string | null>(null),
     [picker, setPicker] = useState<number | null | false>(false),
     inlineInsertion = useRef<{ start: number; end: number } | null>(null),
     [savedQuestionIds, setSavedQuestionIds] = useState(
@@ -144,6 +154,8 @@ export function AssignmentEditor({
     contentRef = useRef<RichInputHandle>(null);
   const dirty = JSON.stringify(schemaWrite(draft)) !== saved;
   useUnsaved(dirty || busy);
+  const group = draft.groups?.find((g) => g.id === activeGroup);
+  const blocks = assignmentBlocks(draft);
   const q = draft.questions[active],
     setQuestion = (patch: Partial<Question>) =>
       setDraft((d) => ({
@@ -162,7 +174,11 @@ export function AssignmentEditor({
         id: draft.id || undefined,
         body,
       }).unwrap();
+      const groupIndex =
+        body.groups?.findIndex((g) => g.id === activeGroup) ?? -1;
       setDraft(result);
+      if (groupIndex >= 0)
+        setActiveGroup(result.groups?.[groupIndex]?.id ?? null);
       setSavedQuestionIds(new Set(result.questions.map((q) => q.id)));
       setSaved(JSON.stringify(schemaWrite(result)));
       setMessage(
@@ -229,14 +245,63 @@ export function AssignmentEditor({
     }));
     setActive(active + 1);
   };
+  const selectQuestion = (index: number) => {
+    if (busy) return;
+    setActive(index);
+    setActiveGroup(draft.questions[index]?.groupId ?? null);
+  };
   const reorder = (from: number, to: number) => {
-    setDraft((d) => {
-      const list = [...d.questions];
-      const moved = list.splice(from, 1)[0];
-      list.splice(to, 0, moved);
-      return { ...d, questions: list };
-    });
-    setActive(to);
+    const item = draft.questions[from];
+    if (!item) return;
+    const positions = item.groupId
+      ? draft.questions.filter((q) => q.groupId === item.groupId)
+      : assignmentBlocks(draft).map((b) => b.questions[0]);
+    const index = positions.findIndex((q) => q?.id === item.id);
+    const next = moveQuestion(draft, item.id, index + Math.sign(to - from));
+    setDraft(next);
+    setActive(next.questions.findIndex((q) => q.id === item.id));
+  };
+  const addQuestion = (groupId: string | null = null) => {
+    if (draft.questions.length >= 100) return;
+    const item = { ...question(), groupId };
+    const members = draft.questions
+      .map((q, i) => (q.groupId === groupId && groupId ? i : -1))
+      .filter((i) => i >= 0);
+    const index = groupId
+      ? members.length
+        ? members[members.length - 1] + 1
+        : (draft.groups?.find((g) => g.id === groupId)?.order ??
+          draft.questions.length)
+      : draft.questions.length;
+    const questions = [...draft.questions];
+    questions.splice(index, 0, item);
+    setDraft({ ...draft, questions });
+    setActive(index);
+    setActiveGroup(groupId);
+  };
+  const addGroup = () => {
+    if ((draft.groups?.length ?? 0) >= 50) return;
+    const g = {
+      id: crypto.randomUUID(),
+      title: "",
+      content: "",
+      instructions: "",
+      media: [],
+      order: draft.questions.length,
+    };
+    setDraft({ ...draft, groups: [...(draft.groups ?? []), g] });
+    setActiveGroup(g.id);
+  };
+  const move = (id: string, target: number) => {
+    const next = moveBlock(draft, id, target);
+    const current = draft.questions[active]?.id;
+    setDraft(next);
+    setActive(
+      Math.max(
+        0,
+        next.questions.findIndex((q) => q.id === current),
+      ),
+    );
   };
   const field = (
     key: "title" | "instructions",
@@ -316,6 +381,33 @@ export function AssignmentEditor({
             </Button>
           ))}
         </Stack>
+        {step === 1 && (
+          <Stack direction="row" useFlexGap sx={{ gap: 1, flexWrap: "wrap" }}>
+            <Button
+              size="small"
+              startIcon={<AssignmentIcon name="plus" />}
+              disabled={draft.questions.length >= 100}
+              onClick={() => addQuestion()}
+            >
+              Thêm câu hỏi
+            </Button>
+            <Button
+              size="small"
+              startIcon={<AssignmentIcon name="plus" />}
+              disabled={(draft.groups?.length ?? 0) >= 50}
+              onClick={addGroup}
+            >
+              Thêm nhóm câu hỏi
+            </Button>
+            <Button
+              size="small"
+              sx={{ display: { xs: "inline-flex", md: "none" } }}
+              onClick={(e) => setQuestionMenu(e.currentTarget)}
+            >
+              Danh sách câu hỏi
+            </Button>
+          </Stack>
+        )}
         {step === 1 && (
           <Typography variant="body2" color="text.secondary">
             {draft.questions.length} câu hỏi ·{" "}
@@ -491,6 +583,9 @@ export function AssignmentEditor({
                         );
                         if (found >= 0) {
                           setActive(found);
+                          setActiveGroup(
+                            draft.questions[found]?.groupId ?? null,
+                          );
                         } else {
                           setDraft((d) => ({
                             ...d,
@@ -510,6 +605,7 @@ export function AssignmentEditor({
                             ],
                           }));
                           setActive(draft.questions.length);
+                          setActiveGroup(null);
                         }
                         setStep(1);
                       }}
@@ -549,481 +645,597 @@ export function AssignmentEditor({
                 top: 20,
               }}
             >
-              <Stack spacing={1}>
-                <Typography sx={{ fontWeight: 700 }}>Câu hỏi</Typography>
-                {draft.questions.map((x, i) => (
-                  <Stack direction="row" key={x.id}>
-                    <Button
-                      sx={{
-                        flex: 1,
-                        justifyContent: "flex-start",
-                        flexDirection: "column",
-                        alignItems: "flex-start",
-                        bgcolor: active === i ? "var(--a-tint)" : "transparent",
-                        py: 1,
-                        px: 1.25,
-                      }}
-                      variant="text"
-                      onClick={() => setActive(i)}
-                    >
-                      <Typography
-                        component="span"
-                        sx={{ fontSize: 14, fontWeight: 700 }}
-                      >
-                        Câu {i + 1} · {x.maxScore} điểm
-                      </Typography>
-                      <Typography
-                        component="span"
-                        variant="body2"
-                        color="text.secondary"
-                      >
-                        {questionLabels[x.type]}
-                      </Typography>
-                    </Button>
-                  </Stack>
-                ))}
-                <Button
-                  sx={{ alignSelf: "flex-start" }}
-                  startIcon={<AssignmentIcon name="plus" />}
-                  disabled={draft.questions.length >= 100}
-                  onClick={() => {
+              <QuestionOutline
+                draft={draft}
+                active={active}
+                activeGroup={activeGroup}
+                select={selectQuestion}
+                selectGroup={(id) => {
+                  if (busy) return;
+                  setActiveGroup(id);
+                  const first = draft.questions.findIndex(
+                    (q) => q.groupId === id,
+                  );
+                  if (first >= 0) setActive(first);
+                }}
+                drop={move}
+                dropQuestion={(id, target) => {
+                  if (busy) return;
+                  const next = moveQuestion(draft, id, target);
+                  setDraft(next);
+                  setActive(next.questions.findIndex((q) => q.id === id));
+                }}
+              />
+            </Paper>
+            <Box
+              component={group ? "section" : "div"}
+              sx={{
+                minWidth: 0,
+                ...(group
+                  ? {
+                      border: "1px solid",
+                      borderColor: "divider",
+                      borderRadius: 2,
+                      p: { xs: 1, md: 2 },
+                    }
+                  : {}),
+              }}
+            >
+              {group && (
+                <GroupEditor
+                  group={group}
+                  position={blocks.findIndex((b) => b.id === group.id)}
+                  count={blocks.length}
+                  change={(patch) =>
                     setDraft((d) => ({
                       ...d,
-                      questions: [...d.questions, question()],
-                    }));
-                    setActive(draft.questions.length);
+                      groups: d.groups?.map((g) =>
+                        g.id === activeGroup ? { ...g, ...patch } : g,
+                      ),
+                    }))
+                  }
+                  move={(target) => move(group.id, target)}
+                  add={() => addQuestion(group.id)}
+                  remove={() => setDeleteGroup(group.id)}
+                  onBusy={setBusy}
+                  prepare={async () => {
+                    const index =
+                      schemaWrite(draft).groups?.findIndex(
+                        (g) => g.id === group.id,
+                      ) ?? -1;
+                    const result = dirty || !draft.id ? await persist() : draft;
+                    const savedGroup = result.groups?.[index];
+                    if (!savedGroup)
+                      throw new Error("Lưu nhóm trước khi upload.");
+                    return { assignmentId: result.id, groupId: savedGroup.id };
                   }}
+                />
+              )}
+              {q && (!group || q.groupId === group.id) && (
+                <Paper
+                  className="assignment-bordered assignment-labels"
+                  sx={{ p: { xs: 2, md: 3 } }}
                 >
-                  Thêm câu hỏi
-                </Button>
-              </Stack>
-            </Paper>
-            {q && (
-              <Paper
-                className="assignment-bordered assignment-labels"
-                sx={{ p: { xs: 2, md: 3 } }}
-              >
-                <Stack spacing={2}>
-                  <Stack
-                    direction="row"
-                    sx={{
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                      flexWrap: "wrap",
-                    }}
-                  >
-                    <Typography
-                      variant="h6"
-                      sx={{ display: { xs: "none", md: "block" } }}
-                    >
-                      Câu {active + 1}
-                    </Typography>
+                  <Stack spacing={2}>
                     <Stack
                       direction="row"
-                      spacing={1}
-                      sx={{ display: { xs: "flex", md: "none" } }}
-                    >
-                      <Button
-                        startIcon={<AssignmentIcon name="chevron" />}
-                        onClick={(e) => setQuestionMenu(e.currentTarget)}
-                      >
-                        Câu {active + 1} / {draft.questions.length}
-                      </Button>
-                      <IconButton
-                        aria-label="Thêm câu hỏi"
-                        disabled={draft.questions.length >= 100}
-                        onClick={() => {
-                          setDraft((d) => ({
-                            ...d,
-                            questions: [...d.questions, question()],
-                          }));
-                          setActive(draft.questions.length);
-                        }}
-                      >
-                        <AssignmentIcon name="plus" />
-                      </IconButton>
-                    </Stack>
-                    <Stack
-                      direction="row"
-                      spacing={1}
-                      sx={{ display: { xs: "none", md: "flex" } }}
-                    >
-                      {[
-                        [ContentCopy, "Nhân bản", duplicateQuestion],
-                        [ArrowUpward, "Lên", () => reorder(active, active - 1)],
-                        [
-                          ArrowDownward,
-                          "Xuống",
-                          () => reorder(active, active + 1),
-                        ],
-                        [
-                          Delete,
-                          "Xóa câu",
-                          () => {
-                            setDeleteQuestion(active);
-                          },
-                        ],
-                      ].map(([Icon, label, fn], i) => {
-                        const I = Icon as typeof Delete;
-                        return (
-                          <Tooltip key={String(label)} title={String(label)}>
-                            <span
-                              style={{
-                                display:
-                                  i === 1 || i === 2 ? "none" : "inline-flex",
-                              }}
-                            >
-                              <IconButton
-                                aria-label={String(label)}
-                                disabled={
-                                  (i === 1 && active === 0) ||
-                                  (i === 2 &&
-                                    active === draft.questions.length - 1) ||
-                                  (i === 0 && draft.questions.length >= 100)
-                                }
-                                onClick={fn as () => void}
-                              >
-                                {i === 0 ? (
-                                  <AssignmentIcon name="copy" />
-                                ) : i === 3 ? (
-                                  <AssignmentIcon name="trash" />
-                                ) : (
-                                  <I fontSize="small" />
-                                )}
-                              </IconButton>
-                            </span>
-                          </Tooltip>
-                        );
-                      })}
-                    </Stack>
-                  </Stack>
-                  <Stack
-                    direction="row"
-                    spacing={2}
-                    sx={{
-                      alignItems: "start",
-                      "& > :first-child": { flex: 1, minWidth: 0 },
-                      "& > :last-child": { width: { xs: 110, sm: 180 } },
-                    }}
-                  >
-                    <TextField
-                      size="small"
-                      select
-                      fullWidth
-                      label="Loại câu hỏi"
-                      value={q.type}
-                      onChange={(e) => {
-                        const type = e.target.value as QuestionType;
-                        setQuestion({
-                          type,
-                          options:
-                            type === "SINGLE" || type === "MULTIPLE"
-                              ? q.options.length
-                                ? q.options
-                                : question().options
-                              : [],
-                        });
+                      sx={{
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        flexWrap: "wrap",
                       }}
                     >
-                      {Object.entries(questionLabels).map(([value, label]) => (
-                        <MenuItem key={value} value={value}>
-                          {label}
-                        </MenuItem>
-                      ))}
-                    </TextField>
-                    <TextField
-                      size="small"
-                      label="Điểm tối đa"
-                      type="number"
-                      value={q.maxScore}
-                      onChange={(e) =>
-                        setQuestion({ maxScore: Number(e.target.value) })
-                      }
-                      slotProps={{ htmlInput: { min: 0.1, step: 0.1 } }}
-                    />
-                  </Stack>
-                  <RichInput
-                    label="Nội dung câu hỏi"
-                    value={q.content}
-                    onChange={(content) => setQuestion({ content })}
-                    media={q.media}
-                    inputRef={contentRef}
-                  />
-                  <Stack
-                    direction="row"
-                    spacing={1}
-                    sx={{ alignItems: "center" }}
-                  >
-                    <Tooltip title="Đính kèm tài liệu tại vị trí con trỏ">
-                      <IconButton
-                        aria-label="Chèn chip tệp tại con trỏ"
-                        onClick={(e) => {
-                          const el = contentRef.current;
-                          inlineInsertion.current = {
-                            start: el?.selectionStart ?? q.content.length,
-                            end: el?.selectionEnd ?? q.content.length,
-                          };
-                          setAttachmentMenu({
-                            element: e.currentTarget,
-                            option: null,
-                          });
-                        }}
+                      <Typography
+                        variant="h6"
+                        sx={{ display: { xs: "none", md: "block" } }}
                       >
-                        <AssignmentIcon name="attach" />
-                      </IconButton>
-                    </Tooltip>
-                    <Tooltip title="Chèn liên kết">
-                      <IconButton
-                        aria-label="Chèn liên kết"
-                        onClick={() => {
-                          const url = window.prompt("Liên kết http/https:");
-                          if (url && validLink(url)) insert(url);
-                          else if (url)
-                            setError(new Error("Liên kết không hợp lệ."));
-                        }}
-                      >
-                        <AssignmentIcon name="link" />
-                      </IconButton>
-                    </Tooltip>
-                    <Tooltip title="Hướng dẫn và tiêu chí chấm">
-                      <IconButton
-                        aria-label="Hướng dẫn và tiêu chí chấm"
-                        onClick={() => setDetails(true)}
-                      >
-                        <AssignmentIcon name="help" />
-                      </IconButton>
-                    </Tooltip>
-                    <Typography
-                      variant="body2"
-                      color="text.secondary"
-                      sx={{ display: { xs: "none", sm: "block" } }}
-                    >
-                      Đính kèm ảnh, audio, video hoặc tài liệu
-                    </Typography>
-                  </Stack>
-                  <MediaEditor
-                    media={blockMedia(q.content, q.media)}
-                    onChange={(media) =>
-                      setQuestion({
-                        media: [
-                          ...q.media.filter((m) =>
-                            q.content.includes(`[file:${m.materialId}]`),
-                          ),
-                          ...media,
-                        ],
-                      })
-                    }
-                  />
-                  {(q.type === "SINGLE" || q.type === "MULTIPLE") && (
-                    <>
-                      <Typography sx={{ fontWeight: 700 }}>
-                        Lựa chọn trả lời
+                        Câu {active + 1}
                       </Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        {q.type === "SINGLE"
-                          ? "Chọn một đáp án đúng để chấm tự động."
-                          : "Chọn tất cả đáp án đúng để chấm tự động."}
-                      </Typography>
-                      {q.options.map((o, i) => (
-                        <Paper
-                          className="assignment-option"
-                          key={o.id}
-                          variant="outlined"
-                          sx={{
-                            p: 1,
-                            borderRadius: "12px",
-                            bgcolor: o.isCorrect
-                              ? "var(--a-tint)"
-                              : "transparent",
-                            border: 0,
+                      <Stack
+                        direction="row"
+                        spacing={1}
+                        sx={{ display: { xs: "flex", md: "none" } }}
+                      >
+                        <Button
+                          startIcon={<AssignmentIcon name="chevron" />}
+                          onClick={(e) => setQuestionMenu(e.currentTarget)}
+                        >
+                          Câu {active + 1} / {draft.questions.length}
+                        </Button>
+                        <IconButton
+                          aria-label="Thêm câu hỏi độc lập"
+                          disabled={draft.questions.length >= 100}
+                          onClick={() => {
+                            setDraft((d) => ({
+                              ...d,
+                              questions: [...d.questions, question()],
+                            }));
+                            setActive(draft.questions.length);
+                            setActiveGroup(null);
                           }}
                         >
-                          <Stack spacing={1}>
-                            <Stack
-                              direction="row"
-                              spacing={1}
-                              sx={{ alignItems: "flex-start" }}
-                            >
-                              {q.type === "SINGLE" ? (
-                                <Radio
-                                  sx={{ height: 40, flexShrink: 0 }}
-                                  checked={!!o.isCorrect}
-                                  slotProps={{
-                                    input: {
-                                      "aria-label": `Đáp án đúng ${i + 1}`,
-                                    },
-                                  }}
-                                  onChange={() =>
-                                    setQuestion({
-                                      options: q.options.map((x, j) => ({
-                                        ...x,
-                                        isCorrect: j === i,
-                                      })),
-                                    })
-                                  }
-                                />
-                              ) : (
-                                <Checkbox
-                                  sx={{ height: 40, flexShrink: 0 }}
-                                  checked={!!o.isCorrect}
-                                  slotProps={{
-                                    input: {
-                                      "aria-label": `Đáp án đúng ${i + 1}`,
-                                    },
-                                  }}
-                                  onChange={(_, v) =>
-                                    setQuestion({
-                                      options: q.options.map((x, j) =>
-                                        j === i ? { ...x, isCorrect: v } : x,
-                                      ),
-                                    })
-                                  }
-                                />
-                              )}
-                              <Box sx={{ flex: 1, minWidth: 0 }}>
-                                <TextField
-                                  className="assignment-option-content"
-                                  size="small"
-                                  fullWidth
-                                  label={`Đáp án ${i + 1}`}
-                                  value={o.content}
-                                  onChange={(e) =>
-                                    setQuestion({
-                                      options: q.options.map((x, j) =>
-                                        j === i
-                                          ? { ...x, content: e.target.value }
-                                          : x,
-                                      ),
-                                    })
-                                  }
-                                />
-                                {o.isCorrect && (
-                                  <Typography
-                                    variant="body2"
-                                    sx={{ color: "var(--a-green)" }}
-                                  >
-                                    Đáp án đúng
-                                  </Typography>
-                                )}
-                              </Box>
-                              <Tooltip title="Tài liệu và thao tác lựa chọn">
-                                <IconButton
-                                  aria-label={`Tài liệu đáp án ${i + 1}`}
-                                  onClick={(e) => {
-                                    inlineInsertion.current = null;
-                                    setAttachmentMenu({
-                                      element: e.currentTarget,
-                                      option: i,
-                                    });
-                                  }}
-                                >
-                                  <AssignmentIcon name="attach" />
-                                </IconButton>
-                              </Tooltip>
-                              <Tooltip title={`Xóa đáp án ${i + 1}`}>
-                                <IconButton
-                                  aria-label={`Xóa đáp án ${i + 1}`}
-                                  color="error"
-                                  onClick={() => setDeleteOption(i)}
-                                >
-                                  <Delete fontSize="small" />
-                                </IconButton>
-                              </Tooltip>
-                            </Stack>
-                            <MediaEditor
-                              media={o.media}
-                              onChange={(media) =>
-                                setQuestion({
-                                  options: q.options.map((x, j) =>
-                                    j === i ? { ...x, media } : x,
-                                  ),
-                                })
-                              }
-                            />
-                          </Stack>
-                        </Paper>
-                      ))}
-                      <Button
-                        sx={{ alignSelf: "flex-start" }}
-                        startIcon={<AssignmentIcon name="plus" />}
-                        disabled={q.options.length >= 30}
-                        onClick={() =>
-                          setQuestion({
-                            options: [
-                              ...q.options,
-                              {
-                                id: crypto.randomUUID(),
-                                content: "",
-                                isCorrect: false,
-                                order: q.options.length,
-                                media: [],
-                              },
-                            ],
-                          })
-                        }
+                          <AssignmentIcon name="plus" />
+                        </IconButton>
+                      </Stack>
+                      <Stack
+                        direction="row"
+                        spacing={1}
+                        sx={{ display: { xs: "none", md: "flex" } }}
                       >
-                        Thêm lựa chọn
-                      </Button>
-                      <Box
-                        sx={{
-                          p: 1.5,
-                          bgcolor: "var(--a-tint)",
-                          borderRadius: "12px",
-                        }}
-                      >
-                        <Typography
-                          variant="body2"
-                          sx={{ color: "var(--a-green)" }}
-                        >
-                          {q.options.some((o) => o.isCorrect)
-                            ? "Tự động chấm · Đã thiết lập đáp án"
-                            : "Tự động chấm · Chọn đáp án đúng"}
-                        </Typography>
-                      </Box>
-                    </>
-                  )}
-                  {q.type === "SPEAKING" && (
-                    <>
+                        {[
+                          [ContentCopy, "Nhân bản", duplicateQuestion],
+                          [
+                            ArrowUpward,
+                            "Lên",
+                            () => reorder(active, active - 1),
+                          ],
+                          [
+                            ArrowDownward,
+                            "Xuống",
+                            () => reorder(active, active + 1),
+                          ],
+                          [
+                            Delete,
+                            "Xóa câu",
+                            () => {
+                              setDeleteQuestion(active);
+                            },
+                          ],
+                        ].map(([Icon, label, fn], i) => {
+                          const I = Icon as typeof Delete;
+                          return (
+                            <Tooltip key={String(label)} title={String(label)}>
+                              <span
+                                style={{
+                                  display:
+                                    i === 1 || i === 2 ? "none" : "inline-flex",
+                                }}
+                              >
+                                <IconButton
+                                  aria-label={String(label)}
+                                  disabled={
+                                    (i === 1 && active === 0) ||
+                                    (i === 2 &&
+                                      active === draft.questions.length - 1) ||
+                                    (i === 0 && draft.questions.length >= 100)
+                                  }
+                                  onClick={fn as () => void}
+                                >
+                                  {i === 0 ? (
+                                    <AssignmentIcon name="copy" />
+                                  ) : i === 3 ? (
+                                    <AssignmentIcon name="trash" />
+                                  ) : (
+                                    <I fontSize="small" />
+                                  )}
+                                </IconButton>
+                              </span>
+                            </Tooltip>
+                          );
+                        })}
+                      </Stack>
+                    </Stack>
+                    <Stack
+                      direction="row"
+                      spacing={2}
+                      sx={{
+                        alignItems: "start",
+                        "& > :first-child": { flex: 1, minWidth: 0 },
+                        "& > :last-child": { width: { xs: 110, sm: 180 } },
+                      }}
+                    >
                       <TextField
                         size="small"
                         select
-                        label="Cách nộp bài nói"
-                        value={q.allowUploadedAudio ? "upload" : "record"}
-                        onChange={(e) =>
+                        fullWidth
+                        label="Loại câu hỏi"
+                        value={q.type}
+                        onChange={(e) => {
+                          const type = e.target.value as QuestionType;
                           setQuestion({
-                            allowUploadedAudio: e.target.value === "upload",
-                          })
-                        }
+                            type,
+                            options:
+                              type === "SINGLE" || type === "MULTIPLE"
+                                ? q.options.length
+                                  ? q.options
+                                  : question().options
+                                : [],
+                          });
+                        }}
                       >
-                        <MenuItem value="upload">
-                          Ghi âm trực tiếp hoặc tải audio
-                        </MenuItem>
-                        <MenuItem value="record">Chỉ ghi âm trực tiếp</MenuItem>
+                        {Object.entries(questionLabels).map(
+                          ([value, label]) => (
+                            <MenuItem key={value} value={value}>
+                              {label}
+                            </MenuItem>
+                          ),
+                        )}
                       </TextField>
                       <TextField
                         size="small"
+                        label="Điểm tối đa"
                         type="number"
-                        label="Thời lượng tối đa (giây)"
-                        value={q.maxDurationSeconds}
+                        value={q.maxScore}
                         onChange={(e) =>
-                          setQuestion({
-                            maxDurationSeconds: Number(e.target.value),
-                          })
+                          setQuestion({ maxScore: Number(e.target.value) })
+                        }
+                        slotProps={{ htmlInput: { min: 0.1, step: 0.1 } }}
+                      />
+                    </Stack>
+                    <Stack
+                      direction="row"
+                      useFlexGap
+                      sx={{ gap: 1, flexWrap: "wrap" }}
+                    >
+                      <TextField
+                        key={`${q.id}-${active}-${q.groupId ?? "root"}`}
+                        size="small"
+                        type="number"
+                        label={
+                          q.groupId ? "Thứ tự trong nhóm" : "Vị trí câu hỏi"
+                        }
+                        defaultValue={
+                          q.groupId
+                            ? draft.questions
+                                .filter((x) => x.groupId === q.groupId)
+                                .findIndex((x) => x.id === q.id) + 1
+                            : blocks.findIndex((b) => b.id === q.id) + 1
                         }
                         slotProps={{
-                          htmlInput: { min: 1, max: 3600, step: 1 },
+                          htmlInput: {
+                            min: 1,
+                            max: q.groupId
+                              ? draft.questions.filter(
+                                  (x) => x.groupId === q.groupId,
+                                ).length
+                              : blocks.length,
+                            step: 1,
+                          },
                         }}
+                        onBlur={(e) => {
+                          const value = Number(e.target.value);
+                          const limit = q.groupId
+                            ? draft.questions.filter(
+                                (x) => x.groupId === q.groupId,
+                              ).length
+                            : blocks.length;
+                          if (
+                            !Number.isInteger(value) ||
+                            value < 1 ||
+                            value > limit
+                          ) {
+                            e.target.value = String(
+                              q.groupId
+                                ? draft.questions
+                                    .filter((x) => x.groupId === q.groupId)
+                                    .findIndex((x) => x.id === q.id) + 1
+                                : blocks.findIndex((b) => b.id === q.id) + 1,
+                            );
+                            return;
+                          }
+                          const next = moveQuestion(draft, q.id, value - 1);
+                          setDraft(next);
+                          setActive(
+                            next.questions.findIndex((x) => x.id === q.id),
+                          );
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter")
+                            e.currentTarget.querySelector("input")?.blur();
+                        }}
+                        sx={{ width: 150 }}
                       />
-                      <Alert severity="info">
-                        Backend xác minh thời lượng thực. Trình duyệt không thể
-                        chứng minh tuyệt đối nguồn audio; chế độ ghi âm yêu cầu
-                        phiên được backend cấp phép.
-                      </Alert>
-                    </>
-                  )}
-                </Stack>
-              </Paper>
-            )}
+                      {!!draft.groups?.length && (
+                        <TextField
+                          size="small"
+                          select
+                          label="Nhóm dữ kiện"
+                          value={q.groupId ?? ""}
+                          onChange={(e) => {
+                            const id = e.target.value || null;
+                            const next = assignGroup(draft, q.id, id);
+                            setDraft(next);
+                            setActive(
+                              next.questions.findIndex((x) => x.id === q.id),
+                            );
+                            setActiveGroup(id);
+                          }}
+                          sx={{ minWidth: 150, flex: 1 }}
+                        >
+                          <MenuItem value="">Câu hỏi độc lập</MenuItem>
+                          {draft.groups.map((g) => (
+                            <MenuItem key={g.id} value={g.id}>
+                              {g.title || "Nhóm chưa đặt tên"}
+                            </MenuItem>
+                          ))}
+                        </TextField>
+                      )}
+                    </Stack>
+                    <RichInput
+                      label="Nội dung câu hỏi"
+                      value={q.content}
+                      onChange={(content) => setQuestion({ content })}
+                      media={q.media}
+                      inputRef={contentRef}
+                    />
+                    <Stack
+                      direction="row"
+                      spacing={1}
+                      sx={{ alignItems: "center" }}
+                    >
+                      <Tooltip title="Đính kèm tài liệu tại vị trí con trỏ">
+                        <IconButton
+                          aria-label="Chèn chip tệp tại con trỏ"
+                          onClick={(e) => {
+                            const el = contentRef.current;
+                            inlineInsertion.current = {
+                              start: el?.selectionStart ?? q.content.length,
+                              end: el?.selectionEnd ?? q.content.length,
+                            };
+                            setAttachmentMenu({
+                              element: e.currentTarget,
+                              option: null,
+                            });
+                          }}
+                        >
+                          <AssignmentIcon name="attach" />
+                        </IconButton>
+                      </Tooltip>
+                      <Tooltip title="Chèn liên kết">
+                        <IconButton
+                          aria-label="Chèn liên kết"
+                          onClick={() => {
+                            const url = window.prompt("Liên kết http/https:");
+                            if (url && validLink(url)) insert(url);
+                            else if (url)
+                              setError(new Error("Liên kết không hợp lệ."));
+                          }}
+                        >
+                          <AssignmentIcon name="link" />
+                        </IconButton>
+                      </Tooltip>
+                      <Tooltip title="Hướng dẫn và tiêu chí chấm">
+                        <IconButton
+                          aria-label="Hướng dẫn và tiêu chí chấm"
+                          onClick={() => setDetails(true)}
+                        >
+                          <AssignmentIcon name="help" />
+                        </IconButton>
+                      </Tooltip>
+                      <Typography
+                        variant="body2"
+                        color="text.secondary"
+                        sx={{ display: { xs: "none", sm: "block" } }}
+                      >
+                        Đính kèm ảnh, audio, video hoặc tài liệu
+                      </Typography>
+                    </Stack>
+                    <MediaEditor
+                      media={blockMedia(q.content, q.media)}
+                      onChange={(media) =>
+                        setQuestion({
+                          media: [
+                            ...q.media.filter((m) =>
+                              q.content.includes(`[file:${m.materialId}]`),
+                            ),
+                            ...media,
+                          ],
+                        })
+                      }
+                    />
+                    {(q.type === "SINGLE" || q.type === "MULTIPLE") && (
+                      <>
+                        <Typography sx={{ fontWeight: 700 }}>
+                          Lựa chọn trả lời
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          {q.type === "SINGLE"
+                            ? "Chọn một đáp án đúng để chấm tự động."
+                            : "Chọn tất cả đáp án đúng để chấm tự động."}
+                        </Typography>
+                        {q.options.map((o, i) => (
+                          <Paper
+                            className="assignment-option"
+                            key={o.id}
+                            variant="outlined"
+                            sx={{
+                              p: 1,
+                              borderRadius: "12px",
+                              bgcolor: o.isCorrect
+                                ? "var(--a-tint)"
+                                : "transparent",
+                              border: 0,
+                            }}
+                          >
+                            <Stack spacing={1}>
+                              <Stack
+                                direction="row"
+                                spacing={1}
+                                sx={{ alignItems: "flex-start" }}
+                              >
+                                {q.type === "SINGLE" ? (
+                                  <Radio
+                                    sx={{ height: 40, flexShrink: 0 }}
+                                    checked={!!o.isCorrect}
+                                    slotProps={{
+                                      input: {
+                                        "aria-label": `Đáp án đúng ${i + 1}`,
+                                      },
+                                    }}
+                                    onChange={() =>
+                                      setQuestion({
+                                        options: q.options.map((x, j) => ({
+                                          ...x,
+                                          isCorrect: j === i,
+                                        })),
+                                      })
+                                    }
+                                  />
+                                ) : (
+                                  <Checkbox
+                                    sx={{ height: 40, flexShrink: 0 }}
+                                    checked={!!o.isCorrect}
+                                    slotProps={{
+                                      input: {
+                                        "aria-label": `Đáp án đúng ${i + 1}`,
+                                      },
+                                    }}
+                                    onChange={(_, v) =>
+                                      setQuestion({
+                                        options: q.options.map((x, j) =>
+                                          j === i ? { ...x, isCorrect: v } : x,
+                                        ),
+                                      })
+                                    }
+                                  />
+                                )}
+                                <Box sx={{ flex: 1, minWidth: 0 }}>
+                                  <TextField
+                                    className="assignment-option-content"
+                                    size="small"
+                                    fullWidth
+                                    label={`Đáp án ${i + 1}`}
+                                    value={o.content}
+                                    onChange={(e) =>
+                                      setQuestion({
+                                        options: q.options.map((x, j) =>
+                                          j === i
+                                            ? { ...x, content: e.target.value }
+                                            : x,
+                                        ),
+                                      })
+                                    }
+                                  />
+                                  {o.isCorrect && (
+                                    <Typography
+                                      variant="body2"
+                                      sx={{ color: "var(--a-green)" }}
+                                    >
+                                      Đáp án đúng
+                                    </Typography>
+                                  )}
+                                </Box>
+                                <Tooltip title="Tài liệu và thao tác lựa chọn">
+                                  <IconButton
+                                    aria-label={`Tài liệu đáp án ${i + 1}`}
+                                    onClick={(e) => {
+                                      inlineInsertion.current = null;
+                                      setAttachmentMenu({
+                                        element: e.currentTarget,
+                                        option: i,
+                                      });
+                                    }}
+                                  >
+                                    <AssignmentIcon name="attach" />
+                                  </IconButton>
+                                </Tooltip>
+                                <Tooltip title={`Xóa đáp án ${i + 1}`}>
+                                  <IconButton
+                                    aria-label={`Xóa đáp án ${i + 1}`}
+                                    color="error"
+                                    onClick={() => setDeleteOption(i)}
+                                  >
+                                    <Delete fontSize="small" />
+                                  </IconButton>
+                                </Tooltip>
+                              </Stack>
+                              <MediaEditor
+                                media={o.media}
+                                onChange={(media) =>
+                                  setQuestion({
+                                    options: q.options.map((x, j) =>
+                                      j === i ? { ...x, media } : x,
+                                    ),
+                                  })
+                                }
+                              />
+                            </Stack>
+                          </Paper>
+                        ))}
+                        <Button
+                          sx={{ alignSelf: "flex-start" }}
+                          startIcon={<AssignmentIcon name="plus" />}
+                          disabled={q.options.length >= 30}
+                          onClick={() =>
+                            setQuestion({
+                              options: [
+                                ...q.options,
+                                {
+                                  id: crypto.randomUUID(),
+                                  content: "",
+                                  isCorrect: false,
+                                  order: q.options.length,
+                                  media: [],
+                                },
+                              ],
+                            })
+                          }
+                        >
+                          Thêm lựa chọn
+                        </Button>
+                        <Box
+                          sx={{
+                            p: 1.5,
+                            bgcolor: "var(--a-tint)",
+                            borderRadius: "12px",
+                          }}
+                        >
+                          <Typography
+                            variant="body2"
+                            sx={{ color: "var(--a-green)" }}
+                          >
+                            {q.options.some((o) => o.isCorrect)
+                              ? "Tự động chấm · Đã thiết lập đáp án"
+                              : "Tự động chấm · Chọn đáp án đúng"}
+                          </Typography>
+                        </Box>
+                      </>
+                    )}
+                    {q.type === "SPEAKING" && (
+                      <>
+                        <TextField
+                          size="small"
+                          select
+                          label="Cách nộp bài nói"
+                          value={q.allowUploadedAudio ? "upload" : "record"}
+                          onChange={(e) =>
+                            setQuestion({
+                              allowUploadedAudio: e.target.value === "upload",
+                            })
+                          }
+                        >
+                          <MenuItem value="upload">
+                            Ghi âm trực tiếp hoặc tải audio
+                          </MenuItem>
+                          <MenuItem value="record">
+                            Chỉ ghi âm trực tiếp
+                          </MenuItem>
+                        </TextField>
+                        <TextField
+                          size="small"
+                          type="number"
+                          label="Thời lượng tối đa (giây)"
+                          value={q.maxDurationSeconds}
+                          onChange={(e) =>
+                            setQuestion({
+                              maxDurationSeconds: Number(e.target.value),
+                            })
+                          }
+                          slotProps={{
+                            htmlInput: { min: 1, max: 3600, step: 1 },
+                          }}
+                        />
+                        <Alert severity="info">
+                          Backend xác minh thời lượng thực. Trình duyệt không
+                          thể chứng minh tuyệt đối nguồn audio; chế độ ghi âm
+                          yêu cầu phiên được backend cấp phép.
+                        </Alert>
+                      </>
+                    )}
+                  </Stack>
+                </Paper>
+              )}
+            </Box>
           </Box>
         )}
         {step === 2 && (
@@ -1275,12 +1487,27 @@ export function AssignmentEditor({
           open={!!questionMenu}
           onClose={() => setQuestionMenu(null)}
         >
+          {(draft.groups ?? []).map((g) => (
+            <MenuItem
+              key={g.id}
+              onClick={() => {
+                setActiveGroup(g.id);
+                const first = draft.questions.findIndex(
+                  (q) => q.groupId === g.id,
+                );
+                if (first >= 0) setActive(first);
+                setQuestionMenu(null);
+              }}
+            >
+              {g.title || "Nhóm chưa đặt tên"}
+            </MenuItem>
+          ))}
           {draft.questions.map((x, i) => (
             <MenuItem
               key={x.id}
               selected={active === i}
               onClick={() => {
-                setActive(i);
+                selectQuestion(i);
                 setQuestionMenu(null);
               }}
             >
@@ -1359,6 +1586,39 @@ export function AssignmentEditor({
           </DialogActions>
         </Dialog>
         <Dialog
+          open={deleteGroup != null}
+          fullWidth
+          maxWidth="xs"
+          onClose={() => setDeleteGroup(null)}
+        >
+          <DialogTitle>Xóa nhóm câu hỏi?</DialogTitle>
+          <DialogContent>
+            Nhóm, dữ kiện chung và các câu trong nhóm sẽ bị gỡ khỏi bản nháp.
+            Các phiên bản và bài nộp trước đó được giữ nguyên.
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setDeleteGroup(null)}>Hủy</Button>
+            <Button
+              color="error"
+              onClick={() => {
+                const questions = draft.questions.filter(
+                  (q) => q.groupId !== deleteGroup,
+                );
+                setDraft({
+                  ...draft,
+                  groups: draft.groups?.filter((g) => g.id !== deleteGroup),
+                  questions,
+                });
+                setActive(0);
+                setActiveGroup(null);
+                setDeleteGroup(null);
+              }}
+            >
+              Xóa nhóm
+            </Button>
+          </DialogActions>
+        </Dialog>
+        <Dialog
           open={deleteQuestion !== null}
           onClose={() => setDeleteQuestion(null)}
           fullWidth
@@ -1397,160 +1657,4 @@ function localDate(value: string) {
   return new Date(date.getTime() - date.getTimezoneOffset() * 60000)
     .toISOString()
     .slice(0, 16);
-}
-function MediaEditor({
-  media,
-  onChange,
-}: {
-  media: Media[];
-  onChange: (media: Media[]) => void;
-}) {
-  if (!media.length) return null;
-  return (
-    <Stack spacing={1}>
-      {media.map((item, i) => (
-        <MediaEditorItem
-          key={item.materialId}
-          item={item}
-          onChange={(value) =>
-            onChange(media.map((m, j) => (j === i ? value : m)))
-          }
-          onRemove={() => onChange(media.filter((_, j) => j !== i))}
-        />
-      ))}
-    </Stack>
-  );
-}
-function MediaEditorItem({
-  item,
-  onChange,
-  onRemove,
-}: {
-  item: Media;
-  onChange: (item: Media) => void;
-  onRemove: () => void;
-}) {
-  const [dimensions, setDimensions] = useState<MediaDimensions | null>(null);
-  const visual =
-    item.file &&
-    (item.file.mimeType.startsWith("image/") ||
-      item.file.mimeType.startsWith("video/"));
-  return (
-    <Box>
-      <AssignmentMedia media={[item]} onDimensions={setDimensions} />
-      <Box component="details" sx={{ mt: 1 }}>
-        <Typography
-          component="summary"
-          variant="body2"
-          sx={{ cursor: "pointer", color: "var(--a-green)" }}
-        >
-          Chỉnh hiển thị / gỡ tài liệu
-        </Typography>
-        {visual && (
-          <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-            {dimensions
-              ? `Kích thước mặc định (gốc): ${dimensions.width} × ${dimensions.height} px. Tự co vừa khung hiển thị.`
-              : "Kích thước mặc định: tự động theo tệp gốc. Tải ảnh / phát video để xem số pixel."}
-          </Typography>
-        )}
-        <Stack
-          className="assignment-labels"
-          direction="row"
-          useFlexGap
-          sx={{ mt: 1.5, flexWrap: "wrap", gap: 1.5, alignItems: "flex-end" }}
-        >
-          {visual && (
-            <>
-              <TextField
-                size="small"
-                type="number"
-                label="Chiều rộng"
-                value={item.displayWidth ?? ""}
-                placeholder={dimensions ? String(dimensions.width) : "Tự động"}
-                onChange={(e) =>
-                  onChange({
-                    ...item,
-                    displayWidth: e.target.value
-                      ? Number(e.target.value)
-                      : null,
-                  })
-                }
-                slotProps={{
-                  inputLabel: { shrink: true },
-                  input: {
-                    endAdornment: (
-                      <InputAdornment position="end">px</InputAdornment>
-                    ),
-                  },
-                  htmlInput: { min: 1, max: 4096, step: 1 },
-                }}
-                sx={{
-                  width: { xs: "calc((100% - 12px) / 2)", sm: 150 },
-                  maxWidth: "100%",
-                }}
-              />
-              <TextField
-                size="small"
-                type="number"
-                label="Chiều cao"
-                value={item.displayHeight ?? ""}
-                placeholder={dimensions ? String(dimensions.height) : "Tự động"}
-                onChange={(e) =>
-                  onChange({
-                    ...item,
-                    displayHeight: e.target.value
-                      ? Number(e.target.value)
-                      : null,
-                  })
-                }
-                slotProps={{
-                  inputLabel: { shrink: true },
-                  input: {
-                    endAdornment: (
-                      <InputAdornment position="end">px</InputAdornment>
-                    ),
-                  },
-                  htmlInput: { min: 1, max: 4096, step: 1 },
-                }}
-                sx={{
-                  width: { xs: "calc((100% - 12px) / 2)", sm: 150 },
-                  maxWidth: "100%",
-                }}
-              />
-              <FormControlLabel
-                sx={{ m: 0, minHeight: 40 }}
-                control={
-                  <Checkbox
-                    checked={item.keepAspectRatio}
-                    onChange={(_, keepAspectRatio) =>
-                      onChange({ ...item, keepAspectRatio })
-                    }
-                  />
-                }
-                label="Giữ tỷ lệ"
-              />
-              <Button
-                size="small"
-                onClick={() =>
-                  onChange({
-                    ...item,
-                    displayWidth: null,
-                    displayHeight: null,
-                    keepAspectRatio: true,
-                  })
-                }
-              >
-                Kích thước gốc
-              </Button>
-            </>
-          )}
-          <Tooltip title="Bỏ media">
-            <IconButton aria-label="Bỏ media" onClick={onRemove}>
-              <Close fontSize="small" />
-            </IconButton>
-          </Tooltip>
-        </Stack>
-      </Box>
-    </Box>
-  );
 }
