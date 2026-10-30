@@ -74,6 +74,13 @@ export async function installHttpFixture(
       } else if (request.postData()) body = request.postDataJSON();
       const url = new URL(request.url());
       const endpoint = url.pathname.slice(prefix.length) + url.search;
+      if (endpoint === "/mcp/connections" && request.method() === "GET") {
+        await route.fulfill({
+          headers: cors,
+          json: { data: { enabled: false, items: [] } },
+        });
+        return;
+      }
       const classThread = url.pathname
         .slice(prefix.length)
         .match(/^\/classes\/([^/]+)\/(threads|thread-sessions)$/);

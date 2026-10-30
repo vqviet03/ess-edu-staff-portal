@@ -1,4 +1,5 @@
 "use client";
+import { McpConnectionsPanel } from "@/features/mcp/connections";
 import { NotificationPreferencesPanel } from "@/features/pwa/preferences";
 import { ChangePassword } from "@/features/assignments/password";
 import { useState } from "react";
@@ -56,6 +57,7 @@ export function PersonalProfilePage() {
       )}
       <ChangePassword />
       <NotificationPreferencesPanel />
+      <McpConnectionsPanel />
     </Stack>
   );
 }
