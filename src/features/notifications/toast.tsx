@@ -14,6 +14,7 @@ import Close from "@mui/icons-material/Close";
 import OpenInNew from "@mui/icons-material/OpenInNew";
 import { NotificationContent } from "./content";
 import { SwipeDismiss } from "@/shared/swipe-dismiss";
+import { claimNoticeToast } from "./toast-receipts";
 import { NOTICE_TOAST_EVENT } from "./events";
 import type { Notification } from "@/features/materials/models";
 
@@ -24,26 +25,43 @@ export function NotificationToast() {
     preferences = useNotificationPreferencesQuery(undefined, {
       skip: !authenticated,
     });
-  const [queue, setQueue] = useState<Notification[]>([]),
+  const scope = useAppSelector((s) => s.auth.session?.teacher.id) ?? "";
+  const [queue, setQueue] = useState<{ scope: string; items: Notification[] }>({
+      scope: "",
+      items: [],
+    }),
     seen = useRef(new Set<string>());
   useEffect(() => {
-    const add = (event: Event) => {
+    let active = true;
+    const add = async (event: Event) => {
       const n = (event as CustomEvent<Notification>).detail;
       if (
+        !authenticated ||
+        !scope ||
+        n.isRead ||
+        document.hidden ||
         !wantsNotification(n.type, n.priority, preferences.data?.types) ||
-        seen.current.has(n.id)
+        seen.current.has(`${scope}:${n.id}`)
       )
         return;
-      seen.current.add(n.id);
+      seen.current.add(`${scope}:${n.id}`);
+      if (!(await claimNoticeToast(scope, n.id)) || !active) return;
       if (seen.current.size > 256)
         seen.current.delete(seen.current.values().next().value!);
-      setQueue((q) => [...q, n].slice(-15));
+      setQueue((q) => ({
+        scope,
+        items: [...(q.scope === scope ? q.items : []), n].slice(-15),
+      }));
     };
     window.addEventListener(NOTICE_TOAST_EVENT, add);
-    return () => window.removeEventListener(NOTICE_TOAST_EVENT, add);
-  }, [preferences.data?.types]);
-  const notice = queue[0],
-    close = () => setQueue((q) => q.slice(1)),
+    return () => {
+      active = false;
+      window.removeEventListener(NOTICE_TOAST_EVENT, add);
+    };
+  }, [authenticated, scope, preferences.data?.types]);
+  const notice =
+      authenticated && queue.scope === scope ? queue.items[0] : undefined,
+    close = () => setQueue((q) => ({ ...q, items: q.items.slice(1) })),
     href = notice ? staffGiftNoticeHref(notice.href) : null;
   return (
     <Snackbar

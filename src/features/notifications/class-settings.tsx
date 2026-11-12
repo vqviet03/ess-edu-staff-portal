@@ -32,6 +32,9 @@ const labels: Record<string, string> = {
   SCORE: "Công bố điểm",
   APPROVAL: "Phê duyệt",
   SYSTEM: "Hệ thống",
+  ASSIGNMENT: "Giao bài / nhận bài",
+  SUBMISSION: "Học sinh nộp bài",
+  ASSIGNMENT_RESULT: "Kết quả bài tập",
 };
 function Editor({ classId, close }: { classId: string; close: () => void }) {
   const q = useNotificationSettingsQuery(classId),

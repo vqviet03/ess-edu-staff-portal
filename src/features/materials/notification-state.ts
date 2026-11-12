@@ -8,6 +8,7 @@ export interface NotificationFilter {
 }
 export const libraryNoticeReceived = createAction<{
   cursor?: string;
+  resourceRefreshFollows?: boolean;
   notice: Notification;
 }>("operations/libraryNoticeReceived");
 export const librarySnapshotReceived = createAction<CursorPage<Notification>>(

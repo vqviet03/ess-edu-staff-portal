@@ -45,8 +45,9 @@ export function notificationResourceTags(
       { type: "Gift", ...id },
     ];
   if (type === "SCORE") return ["Reports", "Assessments"];
-  if (type === "SOCIAL" || type === "REPLY") return ["Posts", "Comments"];
-  if (type === "MATERIAL")
+  if (["SOCIAL", "REPLY", "COMMENT", "REACTION"].includes(type))
+    return ["Posts", "Comments"];
+  if (type === "MATERIAL" || type === "POST")
     return classId
       ? ["Posts", "Materials"]
       : ["Materials", "Folders", "Storages", "DeletionRequests"];

@@ -36,3 +36,23 @@ test("processed images download with their real encoding and other document name
     "Giáo trình.pdf",
   );
 });
+
+test("legacy reply/social switches and grade switches are respected", () => {
+  assert.equal(wantsNotification("REPLY", "NORMAL", { COMMENT: false }), false);
+  assert.equal(
+    wantsNotification("SOCIAL", "NORMAL", { COMMENT: false }),
+    false,
+  );
+  assert.equal(
+    wantsNotification("ASSIGNMENT_RESULT", "NORMAL", { GRADE: false }),
+    false,
+  );
+  assert.equal(
+    wantsNotification("ASSIGNMENT_RESULT", "NORMAL", {
+      GRADE: false,
+      ASSIGNMENT_RESULT: true,
+    }),
+    true,
+  );
+  assert.equal(wantsNotification("POST", "NORMAL", { POST: false }), false);
+});
