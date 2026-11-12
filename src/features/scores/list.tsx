@@ -1,4 +1,8 @@
 "use client";
+import { compactRadii } from "@/theme/compact";
+import Link from "next/link";
+import ButtonBase from "@mui/material/ButtonBase";
+import { ProfileAvatar } from "@/features/profile/avatar";
 import { publicId } from "@/shared/public-id";
 import { ReadOnlyNotice } from "@/features/access/hooks";
 import dynamic from "next/dynamic";
@@ -10,7 +14,7 @@ import Typography from "@mui/material/Typography";
 import useMediaQuery from "@mui/material/useMediaQuery";
 import { useTheme } from "@mui/material/styles";
 import { confirmLeave } from "@/shared/unsaved";
-import { Card, Feedback, NavButton, Title } from "@/shared/ui";
+import { Feedback, NavButton, Title } from "@/shared/ui";
 import { route } from "@/utils/context";
 import { calculate, emptyResult, percent } from "@/utils/scores";
 import { useScoreContext } from "./context";
@@ -66,7 +70,7 @@ export function Scores() {
           >
             <Stack
               sx={{
-                gap: 2,
+                gap: 1,
               }}
             >
               <Button onClick={() => setShowTable(true)}>
@@ -78,7 +82,25 @@ export function Scores() {
                     emptyResult(s.id, a.skills),
                   total = calculate(r, a.skills);
                 return (
-                  <Card key={s.id}>
+                  <ButtonBase
+                    key={s.id}
+                    component={Link}
+                    aria-label={`Nhập điểm cho ${s.name}`}
+                    href={route("/student-score/", {
+                      ...q.context,
+                      studentId: s.id,
+                    })}
+                    sx={{
+                      textAlign: "left",
+                      justifyContent: "flex-start",
+                      gap: 1.25,
+                      p: 1.5,
+                      borderRadius: compactRadii.item,
+                      bgcolor: "background.paper",
+                      minHeight: 44,
+                    }}
+                  >
+                    <ProfileAvatar fallbackInitials name={s.name} size={36} />
                     <Stack
                       sx={{
                         gap: 1,
@@ -98,16 +120,8 @@ export function Scores() {
                           ? "Vắng"
                           : `${total.score ?? "—"}/${total.max} · ${percent(total.percentage)} · ${total.entered}/${total.count} phần`}
                       </Typography>
-                      <NavButton
-                        href={route("/student-score/", {
-                          ...q.context,
-                          studentId: s.id,
-                        })}
-                      >
-                        Nhập điểm học sinh
-                      </NavButton>
                     </Stack>
-                  </Card>
+                  </ButtonBase>
                 );
               })}
             </Stack>

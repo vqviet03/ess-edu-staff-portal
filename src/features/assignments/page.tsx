@@ -14,6 +14,7 @@ import { RichContent } from "./media";
 import { DeadlineChip } from "@/features/materials/deadline-chip";
 import { BackAction } from "@/shared/back-action";
 import { useAssignmentQuery } from "@/api/assignment-api";
+import { useWorkspace } from "@/features/access/hooks";
 import { useClassCapabilities } from "@/features/access/hooks";
 import { Feedback } from "@/shared/ui";
 import { SubmissionList, SubmissionGrading } from "./grading";
@@ -26,7 +27,7 @@ const Editor = dynamic(
   { loading: () => <Feedback loading /> },
 );
 const Preview = dynamic(
-  () => import("./player").then((m) => m.AssignmentPlayer),
+  () => import("./review").then((m) => m.AssignmentReview),
   { loading: () => <Feedback loading /> },
 );
 export function AssignmentPage() {
@@ -51,6 +52,7 @@ function AssignmentContent() {
   const [showReport, setShowReport] = useState(false),
     [showSubmissions, setShowSubmissions] = useState(false);
   const router = useRouter();
+  const workspace = useWorkspace();
   const params = useSearchParams(),
     id = params.get("assignmentId") ?? "",
     classId = params.get("classId") ?? "",
@@ -113,9 +115,22 @@ function AssignmentContent() {
           <>
             <Stack
               direction="row"
-              sx={{ justifyContent: "space-between", gap: 1, flexWrap: "wrap" }}
+              sx={{
+                justifyContent: "space-between",
+                alignItems: "flex-start",
+                gap: 1,
+              }}
             >
-              <Typography component="h1" variant="h4" sx={{ fontWeight: 700 }}>
+              <Typography
+                component="h1"
+                variant="h4"
+                sx={{
+                  fontWeight: 700,
+                  flex: 1,
+                  minWidth: 0,
+                  overflowWrap: "anywhere",
+                }}
+              >
                 {query.data.title}
               </Typography>
               {access.editLearning &&
@@ -151,18 +166,22 @@ function AssignmentContent() {
                 }}
               />
             )}
-            <Preview
-              key={`${id}:${query.data.assignmentVersionId}`}
-              assignment={query.data}
-              initial={null}
-              preview
-            />
-            <Button
-              aria-expanded={showSubmissions}
-              onClick={() => setShowSubmissions((v) => !v)}
-            >
-              {showSubmissions ? "Ẩn bài nộp" : "Xem bài nộp"}
-            </Button>
+            <Stack direction="row" useFlexGap sx={{ gap: 1, flexWrap: "wrap" }}>
+              <Button
+                variant={showSubmissions ? "contained" : "outlined"}
+                aria-expanded={showSubmissions}
+                onClick={() => setShowSubmissions((v) => !v)}
+              >
+                {showSubmissions ? "Ẩn bài nộp" : "Xem bài nộp"}
+              </Button>
+              <Button
+                variant={showReport ? "contained" : "outlined"}
+                onClick={() => setShowReport((v) => !v)}
+                aria-expanded={showReport}
+              >
+                {showReport ? "Ẩn báo cáo lớp" : "Báo cáo bài tập của lớp"}
+              </Button>
+            </Stack>
             {showSubmissions && (
               <SubmissionList
                 assignment={{
@@ -171,13 +190,12 @@ function AssignmentContent() {
                 }}
               />
             )}
-            <Button
-              onClick={() => setShowReport((v) => !v)}
-              aria-expanded={showReport}
-            >
-              {showReport ? "Ẩn báo cáo lớp" : "Báo cáo bài tập của lớp"}
-            </Button>
             {showReport && <ClassReport classId={classId} />}
+            <Preview
+              key={`${id}:${query.data.assignmentVersionId}`}
+              assignment={query.data}
+              showAnswers={workspace.selected === "teacher"}
+            />
           </>
         ))}
     </Stack>

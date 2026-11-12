@@ -1,8 +1,11 @@
 "use client";
+import { compactRadii } from "@/theme/compact";
 import { useState } from "react";
 import Link from "next/link";
 import Stack from "@mui/material/Stack";
-import Paper from "@mui/material/Paper";
+import ButtonBase from "@mui/material/ButtonBase";
+import Box from "@mui/material/Box";
+import { ProfileAvatar } from "@/features/profile/avatar";
 import Typography from "@mui/material/Typography";
 import TextField from "@mui/material/TextField";
 import Button from "@mui/material/Button";
@@ -46,32 +49,44 @@ export function ClassAssignmentReport({ classId }: { classId: string }) {
       {query.currentData?.items.map((student) => {
         const s = student.report.summary;
         return (
-          <Paper
+          <ButtonBase
+            component={Link}
+            href={`/student/?classId=${encodeURIComponent(classId)}&studentId=${encodeURIComponent(student.studentId)}&tab=assignments`}
             key={student.studentId}
-            variant="outlined"
-            sx={{ p: 2, borderRadius: "16px" }}
+            sx={{
+              display: "flex",
+              gap: 1.25,
+              justifyContent: "flex-start",
+              textAlign: "left",
+              p: { xs: 1.25, md: 2 },
+              minHeight: 44,
+              borderRadius: compactRadii.item,
+              border: 1,
+              borderColor: "divider",
+              bgcolor: "background.paper",
+            }}
           >
-            <Stack spacing={1}>
-              <Typography sx={{ fontWeight: 700 }}>
-                {student.studentName}
-              </Typography>
-              <Typography variant="body2">
-                Đã nộp {s.submitted}/{s.assigned} bài · Thiếu {s.missing} · Nộp
-                muộn {s.late} · Chờ chấm/công bố {s.awaitingGrading}
-              </Typography>
-              <Typography variant="body2">
-                Điểm đã chấm: {numberLabel(s.gradedPercentage)}% · Điểm gồm bài
-                chưa nộp: {numberLabel(s.includingUnsubmittedPercentage)}%
-              </Typography>
-              <Button
-                component={Link}
-                href={`/student/?classId=${encodeURIComponent(classId)}&studentId=${encodeURIComponent(student.studentId)}&tab=assignments`}
-                sx={{ alignSelf: "flex-start" }}
-              >
-                Xem chi tiết
-              </Button>
-            </Stack>
-          </Paper>
+            <ProfileAvatar
+              fallbackInitials
+              name={student.studentName}
+              size={36}
+            />
+            <Box sx={{ minWidth: 0 }}>
+              <Stack spacing={0.5}>
+                <Typography sx={{ fontWeight: 700 }}>
+                  {student.studentName}
+                </Typography>
+                <Typography variant="body2">
+                  Đã nộp {s.submitted}/{s.assigned} bài · Thiếu {s.missing} ·
+                  Nộp muộn {s.late} · Chờ chấm/công bố {s.awaitingGrading}
+                </Typography>
+                <Typography variant="body2">
+                  Điểm đã chấm: {numberLabel(s.gradedPercentage)}% · Điểm gồm
+                  bài chưa nộp: {numberLabel(s.includingUnsubmittedPercentage)}%
+                </Typography>
+              </Stack>
+            </Box>
+          </ButtonBase>
         );
       })}
       {query.currentData?.nextCursor && (

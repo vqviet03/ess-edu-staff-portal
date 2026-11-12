@@ -1,6 +1,12 @@
 "use client";
+import { compactRadii } from "@/theme/compact";
+import useMediaQuery from "@mui/material/useMediaQuery";
+import { useTheme } from "@mui/material/styles";
 import { useState } from "react";
 import Link from "next/link";
+import ButtonBase from "@mui/material/ButtonBase";
+import { ProfileAvatar } from "@/features/profile/avatar";
+import { NavigationRow } from "@/shared/navigation-row";
 import Box from "@mui/material/Box";
 import { AssignmentSurface } from "./surface";
 import Stack from "@mui/material/Stack";
@@ -38,6 +44,7 @@ import {
   type Submission,
 } from "./models";
 export function SubmissionList({ assignment }: { assignment: Assignment }) {
+  const mobile = useMediaQuery(useTheme().breakpoints.down("md"));
   const [cursor, setCursor] = useState<string>(),
     [status, setStatus] = useState("ALL"),
     q = useAssignmentSubmissionsQuery({ id: assignment.id, cursor });
@@ -69,14 +76,27 @@ export function SubmissionList({ assignment }: { assignment: Assignment }) {
           ["Đã chấm", summary?.graded ?? "—"],
           ["Chưa nộp", summary?.notSubmitted ?? "—"],
         ].map(([label, value]) => (
-          <Paper key={label} sx={{ p: 2 }}>
+          <Paper
+            key={label}
+            sx={{ p: { xs: 1.5, sm: 2 }, borderRadius: compactRadii.surface }}
+          >
             <Typography variant="body2" color="text.secondary">
               {label}
             </Typography>
-            <Typography sx={{ fontSize: 28, fontWeight: 700, my: 1 }}>
+            <Typography
+              sx={{
+                fontSize: { xs: 22, sm: 28 },
+                fontWeight: 700,
+                my: { xs: 0.25, sm: 1 },
+              }}
+            >
               {value}
             </Typography>
-            <Typography variant="body2" color="text.secondary">
+            <Typography
+              variant="body2"
+              color="text.secondary"
+              sx={{ display: { xs: "none", sm: "block" } }}
+            >
               Học sinh được giao bài · toàn bộ bài tập
             </Typography>
           </Paper>
@@ -85,6 +105,8 @@ export function SubmissionList({ assignment }: { assignment: Assignment }) {
       <TextField
         select
         label="Trạng thái bài nộp (trang hiện tại)"
+        size="small"
+        sx={{ width: "100%", maxWidth: 360 }}
         value={status}
         onChange={(e) => setStatus(e.target.value)}
       >
@@ -98,102 +120,175 @@ export function SubmissionList({ assignment }: { assignment: Assignment }) {
       {rows.length === 0 ? (
         <Alert severity="info">Chưa có học sinh nộp bài.</Alert>
       ) : (
-        <Paper sx={{ p: { xs: 2, md: 3 } }}>
-          <TableContainer>
-            <Table
-              aria-label="Bài nộp của học sinh"
-              sx={{
-                minWidth: 600,
-                "& th,& td": {
-                  borderBottom: "1px solid var(--a-border)",
-                  px: 1,
-                  py: 2,
-                },
-              }}
-            >
-              <TableHead>
-                <TableRow>
-                  {[
-                    "Học sinh",
-                    "Nộp bài",
-                    "Tự chấm",
-                    "Điểm cuối",
-                    "Trạng thái",
-                    "",
-                  ].map((h) => (
-                    <TableCell key={h} sx={{ fontWeight: 700 }}>
-                      {h}
-                    </TableCell>
-                  ))}
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {filtered.map((s) => (
-                  <TableRow key={s.id}>
-                    <TableCell sx={{ fontWeight: 700 }}>
-                      {s.studentName}
-                      {s.studentNickname ? ` (${s.studentNickname})` : ""}
-                    </TableCell>
-                    <TableCell>
-                      {s.submittedAt
-                        ? new Date(s.submittedAt).toLocaleString("vi-VN")
-                        : "Chưa nộp"}
-                      {s.isLate ? " · Nộp muộn" : ""}
-                    </TableCell>
-                    <TableCell>
-                      {numberLabel(
-                        s.submittedAt
-                          ? s.grades
-                              .filter((g) => g.automatic)
-                              .reduce((sum, g) => sum + (g.score ?? 0), 0)
-                          : null,
-                      )}
-                      /
-                      {assignment.questions
-                        .filter(
-                          (q) => q.type === "SINGLE" || q.type === "MULTIPLE",
-                        )
-                        .reduce((sum, q) => sum + q.maxScore, 0)}
-                    </TableCell>
-                    <TableCell>
-                      {numberLabel(s.totalScore)}/{s.totalMax}
-                    </TableCell>
-                    <TableCell
-                      sx={{
-                        color:
-                          s.totalScore == null
-                            ? "warning.main"
-                            : "text.secondary",
-                      }}
-                    >
-                      {statusLabels[s.status] ?? s.status}
-                    </TableCell>
-                    <TableCell>
-                      <Stack
-                        direction="row"
-                        sx={{ alignItems: "center", gap: 0.5 }}
+        <Paper
+          sx={{ p: { xs: 1.5, md: 3 }, borderRadius: compactRadii.surface }}
+        >
+          {mobile && (
+            <Stack spacing={1}>
+              {filtered.map((s) => (
+                <Box
+                  key={s.id}
+                  sx={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 0.5,
+                    borderBottom: 1,
+                    borderColor: "divider",
+                  }}
+                >
+                  <ButtonBase
+                    component={Link}
+                    href={`/assignment/?assignmentId=${assignment.id}&classId=${assignment.classId}&submissionId=${s.id}&mode=grade`}
+                    aria-label={`Xem bài của ${s.studentName}`}
+                    sx={{
+                      flex: 1,
+                      minWidth: 0,
+                      minHeight: 44,
+                      p: 1,
+                      gap: 1,
+                      justifyContent: "flex-start",
+                      textAlign: "left",
+                      borderRadius: compactRadii.inset,
+                    }}
+                  >
+                    <ProfileAvatar
+                      fallbackInitials
+                      name={s.studentName}
+                      size={36}
+                    />
+                    <Box sx={{ minWidth: 0 }}>
+                      <Typography
+                        sx={{
+                          fontSize: 14,
+                          fontWeight: 700,
+                          overflowWrap: "anywhere",
+                        }}
                       >
-                        <Button
-                          component={Link}
-                          href={`/assignment/?assignmentId=${assignment.id}&classId=${assignment.classId}&submissionId=${s.id}&mode=grade`}
-                        >
-                          {assignment.canEdit && s.submittedAt
-                            ? "Chấm bài"
-                            : s.submittedAt
-                              ? "Xem bài nộp"
-                              : "Xem nháp"}
-                        </Button>
-                        <ReopenSubmissionButton
-                          assignment={assignment}
-                          submission={s}
-                        />
-                      </Stack>
-                    </TableCell>
+                        {s.studentName}
+                        {s.studentNickname ? ` (${s.studentNickname})` : ""}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        <Box component="span">
+                          {statusLabels[s.status] ?? s.status}
+                        </Box>{" "}
+                        · {numberLabel(s.totalScore)}/{s.totalMax} điểm
+                      </Typography>
+                      <Typography
+                        variant="caption"
+                        color="text.secondary"
+                        sx={{ display: "block" }}
+                      >
+                        {s.submittedAt
+                          ? new Date(s.submittedAt).toLocaleString("vi-VN")
+                          : "Chưa nộp"}
+                        {s.isLate ? " · Nộp muộn" : ""}
+                      </Typography>
+                    </Box>
+                  </ButtonBase>
+                  <ReopenSubmissionButton
+                    assignment={assignment}
+                    submission={s}
+                  />
+                </Box>
+              ))}
+            </Stack>
+          )}
+          {!mobile && (
+            <TableContainer>
+              <Table
+                aria-label="Bài nộp của học sinh"
+                sx={{
+                  minWidth: 600,
+                  "& th,& td": {
+                    borderBottom: "1px solid var(--a-border)",
+                    px: 1,
+                    py: 2,
+                  },
+                }}
+              >
+                <TableHead>
+                  <TableRow>
+                    {[
+                      "Học sinh",
+                      "Nộp bài",
+                      "Tự chấm",
+                      "Điểm cuối",
+                      "Trạng thái",
+                      "",
+                    ].map((h) => (
+                      <TableCell key={h} sx={{ fontWeight: 700 }}>
+                        {h}
+                      </TableCell>
+                    ))}
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
+                </TableHead>
+                <TableBody>
+                  {filtered.map((s) => (
+                    <NavigationRow
+                      key={s.id}
+                      href={`/assignment/?assignmentId=${assignment.id}&classId=${assignment.classId}&submissionId=${s.id}&mode=grade`}
+                      aria-label={`Xem bài của ${s.studentName}`}
+                    >
+                      <TableCell sx={{ fontWeight: 700 }}>
+                        <Link
+                          href={`/assignment/?assignmentId=${assignment.id}&classId=${assignment.classId}&submissionId=${s.id}&mode=grade`}
+                          style={{ color: "inherit", textDecoration: "none" }}
+                        >
+                          {s.studentName}
+                          {s.studentNickname ? ` (${s.studentNickname})` : ""}
+                        </Link>
+                      </TableCell>
+                      <TableCell>
+                        {s.submittedAt
+                          ? new Date(s.submittedAt).toLocaleString("vi-VN")
+                          : "Chưa nộp"}
+                        {s.isLate ? " · Nộp muộn" : ""}
+                      </TableCell>
+                      <TableCell>
+                        {numberLabel(
+                          s.submittedAt
+                            ? s.grades
+                                .filter((g) => g.automatic)
+                                .reduce((sum, g) => sum + (g.score ?? 0), 0)
+                            : null,
+                        )}
+                        /
+                        {assignment.questions
+                          .filter(
+                            (q) => q.type === "SINGLE" || q.type === "MULTIPLE",
+                          )
+                          .reduce((sum, q) => sum + q.maxScore, 0)}
+                      </TableCell>
+                      <TableCell>
+                        {numberLabel(s.totalScore)}/{s.totalMax}
+                      </TableCell>
+                      <TableCell
+                        sx={{
+                          color:
+                            s.totalScore == null
+                              ? "warning.main"
+                              : "text.secondary",
+                        }}
+                      >
+                        {statusLabels[s.status] ?? s.status}
+                      </TableCell>
+                      <TableCell>
+                        <Stack
+                          direction="row"
+                          sx={{ alignItems: "center", gap: 0.5 }}
+                        >
+                          <ReopenSubmissionButton
+                            assignment={assignment}
+                            submission={s}
+                          />
+                        </Stack>
+                      </TableCell>
+                    </NavigationRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          )}
           {!filtered.length && (
             <Typography sx={{ py: 2 }}>
               Không có bài nộp khớp bộ lọc trên trang này.

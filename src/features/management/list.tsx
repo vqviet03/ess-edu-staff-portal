@@ -1,4 +1,5 @@
 "use client";
+import { NavigationRow } from "@/shared/navigation-row";
 import { useDebouncedValue } from "@/shared/debounced-value";
 import { useRouteState } from "@/shared/route-state";
 import { publicId } from "@/shared/public-id";
@@ -634,7 +635,6 @@ function EntityList({ entity }: { entity: Entity }) {
                           ? ["Lịch / Tiến độ"]
                           : ["Liên hệ"]),
                         "Trạng thái",
-                        "",
                       ].map((h, i) => (
                         <TableCell key={i}>{h}</TableCell>
                       ))}
@@ -642,7 +642,11 @@ function EntityList({ entity }: { entity: Entity }) {
                   </TableHead>
                   <TableBody>
                     {rows.map((r) => (
-                      <TableRow key={r.id}>
+                      <NavigationRow
+                        key={r.id}
+                        href={href(r.id)}
+                        aria-label={`Xem hồ sơ ${recordName(r)}`}
+                      >
                         <TableCell>
                           <Checkbox
                             slotProps={{
@@ -684,12 +688,7 @@ function EntityList({ entity }: { entity: Entity }) {
                           )}
                         </TableCell>
                         <TableCell>{showValue(r.status)}</TableCell>
-                        <TableCell>
-                          <Button component={Link} href={href(r.id)}>
-                            Hồ sơ
-                          </Button>
-                        </TableCell>
-                      </TableRow>
+                      </NavigationRow>
                     ))}
                   </TableBody>
                 </Table>
