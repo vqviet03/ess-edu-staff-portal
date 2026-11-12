@@ -1,4 +1,5 @@
 "use client";
+import { compactRadii } from "@/theme/compact";
 import { useState } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
@@ -120,7 +121,13 @@ export function AssignmentReportView({
                   "Chỉ báo hoàn thành bài tập; chờ chấm chưa tính",
                 ],
               ].map(([label, value, note]) => (
-                <Paper key={label} sx={{ p: { xs: 1.25, md: 2 } }}>
+                <Paper
+                  key={label}
+                  sx={{
+                    p: { xs: 1.5, md: 2 },
+                    borderRadius: compactRadii.surface,
+                  }}
+                >
                   <Stack spacing={1}>
                     <Typography variant="body2" color="text.secondary">
                       {label}
@@ -261,7 +268,7 @@ export function AssignmentReportView({
                       minHeight: 44,
                       color: "inherit",
                       textDecoration: "none",
-                      borderRadius: 1,
+                      borderRadius: compactRadii.inset,
                       "&:hover": { bgcolor: "action.hover" },
                       "&:focus-visible": {
                         outline: "2px solid",

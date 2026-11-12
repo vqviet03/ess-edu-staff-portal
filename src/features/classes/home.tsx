@@ -1,4 +1,5 @@
 "use client";
+import { compactRadii } from "@/theme/compact";
 import { MobileFilters } from "@/shared/mobile-filters";
 import { useMemo } from "react";
 import { useDebouncedValue } from "@/shared/debounced-value";
@@ -135,8 +136,8 @@ export function Home() {
                   bgcolor: "background.paper",
                   border: 1,
                   borderColor: "divider",
-                  borderRadius: 2,
-                  p: { xs: 1.25, sm: 2.5 },
+                  borderRadius: compactRadii.item,
+                  p: { xs: 1.5, sm: 2.5 },
                   minWidth: 0,
                 }}
               >
@@ -195,10 +196,10 @@ export function Home() {
                         textAlign: "left",
                         justifyContent: "flex-start",
                         width: "100%",
-                        p: 1.25,
+                        p: 1.5,
                         minHeight: 44,
                         bgcolor: "action.hover",
-                        borderRadius: 2,
+                        borderRadius: compactRadii.item,
                       }}
                     >
                       <Stack spacing={0.75} sx={{ width: "100%", minWidth: 0 }}>

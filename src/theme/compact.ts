@@ -74,3 +74,10 @@ export const compactControls: Components<Theme> = {
     },
   },
 };
+
+// Explicit lengths avoid sx multiplying radii by theme.shape.borderRadius.
+export const compactRadii = {
+  surface: "12px",
+  item: "10px",
+  inset: "6px",
+} as const;

@@ -1,4 +1,5 @@
 "use client";
+import { compactRadii } from "@/theme/compact";
 import { useState } from "react";
 import Link from "next/link";
 import Stack from "@mui/material/Stack";
@@ -59,7 +60,7 @@ export function ClassAssignmentReport({ classId }: { classId: string }) {
               textAlign: "left",
               p: { xs: 1.25, md: 2 },
               minHeight: 44,
-              borderRadius: 2,
+              borderRadius: compactRadii.item,
               border: 1,
               borderColor: "divider",
               bgcolor: "background.paper",

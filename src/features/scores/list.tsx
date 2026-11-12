@@ -1,4 +1,5 @@
 "use client";
+import { compactRadii } from "@/theme/compact";
 import Link from "next/link";
 import ButtonBase from "@mui/material/ButtonBase";
 import { ProfileAvatar } from "@/features/profile/avatar";
@@ -94,7 +95,7 @@ export function Scores() {
                       justifyContent: "flex-start",
                       gap: 1.25,
                       p: 1.5,
-                      borderRadius: 2,
+                      borderRadius: compactRadii.item,
                       bgcolor: "background.paper",
                       minHeight: 44,
                     }}

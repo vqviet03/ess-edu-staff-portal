@@ -1,4 +1,5 @@
 "use client";
+import { compactRadii } from "@/theme/compact";
 import useMediaQuery from "@mui/material/useMediaQuery";
 import { useTheme } from "@mui/material/styles";
 import { useState } from "react";
@@ -75,7 +76,10 @@ export function SubmissionList({ assignment }: { assignment: Assignment }) {
           ["Đã chấm", summary?.graded ?? "—"],
           ["Chưa nộp", summary?.notSubmitted ?? "—"],
         ].map(([label, value]) => (
-          <Paper key={label} sx={{ p: { xs: 1.25, sm: 2 } }}>
+          <Paper
+            key={label}
+            sx={{ p: { xs: 1.5, sm: 2 }, borderRadius: compactRadii.surface }}
+          >
             <Typography variant="body2" color="text.secondary">
               {label}
             </Typography>
@@ -116,7 +120,9 @@ export function SubmissionList({ assignment }: { assignment: Assignment }) {
       {rows.length === 0 ? (
         <Alert severity="info">Chưa có học sinh nộp bài.</Alert>
       ) : (
-        <Paper sx={{ p: { xs: 1.25, md: 3 } }}>
+        <Paper
+          sx={{ p: { xs: 1.5, md: 3 }, borderRadius: compactRadii.surface }}
+        >
           {mobile && (
             <Stack spacing={1}>
               {filtered.map((s) => (
@@ -142,7 +148,7 @@ export function SubmissionList({ assignment }: { assignment: Assignment }) {
                       gap: 1,
                       justifyContent: "flex-start",
                       textAlign: "left",
-                      borderRadius: 1,
+                      borderRadius: compactRadii.inset,
                     }}
                   >
                     <ProfileAvatar

@@ -1,4 +1,5 @@
 "use client";
+import { compactRadii } from "@/theme/compact";
 import { useState } from "react";
 import {
   Accordion,
@@ -76,7 +77,7 @@ export function AssignmentReview({
                     minWidth: 0,
                     border: 1,
                     borderColor: "divider",
-                    borderRadius: "12px !important",
+                    borderRadius: `${compactRadii.item} !important`,
                     "&:before": { display: "none" },
                   }}
                 >
@@ -152,7 +153,7 @@ export function AssignmentReview({
                             gap: 1,
                             alignItems: "flex-start",
                             p: 1,
-                            borderRadius: 1,
+                            borderRadius: compactRadii.inset,
                             bgcolor:
                               showAnswers && option.isCorrect
                                 ? "action.selected"

@@ -1,4 +1,5 @@
 "use client";
+import { compactRadii } from "@/theme/compact";
 import { NavigationRow } from "@/shared/navigation-row";
 import ButtonBase from "@mui/material/ButtonBase";
 import {
@@ -147,7 +148,7 @@ export function GiftCatalogManager() {
               minHeight: 44,
               display: "block",
               textAlign: "left",
-              borderRadius: 2,
+              borderRadius: compactRadii.item,
               border: 1,
               borderColor: "divider",
               bgcolor: "background.paper",

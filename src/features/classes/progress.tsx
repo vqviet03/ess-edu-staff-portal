@@ -1,4 +1,5 @@
 "use client";
+import { compactRadii } from "@/theme/compact";
 import Link from "next/link";
 import ButtonBase from "@mui/material/ButtonBase";
 import { useState } from "react";
@@ -63,7 +64,7 @@ export function ClassProgress({
                 key={i}
                 sx={{
                   p: 1.5,
-                  borderRadius: 2,
+                  borderRadius: compactRadii.item,
                   bgcolor: done ? "primary.main" : "action.hover",
                   color: done ? "primary.contrastText" : "text.primary",
                 }}
@@ -118,7 +119,7 @@ export function ClassProgress({
                   minHeight: 44,
                   border: 1,
                   borderColor: "divider",
-                  borderRadius: 2,
+                  borderRadius: compactRadii.item,
                 }}
               >
                 <Stack
