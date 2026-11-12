@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
-import { useMediaQuery, useTheme, IconButton } from "@mui/material";
-import { MobileSchedule } from "./mobile-schedule";
+import { useMediaQuery, useTheme } from "@mui/material";
+import { ScheduleViewer } from "./schedule-viewer";
 import { StudentNotificationSelect } from "@/features/notifications/delivery";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
@@ -713,48 +713,24 @@ export function StudySchedulePanel({
           }}
         >
           <DialogTitle
-            sx={
-              mobile
-                ? {
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    px: 2,
-                  }
-                : undefined
-            }
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              ...(mobile ? { px: 2 } : {}),
+            }}
           >
             <Typography component="span" sx={{ fontSize: 24, fontWeight: 700 }}>
               Lịch học của lớp
             </Typography>
-            {mobile && (
-              <IconButton
-                aria-label="Đóng lịch học"
-                onClick={() => setViewing(false)}
-              >
-                <Close />
-              </IconButton>
-            )}
+            <IconAction
+              label="Đóng lịch học"
+              icon={<Close />}
+              onClick={() => setViewing(false)}
+            />
           </DialogTitle>
           <DialogContent sx={mobile ? { px: 2 } : undefined}>
-            {mobile ? (
-              <MobileSchedule data={data} />
-            ) : (
-              <Stack spacing={1}>
-                {data.occurrences.length ? (
-                  data.occurrences.map((o) => (
-                    <Typography key={o.date}>
-                      {displayDate(o.date)} ·{" "}
-                      {o.startTime && o.endTime
-                        ? `${o.startTime}–${o.endTime}`
-                        : "Giờ thông báo sau"}
-                    </Typography>
-                  ))
-                ) : (
-                  <Typography>Chưa có ngày học cụ thể.</Typography>
-                )}
-              </Stack>
-            )}
+            <ScheduleViewer data={data} />
           </DialogContent>
           <DialogActions sx={{ display: { xs: "none", md: "flex" } }}>
             <Button

@@ -12,7 +12,7 @@ import {
 } from "@mui/material";
 import { type StudySchedule, displayDate, vietnamToday } from "./models";
 
-export function MobileSchedule({ data }: { data: StudySchedule }) {
+export function ScheduleViewer({ data }: { data: StudySchedule }) {
   const months = [
     ...new Set(data.occurrences.map((day) => day.date.slice(0, 7))),
   ];
