@@ -71,7 +71,7 @@ export function Feedback({
 }
 export function Card({ children }: { children: ReactNode }) {
   return (
-    <Paper sx={{ p: { xs: 2.5, md: 2.5 }, minWidth: 0 }}>{children}</Paper>
+    <Paper sx={{ p: { xs: 1.5, md: 2.5 }, minWidth: 0 }}>{children}</Paper>
   );
 }
 export function Title({

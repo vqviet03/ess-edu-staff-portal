@@ -120,7 +120,7 @@ export function AssignmentReportView({
                   "Chỉ báo hoàn thành bài tập; chờ chấm chưa tính",
                 ],
               ].map(([label, value, note]) => (
-                <Paper key={label} sx={{ p: 2 }}>
+                <Paper key={label} sx={{ p: { xs: 1.25, md: 2 } }}>
                   <Stack spacing={1}>
                     <Typography variant="body2" color="text.secondary">
                       {label}
@@ -253,9 +253,20 @@ export function AssignmentReportView({
                 </Typography>
                 {r.items.map((x) => (
                   <Box
+                    component={Link}
+                    href={`/assignment/?assignmentId=${x.assignmentId}&classId=${classId}${studentId && x.submissionId ? `&submissionId=${x.submissionId}&mode=grade` : ""}`}
                     key={x.assignmentId}
                     sx={{
-                      py: 1.5,
+                      py: { xs: 1.25, md: 1.5 },
+                      minHeight: 44,
+                      color: "inherit",
+                      textDecoration: "none",
+                      borderRadius: 1,
+                      "&:hover": { bgcolor: "action.hover" },
+                      "&:focus-visible": {
+                        outline: "2px solid",
+                        outlineColor: "primary.main",
+                      },
                       px: 1,
                       borderBottom: "1px solid var(--a-border)",
                       display: "grid",
@@ -263,13 +274,11 @@ export function AssignmentReportView({
                         xs: "1fr",
                         md: "minmax(0,2fr) 100px 160px minmax(0,2fr)",
                       },
-                      gap: 2,
+                      gap: { xs: 0.75, md: 2 },
                       alignItems: "center",
                     }}
                   >
                     <Typography
-                      component={Link}
-                      href={`/assignment/?assignmentId=${x.assignmentId}&classId=${classId}${studentId && x.submissionId ? `&submissionId=${x.submissionId}&mode=grade` : ""}`}
                       sx={{
                         fontWeight: 700,
                         color: "text.primary",

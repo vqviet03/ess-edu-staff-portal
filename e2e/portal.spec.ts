@@ -121,11 +121,7 @@ test("sửa học sinh, tạo phiên và bài 2 kỹ năng; phiên mới không 
   await expect(page.getByText("Buổi luyện tập", { exact: true })).toBeVisible();
   await expect(page.getByText("2/8 Unit · 25%")).toBeVisible();
   await page
-    .getByText("Buổi luyện tập", { exact: true })
-    .locator("..")
-    .locator("..")
-    .locator("..")
-    .getByRole("link", { name: "Mở phiên" })
+    .getByRole("link", { name: "Phiên học Buổi luyện tập", exact: true })
     .click();
   await page.getByRole("button", { name: "Tạo bài đánh giá" }).click();
   await page.getByLabel("Tên bài đánh giá").fill("Luyện nghe và nói");
@@ -218,12 +214,15 @@ test("Excel tải mẫu thực, preview và commit; mobile không tràn màn hì
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("scores/?" + context);
   await expect(
-    page.getByRole("link", { name: "Nhập điểm học sinh" }).first(),
+    page.getByRole("link", { name: /^Nhập điểm cho / }).first(),
   ).toBeVisible();
   expect(
     await page.evaluate(() => document.documentElement.scrollWidth),
   ).toBeLessThanOrEqual(390);
-  await page.getByRole("link", { name: "Nhập điểm học sinh" }).first().click();
+  await page
+    .getByRole("link", { name: /^Nhập điểm cho / })
+    .first()
+    .click();
   await expect(
     page.getByLabel("Số câu / điểm đạt", { exact: true }).first(),
   ).toHaveValue("0");

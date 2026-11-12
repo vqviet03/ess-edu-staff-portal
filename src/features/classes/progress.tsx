@@ -1,4 +1,6 @@
 "use client";
+import Link from "next/link";
+import ButtonBase from "@mui/material/ButtonBase";
 import { useState } from "react";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
@@ -8,7 +10,7 @@ import Typography from "@mui/material/Typography";
 import { useSessionsQuery } from "@/api/api";
 import { ReadOnlyNotice } from "@/features/access/hooks";
 import { SessionEditor } from "@/features/sessions/editor";
-import { Card, Feedback, NavButton, Progress, StatusChip } from "@/shared/ui";
+import { Card, Feedback, Progress, StatusChip } from "@/shared/ui";
 import { completedUnitNumbers } from "@/utils/scores";
 import type { Class } from "@/types";
 
@@ -102,12 +104,18 @@ export function ClassProgress({
           </Button>
         </Stack>
         {query.currentData?.length ? (
-          <Stack spacing={2}>
+          <Stack spacing={1}>
             {query.currentData.map((s) => (
-              <Box
+              <ButtonBase
+                component={Link}
+                aria-label={`Phiên học ${s.name}`}
+                href={`/session/?classId=${encodeURIComponent(classId)}&sessionId=${encodeURIComponent(s.id)}`}
                 key={s.id}
                 sx={{
-                  p: 2,
+                  p: { xs: 1.25, md: 2 },
+                  display: "block",
+                  textAlign: "left",
+                  minHeight: 44,
                   border: 1,
                   borderColor: "divider",
                   borderRadius: 2,
@@ -130,15 +138,15 @@ export function ClassProgress({
                   </Box>
                   <StatusChip status={s.status} />
                 </Stack>
-                <Typography sx={{ my: 1, whiteSpace: "pre-wrap" }}>
-                  {s.note}
-                </Typography>
-                <NavButton
-                  href={`/session/?classId=${encodeURIComponent(classId)}&sessionId=${encodeURIComponent(s.id)}`}
-                >
-                  Mở phiên
-                </NavButton>
-              </Box>
+                {s.note && (
+                  <Typography
+                    variant="body2"
+                    sx={{ mt: 0.5, whiteSpace: "pre-wrap" }}
+                  >
+                    {s.note}
+                  </Typography>
+                )}
+              </ButtonBase>
             ))}
           </Stack>
         ) : (

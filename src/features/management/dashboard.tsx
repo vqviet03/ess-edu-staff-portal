@@ -206,9 +206,9 @@ function Dashboard() {
               ],
             ].map(([n, label, detail]) => (
               <Card key={label}>
-                <Stack spacing={2}>
+                <Stack spacing={{ xs: 0.5, md: 2 }}>
                   <Typography
-                    sx={{ fontSize: 30, fontWeight: 700 }}
+                    sx={{ fontSize: { xs: 24, md: 30 }, fontWeight: 700 }}
                     color="primary"
                   >
                     {n}

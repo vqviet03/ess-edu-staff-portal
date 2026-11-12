@@ -1,6 +1,8 @@
 "use client";
 import { staffGiftNoticeHref } from "@/features/gifts/links";
 import { NotificationContent } from "@/features/notifications/content";
+import Link from "next/link";
+import Box from "@mui/material/Box";
 import { useState } from "react";
 import Stack from "@mui/material/Stack";
 import Paper from "@mui/material/Paper";
@@ -279,28 +281,45 @@ export function NotificationsPage() {
         <Paper
           key={n.id}
           sx={{
-            p: 2,
+            p: { xs: 1.25, md: 2 },
             borderLeft: 4,
             borderColor: n.isRead ? "divider" : "primary.main",
           }}
         >
           <Stack spacing={1}>
-            <Typography sx={{ fontWeight: n.isRead ? 400 : 700 }}>
-              <NotificationContent notice={n} />
-            </Typography>
-            <Typography variant="caption">
-              {notificationTypes[n.type]} ·{" "}
-              {new Date(n.createdAt).toLocaleString("vi-VN")}
-            </Typography>
+            <Box
+              component={Link}
+              href={staffGiftNoticeHref(n.href)}
+              aria-label={`Mở ${n.title}`}
+              sx={{
+                display: "block",
+                minHeight: 44,
+                color: "inherit",
+                textDecoration: "none",
+                borderRadius: 1,
+                "&:focus-visible": {
+                  outline: "2px solid",
+                  outlineColor: "primary.main",
+                },
+              }}
+            >
+              <Typography
+                component="div"
+                sx={{ fontWeight: n.isRead ? 400 : 700 }}
+              >
+                <NotificationContent notice={n} />
+              </Typography>
+              <Typography variant="caption">
+                {notificationTypes[n.type]} ·{" "}
+                {new Date(n.createdAt).toLocaleString("vi-VN")}
+              </Typography>
+            </Box>
             <Stack
               direction="row"
               useFlexGap
               spacing={1}
               sx={{ flexWrap: "wrap" }}
             >
-              <NavButton href={staffGiftNoticeHref(n.href)}>
-                Mở nội dung
-              </NavButton>
               <Button
                 onClick={async () => {
                   try {

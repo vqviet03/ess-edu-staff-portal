@@ -51,9 +51,7 @@ test("ba tab, tải phiên/học sinh khi mở và menu không điều hướng 
   ).toEqual([]);
   await page.getByRole("tab", { name: "Tiến độ lớp" }).click();
   await expect(page.getByText("2/8 Unit · 25%", { exact: true })).toBeVisible();
-  await expect(
-    page.getByRole("link", { name: "Mở phiên", exact: true }),
-  ).toHaveCount(4);
+  await expect(page.getByRole("link", { name: /^Phiên học / })).toHaveCount(4);
   await expect(
     page.getByRole("button", { name: "Tạo phiên học", exact: true }),
   ).toBeEnabled();

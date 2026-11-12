@@ -1,4 +1,6 @@
 "use client";
+import { NavigationRow } from "@/shared/navigation-row";
+import ButtonBase from "@mui/material/ButtonBase";
 import {
   useGiftCategoriesQuery,
   useCatalogGiftVisibilityQuery,
@@ -134,7 +136,51 @@ export function GiftCatalogManager() {
         error={query.error}
         retry={query.refetch}
       />
-      <TableContainer component={Paper} sx={giftStyles.surface}>
+      <Stack spacing={1} sx={{ display: { xs: "flex", md: "none" } }}>
+        {query.data?.items.map((c) => (
+          <ButtonBase
+            key={c.id}
+            component={Link}
+            href={`/rewards/catalogs/?id=${c.id}`}
+            sx={{
+              p: 1.5,
+              minHeight: 44,
+              display: "block",
+              textAlign: "left",
+              borderRadius: 2,
+              border: 1,
+              borderColor: "divider",
+              bgcolor: "background.paper",
+            }}
+          >
+            <Typography sx={{ fontWeight: 700 }}>{c.name}</Typography>
+            <Typography variant="caption" color="text.secondary">
+              {c.ownerName} · {c.classIds.length} lớp ·{" "}
+              {c.status === "ACTIVE"
+                ? "Đang sử dụng"
+                : c.status === "COPYING"
+                  ? "Đang sao chép"
+                  : "Đang xóa"}
+            </Typography>
+            {c.description && (
+              <Typography
+                variant="body2"
+                color="text.secondary"
+                sx={{ mt: 0.5 }}
+              >
+                {c.description}
+              </Typography>
+            )}
+          </ButtonBase>
+        ))}
+        {query.data && !query.data.total && (
+          <Typography>Chưa có danh sách phần thưởng.</Typography>
+        )}
+      </Stack>
+      <TableContainer
+        component={Paper}
+        sx={[giftStyles.surface, { display: { xs: "none", md: "block" } }]}
+      >
         <Table
           size="small"
           sx={{
@@ -153,7 +199,11 @@ export function GiftCatalogManager() {
           </TableHead>
           <TableBody>
             {query.data?.items.map((c) => (
-              <TableRow key={c.id} hover>
+              <NavigationRow
+                key={c.id}
+                href={`/rewards/catalogs/?id=${c.id}`}
+                aria-label={`Danh sách ${c.name}`}
+              >
                 <TableCell>
                   <Button
                     component={Link}
@@ -181,7 +231,7 @@ export function GiftCatalogManager() {
                       ? "Đang sao chép"
                       : "Đang xóa"}
                 </TableCell>
-              </TableRow>
+              </NavigationRow>
             ))}
           </TableBody>
         </Table>
