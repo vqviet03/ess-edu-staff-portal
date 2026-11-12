@@ -115,9 +115,22 @@ function AssignmentContent() {
           <>
             <Stack
               direction="row"
-              sx={{ justifyContent: "space-between", gap: 1, flexWrap: "wrap" }}
+              sx={{
+                justifyContent: "space-between",
+                alignItems: "flex-start",
+                gap: 1,
+              }}
             >
-              <Typography component="h1" variant="h4" sx={{ fontWeight: 700 }}>
+              <Typography
+                component="h1"
+                variant="h4"
+                sx={{
+                  fontWeight: 700,
+                  flex: 1,
+                  minWidth: 0,
+                  overflowWrap: "anywhere",
+                }}
+              >
                 {query.data.title}
               </Typography>
               {access.editLearning &&
