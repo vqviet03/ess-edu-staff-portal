@@ -73,11 +73,6 @@ function Excel() {
       <Title
         title="Excel · Nhập & xuất"
         subtitle="Template riêng theo nhóm; giữ tiếng Việt và xuống dòng. Không xuất mật khẩu / token."
-        actions={
-          <NavButton back href={`/manage/list/?entity=${group}`}>
-            ← Danh sách
-          </NavButton>
-        }
       />
       <Stack spacing={2.5}>
         {message && <Alert severity="success">{message}</Alert>}

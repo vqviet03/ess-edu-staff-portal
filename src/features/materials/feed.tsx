@@ -4,7 +4,6 @@ import { NotificationActionPriority } from "@/features/notifications/action-prio
 import { NotificationPrioritySelect } from "@/features/notifications/priority";
 import NextLink from "next/link";
 import Button from "@mui/material/Button";
-import { BackAction } from "@/shared/back-action";
 import { usePostTarget } from "./post-target";
 import { Comments } from "./comments";
 import { IconAction } from "@/shared/icon-action";
@@ -798,10 +797,6 @@ export function PostDetailPage({ postId }: { postId: string }) {
       />
       {q.data && target && (
         <>
-          <BackAction
-            label="Về thread"
-            fallback={`/class/thread/?classId=${encodeURIComponent(q.data.classId)}`}
-          />
           <PostCard
             detail
             targetComment={target?.comment}

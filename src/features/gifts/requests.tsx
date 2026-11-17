@@ -1,4 +1,5 @@
 "use client";
+import { PageHeader } from "@/shared/ui";
 import { useSearchParams } from "next/navigation";
 import { useState } from "react";
 import {
@@ -22,7 +23,7 @@ import { useWorkspace } from "@/features/access/hooks";
 import { Feedback } from "@/shared/ui";
 import { GiftCatalogView } from "./catalog";
 import { GiftHistory, GiftImage } from "./shared";
-import { giftStyles, type Redemption } from "./models";
+import { type Redemption } from "./models";
 export function GiftRequests() {
   const params = useSearchParams();
   const options = useGiftOptionsQuery(),
@@ -31,14 +32,10 @@ export function GiftRequests() {
     [deliver, state] = useDeliverGiftMutation();
   return (
     <Stack spacing={2.5}>
-      <div>
-        <Typography component="h1" sx={giftStyles.title}>
-          Yêu cầu giao quà
-        </Typography>
-        <Typography color="text.secondary">
-          Theo dõi và xác nhận quà đã giao cho học sinh.
-        </Typography>
-      </div>
+      <PageHeader
+        title="Yêu cầu giao quà"
+        subtitle="Theo dõi và xác nhận quà đã giao cho học sinh."
+      />
       <TextField
         select
         label="Lớp học"
@@ -137,14 +134,10 @@ export function GiftProxy() {
     });
   return (
     <Stack spacing={2.5}>
-      <div>
-        <Typography component="h1" sx={giftStyles.title}>
-          Đổi quà hộ học sinh
-        </Typography>
-        <Typography color="text.secondary">
-          Chọn lớp đang phụ trách và đúng người nhận trước khi thêm quà.
-        </Typography>
-      </div>
+      <PageHeader
+        title="Đổi quà hộ học sinh"
+        subtitle="Chọn lớp đang phụ trách và đúng người nhận trước khi thêm quà."
+      />
       {workspace.selected !== "teacher" ? (
         <Alert severity="info">
           Chuyển sang vai trò Giảng viên để đổi hộ trong lớp đang phụ trách.

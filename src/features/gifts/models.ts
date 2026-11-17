@@ -111,7 +111,7 @@ export const giftStyles = {
     p: { xs: 1.5, md: 2 },
     boxShadow: "none",
   },
-  title: { fontSize: 28, fontWeight: 700, lineHeight: 1.4 },
+  title: { fontSize: { xs: 20, sm: 28 }, fontWeight: 700, lineHeight: 1.4 },
   pills: {
     minHeight: 40,
     "& .MuiTab-root": { minHeight: 36, borderRadius: "999px", px: 2, py: 0.75 },

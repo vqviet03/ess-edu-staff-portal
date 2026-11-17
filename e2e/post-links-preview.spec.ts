@@ -359,7 +359,7 @@ test("desktop comments scroll independently and post detail has an icon back to 
   await credentials(page);
   await expect(page.getByTestId("lesson-post")).toBeVisible();
   await expect(
-    page.getByRole("link", { name: "Về thread", exact: true }),
+    page.getByRole("link", { name: "Quay lại", exact: true }),
   ).toBeVisible();
   const toggle = page.getByRole("button", {
     name: "Bình luận (30)",
@@ -425,7 +425,7 @@ test("thread clamps title to one line and body to eight lines, detail preserves 
   await article.getByRole("link", { name: "Xem thêm", exact: true }).click();
   await expect(page).toHaveURL(/\/post\/\?postId=link-post/);
   await expect(
-    page.getByRole("link", { name: "Về thread", exact: true }),
+    page.getByRole("link", { name: "Quay lại", exact: true }),
   ).toBeVisible();
   expect(
     await page

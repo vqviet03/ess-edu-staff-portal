@@ -39,9 +39,6 @@ export function AssessmentDetail() {
         subtitle={`${a.name} · Schema v${a.schemaVersion}`}
         actions={
           <>
-            <NavButton back href={route("/session/", q.context)}>
-              ← Phiên học
-            </NavButton>
             <NavButton href={route("/scores/", q.context)}>Bảng điểm</NavButton>
             <NavButton href={route("/import/", q.context)}>
               Import Excel

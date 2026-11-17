@@ -121,7 +121,7 @@ test("dòng học sinh mở hồ sơ, reload đường dẫn tĩnh và chặn h�
   await expect(
     page.getByRole("heading", { name: "Hữu Văn", exact: true }),
   ).toBeVisible();
-  await page.getByRole("link", { name: "← Hồ sơ lớp học" }).click();
+  await page.getByRole("link", { name: "Quay lại", exact: true }).click();
   await expect(
     page.getByRole("tab", { name: "Hồ sơ & quan hệ" }),
   ).toHaveAttribute("aria-selected", "true");

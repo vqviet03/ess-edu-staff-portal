@@ -18,6 +18,7 @@ import TextField from "@mui/material/TextField";
 import MenuIcon from "@mui/icons-material/Menu";
 import Close from "@mui/icons-material/Close";
 import MoreVert from "@mui/icons-material/MoreVert";
+import Person from "@mui/icons-material/PersonOutlined";
 import Notifications from "@mui/icons-material/NotificationsNone";
 import Help from "@mui/icons-material/HelpOutlined";
 import Remove from "@mui/icons-material/Remove";
@@ -43,6 +44,7 @@ type Workspace = "manager" | "teacher";
  * header/sidebar are hidden with CSS so the first paint never flashes.
  */
 export function MobileAppBar({
+  lead,
   brand,
   authenticated,
   manager,
@@ -54,6 +56,9 @@ export function MobileAppBar({
   signingOut,
   onResetDemo,
 }: {
+  /** Leftmost slot after the menu (the app icon). */
+  lead: ReactNode;
+  /** App icon shown in the navigation drawer. */
   brand: ReactNode;
   authenticated: boolean;
   manager: boolean;
@@ -107,17 +112,12 @@ export function MobileAppBar({
         sx={{
           flex: 1,
           minWidth: 0,
-          pl: authenticated ? 0.25 : 1,
-          "& > *": {
-            display: "flex",
-            alignItems: "center",
-            whiteSpace: "nowrap",
-            overflow: "hidden",
-            textOverflow: "ellipsis",
-          },
+          pl: authenticated ? 0 : 1,
+          display: "flex",
+          alignItems: "center",
         }}
       >
-        {brand}
+        {lead}
       </Box>
       {authenticated && workspaces.length > 1 && (
         // Dual-role staff switch workspaces constantly, so the switch stays
@@ -174,31 +174,51 @@ export function MobileAppBar({
           </Badge>
         </IconButton>
       )}
-      {authenticated && avatar && (
-        <IconButton
-          component={Link}
-          href="/profile/"
-          aria-label="Hồ sơ cá nhân"
-        >
-          {avatar}
-        </IconButton>
-      )}
+      {/* Signed-in users open account + preferences from their avatar;
+          the sign-in page keeps a plain ⋮ for display preferences. */}
       <IconButton
-        aria-label="Tùy chọn khác"
+        aria-label={authenticated && avatar ? "Tài khoản" : "Tùy chọn khác"}
         aria-haspopup="menu"
         aria-expanded={!!anchor}
         onClick={(e) => setAnchor(e.currentTarget)}
+        sx={{
+          transition: (theme) =>
+            theme.transitions.create(["transform", "box-shadow"], {
+              duration: theme.transitions.duration.shorter,
+            }),
+          ...(anchor && {
+            transform: "scale(0.94)",
+            boxShadow: (theme) => `0 0 0 2px ${theme.palette.primary.main}`,
+          }),
+        }}
       >
-        <MoreVert />
+        {authenticated && avatar ? avatar : <MoreVert />}
       </IconButton>
       <Menu
         anchorEl={anchor}
         open={!!anchor}
         onClose={close}
+        anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+        transformOrigin={{ vertical: "top", horizontal: "right" }}
         slotProps={{
           paper: { sx: { minWidth: 240, maxWidth: "calc(100vw - 24px)" } },
         }}
       >
+        {authenticated &&
+          avatar && [
+            <MenuItem
+              key="profile"
+              component={Link}
+              href="/profile/"
+              onClick={close}
+            >
+              <ListItemIcon>
+                <Person fontSize="small" />
+              </ListItemIcon>
+              Hồ sơ cá nhân
+            </MenuItem>,
+            <Divider key="profile-d" />,
+          ]}
         <MenuItem
           onClick={() => {
             close();

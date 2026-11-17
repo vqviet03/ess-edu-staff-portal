@@ -1,4 +1,5 @@
 "use client";
+import { Loading } from "@/shared/ui";
 import dynamic from "next/dynamic";
 import type { ReactNode } from "react";
 import Box from "@mui/material/Box";
@@ -20,7 +21,7 @@ import {
 import { rewardBackgrounds, rewardSurface, rewardTint } from "./design";
 const Chart = dynamic(() => import("./chart"), {
   ssr: false,
-  loading: () => <LinearProgress />,
+  loading: () => <Loading />,
 });
 export function RewardMetrics({ totals }: { totals: RewardTotals }) {
   return (
