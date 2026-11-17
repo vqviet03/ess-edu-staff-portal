@@ -354,6 +354,9 @@ export function Shell({ children }: { children: ReactNode }) {
     }
   };
   const { zoom } = useAppDisplay();
+  const mobileLayout = useMediaQuery((theme: Theme) =>
+    theme.breakpoints.down("md"),
+  );
   const [reset, { isLoading }] = useResetDemoMutation();
   const resetDemo = async () => {
     if (
@@ -489,60 +492,68 @@ export function Shell({ children }: { children: ReactNode }) {
               minWidth: 0,
             }}
           >
-            <MobileAppBar
-              brand={
-                <Box
-                  component={Link}
-                  href={auth.status === "authenticated" ? "/home/" : "/login/"}
-                  aria-label={appName}
-                  title={appName}
-                  sx={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    "& > *": { mr: "0 !important" },
-                  }}
-                >
-                  <AppIcon />
-                </Box>
-              }
-              authenticated={auth.status === "authenticated"}
-              manager={workspace.selected === "manager"}
-              avatar={
-                <ProfileAvatar
-                  name={auth.session?.teacher.name ?? "Bạn"}
-                  value={auth.session?.teacher.avatar}
-                  size={30}
-                />
-              }
-              workspaces={workspace.allowed as ("manager" | "teacher")[]}
-              workspace={workspace.selected as "manager" | "teacher" | null}
-              onWorkspace={(value) => {
-                if (confirmLeave()) {
-                  workspace.choose(value);
-                  if (pathname.startsWith("/manage/")) router.push("/home/");
+            {/* Only one header is mounted so controls are never duplicated;
+                CSS still hides the desktop header before the query resolves. */}
+            {mobileLayout && (
+              <MobileAppBar
+                brand={
+                  <Box
+                    component={Link}
+                    href={
+                      auth.status === "authenticated" ? "/home/" : "/login/"
+                    }
+                    aria-label={appName}
+                    title={appName}
+                    sx={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      "& > *": { mr: "0 !important" },
+                    }}
+                  >
+                    <AppIcon />
+                  </Box>
                 }
-              }}
-              onSignOut={() => void signOut()}
-              signingOut={logoutState.isLoading}
-              onResetDemo={useMock ? () => void resetDemo() : undefined}
-            />
-            <Stack
-              component="header"
-              direction="row"
-              useFlexGap
-              sx={{
-                display: { xs: "none", md: "flex" },
-                mb: 2,
-                py: 1,
-                alignItems: "center",
-                justifyContent: "space-between",
-                flexWrap: "wrap",
-                gap: 1,
-              }}
-            >
-              {brand}
-              {headerControls}
-            </Stack>
+                authenticated={auth.status === "authenticated"}
+                manager={workspace.selected === "manager"}
+                avatar={
+                  <ProfileAvatar
+                    name={auth.session?.teacher.name ?? "Bạn"}
+                    value={auth.session?.teacher.avatar}
+                    size={30}
+                  />
+                }
+                workspaces={workspace.allowed as ("manager" | "teacher")[]}
+                workspace={workspace.selected as "manager" | "teacher" | null}
+                onWorkspace={(value) => {
+                  if (confirmLeave()) {
+                    workspace.choose(value);
+                    if (pathname.startsWith("/manage/")) router.push("/home/");
+                  }
+                }}
+                onSignOut={() => void signOut()}
+                signingOut={logoutState.isLoading}
+                onResetDemo={useMock ? () => void resetDemo() : undefined}
+              />
+            )}
+            {!mobileLayout && (
+              <Stack
+                component="header"
+                direction="row"
+                useFlexGap
+                sx={{
+                  display: { xs: "none", md: "flex" },
+                  mb: 2,
+                  py: 1,
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  flexWrap: "wrap",
+                  gap: 1,
+                }}
+              >
+                {brand}
+                {headerControls}
+              </Stack>
+            )}
             <GuideLayout workspace={workspace.selected}>
               <Box component="main">{children}</Box>
             </GuideLayout>

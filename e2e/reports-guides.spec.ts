@@ -1,5 +1,6 @@
 import { test, expect, type Page } from "@playwright/test";
 import { installHttpFixture } from "./support/http-fixture";
+import { toggleGuide, zoom } from "./support/display";
 const base = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
 async function login(page: Page, id = "GV0001") {
   await page.goto(base + "/login/");
@@ -33,7 +34,7 @@ test("Giảng viên xem báo cáo, sửa nhận xét, guide không chặn và co
   await expect(
     page.getByRole("button", { name: "Sửa nhận xét", exact: true }),
   ).toBeEnabled();
-  await page.getByRole("button", { name: "Hướng dẫn", exact: true }).click();
+  await toggleGuide(page);
   const guide = page.getByRole("complementary", {
     name: "Hướng dẫn màn hình hiện tại",
   });
@@ -41,9 +42,7 @@ test("Giảng viên xem báo cáo, sửa nhận xét, guide không chặn và co
   await expect(
     guide.getByRole("heading", { name: "Báo cáo học tập", exact: true }),
   ).toBeVisible();
-  await page
-    .getByRole("button", { name: "Thu nhỏ giao diện", exact: true })
-    .click();
+  await zoom(page, "Thu nhỏ giao diện");
   await expect(page.getByTestId("application-scale")).toHaveAttribute(
     "data-zoom",
     "85",
@@ -122,14 +121,12 @@ test("Manager chỉ xem, mobile tối guide vẫn cho đổi Unit và zoom", asy
   await expect(
     page.getByRole("heading", { name: "Tổng quan kết quả Unit 3" }),
   ).toBeVisible();
-  await page.getByRole("button", { name: "Hướng dẫn", exact: true }).click();
+  await toggleGuide(page);
   const guide = page.getByRole("complementary", {
     name: "Hướng dẫn màn hình hiện tại",
   });
   await expect(guide).toBeVisible();
-  await page
-    .getByRole("button", { name: "Thu nhỏ giao diện", exact: true })
-    .click();
+  await zoom(page, "Thu nhỏ giao diện");
   await page.getByRole("combobox", { name: "Học sinh", exact: true }).click();
   await page.getByRole("option", { name: /Minh Anh/ }).click();
   await expect(

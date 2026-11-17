@@ -4,6 +4,7 @@ import type {
   Assignment,
   AssignmentWrite,
 } from "../src/features/assignments/models";
+import { openAppearance } from "./support/display";
 const base = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
 const assignment: Assignment = {
   id: "assignment-design",
@@ -149,14 +150,16 @@ test("builder keeps the app shell, rich content, question navigation and mobile 
   await page.getByRole("button", { name: "Câu 2 · 2 điểm Tự luận" }).click();
   await expect(input).toHaveText("Viết câu trả lời");
   await page.setViewportSize({ width: 390, height: 844 });
-  await expect(sidebar).toBeVisible();
+  // Phones swap the sidebar for the one-row app bar and its drawer.
+  await expect(sidebar).toBeHidden();
+  await expect(page.getByTestId("mobile-app-bar")).toBeVisible();
   await expect(page.getByRole("button", { name: "Câu 2 / 2" })).toBeVisible();
   expect(
     await page.evaluate(
       () => document.documentElement.scrollWidth <= innerWidth,
     ),
   ).toBe(true);
-  await page.getByRole("button", { name: "Giao diện", exact: true }).click();
+  await openAppearance(page);
   await page.getByRole("menuitem", { name: "Tối", exact: true }).click();
   await page.keyboard.press("Escape");
   await page.mouse.click(380, 180);
@@ -762,7 +765,7 @@ for (const width of [390, 1440]) {
       fullPage: true,
       animations: "disabled",
     });
-    await page.getByRole("button", { name: "Giao diện", exact: true }).click();
+    await openAppearance(page);
     await page.getByRole("menuitem", { name: "Tối", exact: true }).click();
     await page.keyboard.press("Escape");
     await expect(page.locator("[data-assignment-surface]").first()).toHaveCSS(

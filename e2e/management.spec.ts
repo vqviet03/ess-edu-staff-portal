@@ -1,5 +1,6 @@
 import { test, expect, type Page } from "@playwright/test";
 import { installHttpFixture } from "./support/http-fixture";
+import { openAppearance } from "./support/display";
 const base = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
 const go = (page: Page, path: string) => page.goto(`${base}${path}`);
 async function login(page: Page, id = "MG0001") {
@@ -100,7 +101,7 @@ test("manager dashboard, navigation, readonly grades/schema, dark/mobile và dee
     page.getByRole("button", { name: "Đánh dấu hoàn thành" }),
   ).toBeDisabled();
   await go(page, "/home/");
-  await page.getByRole("button", { name: "Giao diện", exact: true }).click();
+  await openAppearance(page);
   await page.getByRole("menuitem", { name: "Tối", exact: true }).click();
   await page.screenshot({
     path: "test-results/management-overview-dark.png",
