@@ -286,7 +286,7 @@ test("bảng nhập dán nhiều dòng, cell errors/ID trùng và lưu preview",
 }) => {
   await login(page);
   await go(page, "/manage/grid/?entity=students");
-  await page.getByLabel("ID dòng 2", { exact: true }).evaluate((el) => {
+  await page.getByLabel("ID dòng 1", { exact: true }).evaluate((el) => {
     const data = new DataTransfer();
     data.setData(
       "text/plain",
