@@ -1,4 +1,6 @@
 "use client";
+import { publicId } from "@/shared/public-id";
+import { exportPrefix } from "@/features/settings/branding";
 import { useState } from "react";
 import Alert from "@mui/material/Alert";
 import Accordion from "@mui/material/Accordion";
@@ -117,7 +119,9 @@ export function ExcelImport() {
         title="Import từ Excel"
         subtitle={`${a.name} · Tải mẫu theo schema v${a.schemaVersion} hiện tại.`}
         actions={
-          <NavButton href={route("/scores/", q.context)}>← Bảng điểm</NavButton>
+          <NavButton back href={route("/scores/", q.context)}>
+            ← Bảng điểm
+          </NavButton>
         }
       />
       <Stack
@@ -129,7 +133,8 @@ export function ExcelImport() {
         {message && <Alert severity="success">{message}</Alert>}
         {locked && (
           <Alert severity="info">
-            Chỉ xem: quyền giảng viên/phân công hoặc trạng thái bài chưa cho phép import.
+            Chỉ xem: quyền giảng viên/phân công hoặc trạng thái bài chưa cho
+            phép import.
           </Alert>
         )}
         <Card>
@@ -153,7 +158,7 @@ export function ExcelImport() {
                   setError("");
                   const blob = await template(a.id).unwrap();
                   const { download } = await import("./workbook");
-                  download(blob, `ESS_${a.id}.xlsx`);
+                  download(blob, `${exportPrefix()}_bang_diem.xlsx`);
                 } catch (e) {
                   setError(errorMessage(e));
                 }
@@ -303,7 +308,7 @@ export function ExcelImport() {
                           await import("./workbook");
                         download(
                           await errorWorkbook(data.errors),
-                          "ESS_loi_import.xlsx",
+                          `${exportPrefix()}_loi_import.xlsx`,
                         );
                       } catch (e) {
                         setError(errorMessage(e));
@@ -319,7 +324,13 @@ export function ExcelImport() {
                   <AccordionSummary expandIcon="↓">
                     <Typography>
                       {q.students.find((s) => s.id === change.studentId)?.name}{" "}
-                      · {change.studentId}
+                      ·{" "}
+                      {publicId(
+                        q.students.find((s) => s.id === change.studentId)
+                          ?.publicId,
+                        q.students.find((s) => s.id === change.studentId)
+                          ?.studentCode,
+                      )}
                     </Typography>
                   </AccordionSummary>
                   <AccordionDetails>

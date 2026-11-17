@@ -16,7 +16,7 @@ export function useScoreContext() {
       assessmentId: params.get("assessmentId") ?? "",
     },
     ready = Object.values(context).every(Boolean);
-  const permissions=useClassCapabilities(context.classId);
+  const permissions = useClassCapabilities(context.classId);
   const c = useClassQuery(context.classId, { skip: !ready }),
     students = useHistoricalStudentsQuery(context.classId, { skip: !ready }),
     sessions = useSessionsQuery(context.classId, { skip: !ready }),
@@ -29,7 +29,7 @@ export function useScoreContext() {
       !sessions.currentData.some((s) => s.id === context.sessionId));
   return {
     context,
-    canEdit:permissions.editLearning,
+    canEdit: permissions.editLearning,
     studentId: params.get("studentId"),
     class: c.currentData,
     students: students.currentData ?? [],
@@ -37,7 +37,8 @@ export function useScoreContext() {
     results: results.currentData ?? [],
     loading:
       ready &&
-      (permissions.loading || c.isLoading ||
+      (permissions.loading ||
+        c.isLoading ||
         (c.isFetching && !c.currentData) ||
         students.isLoading ||
         (students.isFetching && !students.currentData) ||
@@ -48,7 +49,8 @@ export function useScoreContext() {
         results.isLoading ||
         (results.isFetching && !results.currentData)),
     error:
-      permissions.error || c.error ||
+      permissions.error ||
+      c.error ||
       students.error ||
       sessions.error ||
       assessment.error ||

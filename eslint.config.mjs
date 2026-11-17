@@ -12,6 +12,7 @@ export default defineConfig([
   },
   globalIgnores([
     ".next/**",
+    "public/pdf/**",
     "out/**",
     "next-env.d.ts",
     "test-results/**",

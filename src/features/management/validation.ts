@@ -7,6 +7,7 @@ const id = z
   .trim()
   .regex(/^[A-Za-z0-9][A-Za-z0-9_.-]{1,63}$/, "ID gồm 2–64 chữ, số, dấu . _ -");
 export const profileStatus = z.enum(["ACTIVE", "PAUSED", "INACTIVE"]);
+export const profileStatusPatchInput = z.object({ status: profileStatus });
 export const rolesInput = z
   .array(z.enum(["TEACHER", "MANAGER"]))
   .min(1, "Chọn ít nhất một vai trò")
@@ -205,6 +206,7 @@ export const fieldNames: Record<string, string> = {
   loginId: "ID đăng nhập",
   kind: "Loại tài khoản",
   profileId: "ID hồ sơ liên kết",
+  sessionLifetimeMinutes: "Thời hạn phiên (phút; trống = mặc định)",
 };
 export const fields: Record<Entity, string[]> = {
   students: [
@@ -217,7 +219,16 @@ export const fields: Record<Entity, string[]> = {
     "notes",
   ],
   teachers: ["fullName", "id", "email", "phone", "roles", "status", "notes"],
-  classes: ["id", "nameSuffix", "schedule", "totalUnits", "status", "notes"],
+  classes: [
+    "id",
+    "nameSuffix",
+    "name",
+    "code",
+    "schedule",
+    "totalUnits",
+    "status",
+    "notes",
+  ],
   accounts: ["id", "loginId", "kind", "profileId", "roles", "status"],
   labels: ["id", "name", "status", "notes"],
 };

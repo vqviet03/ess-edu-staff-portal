@@ -1,3 +1,7 @@
+import type {
+  EnrollmentDates,
+  EnrollmentDatesRequest,
+} from "@/features/management/enrollment-dates";
 import { api } from "./api";
 import type { Envelope } from "@/types";
 import type {
@@ -16,6 +20,10 @@ import type {
   Selection,
   ProfileGroup,
   AuditEvent,
+  AccountSessionPolicy,
+  LoginHistory,
+  SessionPolicyRequest,
+  SessionRevocation,
 } from "@/features/management/models";
 const unwrap = <T>(r: Envelope<T>) => r.data;
 const query = (p: Record<string, unknown>) =>
@@ -36,19 +44,75 @@ const updated = [
   "Sessions",
   "Assessments",
   "Results",
-  "Auth",
-  "ClassAccess",
 ] as const;
 const binary = async (r: Response) => (r.ok ? r.blob() : r.json());
 export const managementApi = api.injectEndpoints({
   endpoints: (b) => ({
-    suggestIdentifier: b.mutation<{ id: string; isAvailable: boolean; requestedId: string }, { entity: Entity; fullName?: string; id?: string }>({
-      query: (body) => ({ url: "/manager/identifiers/suggest", method: "POST", body }),
-      transformResponse: unwrap<{ id: string; isAvailable: boolean; requestedId: string }>,
+    accountLoginHistory: b.query<LoginHistory, { id: string; page?: number }>({
+      query: ({ id, page = 1 }) =>
+        `/manager/accounts/${encodeURIComponent(id)}/login-history?page=${page}&pageSize=5`,
+      transformResponse: unwrap<LoginHistory>,
+      providesTags: ["Management"],
     }),
-    checkIdentifier: b.mutation<{ id: string; isAvailable: boolean; requestedId: string }, { entity: Entity; id: string }>({
-      query: (body) => ({ url: "/manager/identifiers/check", method: "POST", body }),
-      transformResponse: unwrap<{ id: string; isAvailable: boolean; requestedId: string }>,
+    accountSessionPolicy: b.query<AccountSessionPolicy, string>({
+      query: (id) =>
+        `/manager/accounts/${encodeURIComponent(id)}/session-policy`,
+      transformResponse: unwrap<AccountSessionPolicy>,
+      providesTags: ["Management"],
+    }),
+    updateSessionPolicy: b.mutation<
+      AccountSessionPolicy,
+      { id: string; body: SessionPolicyRequest }
+    >({
+      query: ({ id, body }) => ({
+        url: `/manager/accounts/${encodeURIComponent(id)}/session-policy`,
+        method: "PATCH",
+        body,
+      }),
+      transformResponse: unwrap<AccountSessionPolicy>,
+      invalidatesTags: (_, error) => (error ? [] : ["Management", "Audit"]),
+    }),
+    revokeAccountSessions: b.mutation<
+      SessionRevocation,
+      { id: string; version: number; reason: string }
+    >({
+      query: ({ id, ...body }) => ({
+        url: `/manager/accounts/${encodeURIComponent(id)}/sessions/revoke`,
+        method: "POST",
+        body,
+      }),
+      transformResponse: unwrap<SessionRevocation>,
+      invalidatesTags: (_, error) => (error ? [] : ["Management", "Audit"]),
+    }),
+    suggestIdentifier: b.mutation<
+      { id: string; isAvailable: boolean; requestedId: string },
+      { entity: Entity; fullName?: string; id?: string }
+    >({
+      query: (body) => ({
+        url: "/manager/identifiers/suggest",
+        method: "POST",
+        body,
+      }),
+      transformResponse: unwrap<{
+        id: string;
+        isAvailable: boolean;
+        requestedId: string;
+      }>,
+    }),
+    checkIdentifier: b.mutation<
+      { id: string; isAvailable: boolean; requestedId: string },
+      { entity: Entity; id: string; excludeId?: string }
+    >({
+      query: (body) => ({
+        url: "/manager/identifiers/check",
+        method: "POST",
+        body,
+      }),
+      transformResponse: unwrap<{
+        id: string;
+        isAvailable: boolean;
+        requestedId: string;
+      }>,
     }),
     selectionCount: b.query<
       { count: number },
@@ -137,12 +201,31 @@ export const managementApi = api.injectEndpoints({
       }),
       transformResponse: unwrap<BulkPreview>,
     }),
+    enrollmentDates: b.query<
+      EnrollmentDates,
+      { classId: string; studentId: string }
+    >({
+      query: (p) => "/manager/enrollments/dates?" + query(p),
+      transformResponse: unwrap<EnrollmentDates>,
+      providesTags: (_, __, p) => [
+        { type: "Management", id: `enrollment:${p.classId}:${p.studentId}` },
+      ],
+    }),
+    previewEnrollmentDates: b.mutation<BulkPreview, EnrollmentDatesRequest>({
+      query: (body) => ({
+        url: "/manager/enrollments/dates/preview",
+        method: "POST",
+        body,
+      }),
+      transformResponse: unwrap<BulkPreview>,
+    }),
     previewEnrollment: b.mutation<
       BulkPreview,
       {
         classId: string;
         studentId: string;
-        status: "ACTIVE" | "ENDED";
+        status: "ACTIVE" | "ENDED" | "COMPLETED";
+        joinedOn?: string;
         version?: number;
       }
     >({
@@ -159,11 +242,16 @@ export const managementApi = api.injectEndpoints({
       providesTags: ["Warnings"],
     }),
     audit: b.query<
-      { items: AuditEvent[]; total: number },
-      { page: number; search: string }
+      { items: AuditEvent[]; total: number; page?: number; pageSize?: number },
+      { page: number; search: string; pageSize?: number }
     >({
       query: (p) => "/manager/audit?" + query(p),
-      transformResponse: unwrap<{ items: AuditEvent[]; total: number }>,
+      transformResponse: unwrap<{
+        items: AuditEvent[];
+        total: number;
+        page?: number;
+        pageSize?: number;
+      }>,
       providesTags: ["Audit"],
     }),
     activation: b.mutation<
@@ -231,6 +319,10 @@ export const managementApi = api.injectEndpoints({
   }),
 });
 export const {
+  useAccountSessionPolicyQuery,
+  useAccountLoginHistoryQuery,
+  useUpdateSessionPolicyMutation,
+  useRevokeAccountSessionsMutation,
   useSuggestIdentifierMutation,
   useCheckIdentifierMutation,
   useSelectionCountQuery,
@@ -243,6 +335,8 @@ export const {
   useAssignmentsQuery,
   usePreviewAssignmentMutation,
   usePreviewEnrollmentMutation,
+  useEnrollmentDatesQuery,
+  usePreviewEnrollmentDatesMutation,
   useWarningsQuery,
   useAuditQuery,
   useActivationMutation,

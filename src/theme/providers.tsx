@@ -1,4 +1,8 @@
 "use client";
+import { compactControls } from "@/theme/compact";
+import { RealtimeBoundary } from "@/shared/realtime-activity";
+import { RouteStateProvider } from "@/shared/route-state";
+import { NavigationRuntime } from "@/shared/page-navigation";
 import {
   createContext,
   useContext,
@@ -7,6 +11,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { PwaRuntime } from "@/features/pwa/runtime";
 import { Provider } from "react-redux";
 import { setupListeners } from "@reduxjs/toolkit/query";
 import { AppRouterCacheProvider } from "@mui/material-nextjs/v16-appRouter";
@@ -14,6 +19,7 @@ import { createTheme, ThemeProvider } from "@mui/material/styles";
 import { viVN } from "@mui/material/locale";
 import CssBaseline from "@mui/material/CssBaseline";
 import { makeStore } from "@/store";
+import { AppDisplayProvider } from "@/features/help/display";
 import { WorkspaceRuntime } from "@/features/access/hooks";
 import { AuthRuntime } from "@/features/auth/runtime";
 import { UnsavedRuntime } from "@/shared/unsaved";
@@ -78,15 +84,29 @@ export function Providers({ children }: { children: ReactNode }) {
           shape: { borderRadius: 16 },
           components: {
             MuiButton: {
-              defaultProps: { disableElevation: true },
-              styleOverrides: { root: { minHeight: 44, borderRadius: 8 } },
+              defaultProps: { disableElevation: true, size: "small" },
+              styleOverrides: {
+                root: {
+                  borderRadius: 8,
+                  "@media (pointer: coarse)": { minHeight: 44 },
+                },
+              },
             },
             MuiIconButton: {
-              styleOverrides: { root: { minWidth: 44, minHeight: 44 } },
+              defaultProps: { size: "small" },
+              styleOverrides: {
+                root: {
+                  "@media (pointer: coarse)": { minWidth: 44, minHeight: 44 },
+                },
+              },
             },
             MuiTextField: { defaultProps: { size: "small", fullWidth: true } },
+            MuiFormControl: { defaultProps: { size: "small" } },
+            MuiSelect: { defaultProps: { size: "small" } },
+            MuiInputBase: { defaultProps: { size: "small" } },
+            MuiChip: { defaultProps: { size: "small" } },
             MuiOutlinedInput: {
-              styleOverrides: { root: { borderRadius: 8, minHeight: 46 } },
+              styleOverrides: { root: { borderRadius: 8 } },
             },
             MuiPaper: {
               defaultProps: { elevation: 0 },
@@ -118,8 +138,15 @@ export function Providers({ children }: { children: ReactNode }) {
               styleOverrides: { root: { height: 7, borderRadius: 10 } },
             },
             MuiCheckbox: {
-              styleOverrides: { root: { minWidth: 44, minHeight: 44 } },
+              defaultProps: { size: "small" },
+              styleOverrides: {
+                root: {
+                  "@media (pointer: coarse)": { minWidth: 44, minHeight: 44 },
+                },
+              },
             },
+
+            ...compactControls,
           },
         },
         viVN,
@@ -128,18 +155,26 @@ export function Providers({ children }: { children: ReactNode }) {
   );
   return (
     <Provider store={store}>
-      <AppRouterCacheProvider>
-        <Preferences.Provider value={{ mode, setMode }}>
-          <ThemeProvider theme={theme}>
-            <CssBaseline />
-            <AuthRuntime />
-            <WorkspaceRuntime />
-            <OperationsRuntime />
-            <UnsavedRuntime />
-            {children}
-          </ThemeProvider>
-        </Preferences.Provider>
-      </AppRouterCacheProvider>
+      <NavigationRuntime />
+      <RouteStateProvider>
+        <AppRouterCacheProvider>
+          <Preferences.Provider value={{ mode, setMode }}>
+            <ThemeProvider theme={theme}>
+              <CssBaseline />
+              <RealtimeBoundary>
+                <PwaRuntime />
+                <AuthRuntime />
+                <WorkspaceRuntime />
+                <OperationsRuntime />
+                <UnsavedRuntime />
+                <AppDisplayProvider storageKey="ess.staff.zoom">
+                  {children}
+                </AppDisplayProvider>
+              </RealtimeBoundary>
+            </ThemeProvider>
+          </Preferences.Provider>
+        </AppRouterCacheProvider>
+      </RouteStateProvider>
     </Provider>
   );
 }

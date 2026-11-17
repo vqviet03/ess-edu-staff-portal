@@ -1,4 +1,5 @@
 "use client";
+import { publicId } from "@/shared/public-id";
 import { ReadOnlyNotice } from "@/features/access/hooks";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -34,7 +35,7 @@ function StudentForm({
   assessment,
   context,
 }: {
-  editable:boolean;
+  editable: boolean;
   student: Student;
   students: Student[];
   result: StudentResult;
@@ -104,7 +105,8 @@ function StudentForm({
       >
         {students.map((s) => (
           <MenuItem key={s.id} value={s.id}>
-            {s.name} {s.nickname ? `(${s.nickname})` : ""} · {s.id}
+            {s.name} {s.nickname ? `(${s.nickname})` : ""} ·{" "}
+            {publicId(s.publicId, s.studentCode, s.id)}
           </MenuItem>
         ))}
       </TextField>
@@ -306,16 +308,18 @@ export function StudentScore() {
   return (
     <>
       <Title
-        title={q.canEdit?"Nhập điểm học sinh":"Báo cáo học sinh · Chỉ xem"}
+        title={q.canEdit ? "Nhập điểm học sinh" : "Báo cáo học sinh · Chỉ xem"}
         subtitle={a.name}
         actions={
-          <NavButton href={route("/scores/", q.context)}>← Bảng điểm</NavButton>
+          <NavButton back href={route("/scores/", q.context)}>
+            ← Bảng điểm
+          </NavButton>
         }
       />
-      <ReadOnlyNotice editable={q.canEdit && s.status==="ACTIVE"}/>
+      <ReadOnlyNotice editable={q.canEdit && s.status === "ACTIVE"} />
       <StudentForm
         key={a.id + ":" + a.schemaVersion + ":" + s.id}
-        editable={q.canEdit && s.status==="ACTIVE"}
+        editable={q.canEdit && s.status === "ACTIVE"}
         student={s}
         students={q.students}
         assessment={a}

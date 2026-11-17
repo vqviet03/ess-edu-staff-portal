@@ -24,7 +24,7 @@ export interface ManagementDatabase {
       revision: number;
       actorId: string;
       extra?: {
-        kind: "assignment" | "enrollment";
+        kind: "assignment" | "enrollment" | "enrollmentDates";
         id: string;
         data: Record<string, unknown>;
       };
@@ -39,8 +39,26 @@ export interface ManagementDatabase {
     { accountId: string; expiresAt: string; used: boolean }
   >;
   audit: AuditEvent[];
+  settings?: import("@/features/settings/models").ApplicationSettings;
+  settingsProposals?: import("@/features/settings/models").SettingsProposal[];
   passwordHashes?: Record<string, string>;
   lastClassNumber?: number;
+  loginHistory?: {
+    accountId: string;
+    loggedInAt: string;
+    expiresAt: string;
+    revokedAt: string | null;
+    ipAddress: string | null;
+    device: string | null;
+    browser: string | null;
+    operatingSystem: string | null;
+  }[];
+  studentSessions?: {
+    id: string;
+    accountId: string;
+    expiresAt: string;
+    revokedAt: string | null;
+  }[];
 }
 export function managementSeed(db: Database): ManagementDatabase {
   const at = "2026-09-01T00:00:00Z",
