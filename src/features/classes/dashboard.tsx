@@ -5,6 +5,10 @@ import {
   ClassMembersButton,
 } from "@/features/presence/roster";
 import dynamic from "next/dynamic";
+import Link from "next/link";
+import IconButton from "@mui/material/IconButton";
+import Tooltip from "@mui/material/Tooltip";
+import Redeem from "@mui/icons-material/Redeem";
 import { useState } from "react";
 import { useSectionTab } from "@/shared/page-navigation";
 import { useSearchParams } from "next/navigation";
@@ -176,17 +180,33 @@ function TeacherClassDashboard({
           </NavButton>
         }
       />
-      <NavButton href={`/rewards/redeem/?classKey=${id}`}>Đổi quà hộ</NavButton>
+      <Box sx={{ display: { xs: "none", sm: "block" } }}>
+        <NavButton href={`/rewards/redeem/?classKey=${id}`}>
+          Đổi quà hộ
+        </NavButton>
+      </Box>
       <ClassRewardActions
         classId={c.id}
         name={c.name}
         editable={permissions.editLearning}
+        tools={
+          <>
+            <Tooltip title="Đổi quà hộ">
+              <IconButton
+                component={Link}
+                href={`/rewards/redeem/?classKey=${id}`}
+                aria-label="Đổi quà hộ"
+                sx={{ display: { sm: "none" } }}
+              >
+                <Redeem />
+              </IconButton>
+            </Tooltip>
+            <ClassMembersButton classId={c.id} />
+            <ClassNotificationSettings classId={c.id} />
+          </>
+        }
       />
       <ClassPresenceContext classId={c.id} />
-      <Stack direction="row">
-        <ClassMembersButton classId={c.id} />
-        <ClassNotificationSettings classId={c.id} />
-      </Stack>
       <ClassDetailTabs
         attendance={<AttendancePanel classId={c.id} />}
         value={tab}

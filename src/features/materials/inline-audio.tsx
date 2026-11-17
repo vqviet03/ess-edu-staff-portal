@@ -1,4 +1,6 @@
 "use client";
+import useMediaQuery from "@mui/material/useMediaQuery";
+import type { Theme } from "@mui/material/styles";
 import { useEffect, useRef, useState } from "react";
 import { useAudioTimeline } from "@/shared/audio-timeline";
 import { releaseMedia } from "@/shared/media-lifecycle";
@@ -70,6 +72,10 @@ export function InlineAudio({
       setError(e);
     }
   };
+  // Narrow cards stack the seek bar above time/speed so it gets full width.
+  const stacked =
+    useMediaQuery((theme: Theme) => theme.breakpoints.down("sm")) ||
+    !!submission;
   const speedControl = (
     <TextField
       select
@@ -139,9 +145,9 @@ export function InlineAudio({
             {label}
           </Typography>
           <Stack
-            direction={submission ? "column" : "row"}
-            sx={{ alignItems: submission ? "stretch" : "center" }}
-            spacing={submission ? 0 : 1}
+            direction={stacked ? "column" : "row"}
+            sx={{ alignItems: stacked ? "stretch" : "center" }}
+            spacing={stacked ? 0 : 1}
           >
             <Slider
               size="small"
@@ -168,18 +174,18 @@ export function InlineAudio({
             >
               <Typography
                 sx={{
-                  fontSize: 10,
+                  fontSize: { xs: 11, sm: 10 },
                   color: submission ? "inherit" : "var(--post-muted)",
                   whiteSpace: "nowrap",
                 }}
               >
                 {time(current)} / {duration ? time(duration) : "--:--"}
               </Typography>
-              {submission && speedControl}
+              {stacked && speedControl}
             </Stack>
           </Stack>
         </Box>
-        {!submission && speedControl}
+        {!stacked && speedControl}
       </Stack>
       <audio
         ref={audio}

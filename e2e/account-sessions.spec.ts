@@ -142,7 +142,8 @@ test("Mobile tối: bảo vệ MANAGER, giữ form khi version conflict và cả
     expect(dialog.message()).toContain("chưa lưu");
     await dialog.dismiss();
   });
-  await page.getByRole("link", { name: "← Danh sách" }).click();
+  // Phones rely on the title's back arrow instead of a "← Danh sách" link.
+  await page.getByRole("link", { name: "Quay lại", exact: true }).click();
   await expect(page).toHaveURL(/acc-BOTH0001/);
   expect(
     await page.evaluate(
@@ -159,15 +160,15 @@ test("Mobile: nhập bảng tự sinh ID, xóa dòng, preview và cập nhật g
   await login(page);
   await go(page, "/manage/grid/?entity=teachers");
   await page
-    .getByRole("textbox", { name: "Họ tên dòng 2", exact: true })
+    .getByRole("textbox", { name: "Họ tên dòng 1", exact: true })
     .fill("Vũ Quốc Việt");
   await page.getByRole("button", { name: "+ Dòng mới", exact: true }).click();
   await expect(
-    page.getByRole("button", { name: "Xóa dòng 5", exact: true }),
+    page.getByRole("button", { name: "Xóa dòng 4", exact: true }),
   ).toBeVisible();
-  await page.getByRole("button", { name: "Xóa dòng 5", exact: true }).click();
+  await page.getByRole("button", { name: "Xóa dòng 4", exact: true }).click();
   await expect(
-    page.getByRole("button", { name: "Xóa dòng 5", exact: true }),
+    page.getByRole("button", { name: "Xóa dòng 4", exact: true }),
   ).toHaveCount(0);
   await page
     .getByRole("button", { name: "Xem trước & lưu", exact: true })
@@ -192,10 +193,10 @@ test("Mobile: nhập bảng tự sinh ID, xóa dòng, preview và cập nhật g
     })
     .click();
   await page
-    .getByRole("textbox", { name: "ID dòng 2", exact: true })
+    .getByRole("textbox", { name: "ID dòng 1", exact: true })
     .fill("vq.viet");
   await page
-    .getByRole("textbox", { name: "Ghi chú dòng 2", exact: true })
+    .getByRole("textbox", { name: "Ghi chú dòng 1", exact: true })
     .fill("Cập nhật từ bảng");
   await page
     .getByRole("button", { name: "Xem trước & lưu", exact: true })

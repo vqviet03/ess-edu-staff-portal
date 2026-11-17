@@ -5,6 +5,7 @@ import type {
   Post,
   Folder,
 } from "../src/features/materials/models";
+import { openAppearance } from "./support/display";
 const api = process.env.NEXT_PUBLIC_API_BASE_URL!;
 const base = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
 function samplePdf() {
@@ -514,7 +515,7 @@ test("grid across nested folders, tree selection and mobile bounds", async ({
     path: "test-results/materials-mobile-light.png",
     fullPage: true,
   });
-  await page.getByRole("button", { name: "Giao diện", exact: true }).click();
+  await openAppearance(page);
   await page.getByRole("menuitem", { name: "Tối", exact: true }).click();
   await page.screenshot({
     path: "test-results/materials-mobile-dark.png",
@@ -787,7 +788,7 @@ test("class thread defaults first, session materials synchronize, and authors ca
     fullPage: true,
   });
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.getByRole("button", { name: "Giao diện", exact: true }).click();
+  await openAppearance(page);
   await page.getByRole("menuitem", { name: "Tối", exact: true }).click();
   await expect(
     page.getByRole("menuitem", { name: "Tối", exact: true }),
@@ -993,7 +994,7 @@ test("inline comment bubbles and attachment icon retain drafts across class tabs
   await page.getByRole("tab", { name: "Thread", exact: true }).click();
   await expect(input).toHaveValue("Bản nháp giữ nguyên");
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.getByRole("button", { name: "Giao diện", exact: true }).click();
+  await openAppearance(page);
   await page.getByRole("menuitem", { name: "Tối", exact: true }).click();
   await input.scrollIntoViewIfNeeded();
   await page.screenshot({

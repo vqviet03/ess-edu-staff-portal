@@ -1,5 +1,6 @@
 import { test, expect, type Page } from "@playwright/test";
 import { installHttpFixture } from "./support/http-fixture";
+import { openAppearance } from "./support/display";
 const base = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
 const go = (page: Page, path: string) => page.goto(`${base}${path}`);
 async function login(page: Page, id = "MG0001") {
@@ -100,7 +101,7 @@ test("manager dashboard, navigation, readonly grades/schema, dark/mobile và dee
     page.getByRole("button", { name: "Đánh dấu hoàn thành" }),
   ).toBeDisabled();
   await go(page, "/home/");
-  await page.getByRole("button", { name: "Giao diện", exact: true }).click();
+  await openAppearance(page);
   await page.getByRole("menuitem", { name: "Tối", exact: true }).click();
   await page.screenshot({
     path: "test-results/management-overview-dark.png",
@@ -286,7 +287,7 @@ test("bảng nhập dán nhiều dòng, cell errors/ID trùng và lưu preview",
 }) => {
   await login(page);
   await go(page, "/manage/grid/?entity=students");
-  await page.getByLabel("ID dòng 2", { exact: true }).evaluate((el) => {
+  await page.getByLabel("ID dòng 1", { exact: true }).evaluate((el) => {
     const data = new DataTransfer();
     data.setData(
       "text/plain",

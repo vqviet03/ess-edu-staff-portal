@@ -1,6 +1,7 @@
 import { test, expect, type Page } from "@playwright/test";
 import { installHttpFixture } from "./support/http-fixture";
 import type { Assignment } from "../src/features/assignments/models";
+import { openAppearance } from "./support/display";
 const base = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
 async function login(page: Page, id = "GV0001") {
   await page.goto(`${base}/login/`);
@@ -29,9 +30,7 @@ for (const width of [320, 390]) {
         path: test.info().outputPath("classes-390-light.png"),
         fullPage: true,
       });
-      await page
-        .getByRole("button", { name: "Giao diện", exact: true })
-        .click();
+      await openAppearance(page);
       await page.getByRole("menuitem", { name: "Tối", exact: true }).click();
       await page.screenshot({
         path: test.info().outputPath("classes-390-dark.png"),

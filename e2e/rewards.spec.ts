@@ -654,6 +654,12 @@ test("mobile schedule switches months and keeps all planned dates grouped", asyn
   await page.goto(
     `${base}/manage/profile/?entity=students&id=HV1001&tab=rewards`,
   );
+  // The schedule card starts collapsed on phones.
+  const expand = page.getByRole("button", {
+    name: "Xem chi tiết lịch học",
+    exact: true,
+  });
+  if ((page.viewportSize()?.width ?? 1280) < 600) await expand.click();
   await page.getByRole("button", { name: "Xem lịch học", exact: true }).click();
   const dialog = page.getByRole("dialog");
   await expect(
