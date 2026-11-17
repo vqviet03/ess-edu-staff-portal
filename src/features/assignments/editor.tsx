@@ -1,4 +1,5 @@
 "use client";
+import { PageHeader } from "@/shared/ui";
 import { RichInput, type RichInputHandle } from "./rich-input";
 import { useRef, useState } from "react";
 import { useClassQuery } from "@/api/api";
@@ -321,28 +322,30 @@ export function AssignmentEditor({
   return (
     <AssignmentSurface>
       <Stack spacing={{ xs: 2, md: 3 }} sx={{ minWidth: 0 }}>
-        <Typography component="h1" variant="h4">
-          {step === 0 ? (
-            "Tạo bài tập"
-          ) : step === 2 ? (
-            draft.title || "Xem trước"
-          ) : (
-            <>
-              <Box
-                component="span"
-                sx={{ display: { xs: "none", md: "inline" } }}
-              >
-                {draft.title || "Soạn câu hỏi"}
-              </Box>
-              <Box
-                component="span"
-                sx={{ display: { xs: "inline", md: "none" } }}
-              >
-                Soạn câu hỏi
-              </Box>
-            </>
-          )}
-        </Typography>
+        <PageHeader
+          title={
+            step === 0 ? (
+              "Tạo bài tập"
+            ) : step === 2 ? (
+              draft.title || "Xem trước"
+            ) : (
+              <>
+                <Box
+                  component="span"
+                  sx={{ display: { xs: "none", md: "inline" } }}
+                >
+                  {draft.title || "Soạn câu hỏi"}
+                </Box>
+                <Box
+                  component="span"
+                  sx={{ display: { xs: "inline", md: "none" } }}
+                >
+                  Soạn câu hỏi
+                </Box>
+              </>
+            )
+          }
+        />
         <Stack direction="row" spacing={{ xs: 0.75, md: 1 }}>
           {["Thiết lập", "Soạn câu hỏi", "Xem trước"].map((label, i) => (
             <Button
