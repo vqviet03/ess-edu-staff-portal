@@ -649,9 +649,6 @@ function Profile({
         subtitle={`${entityLabels[entity]} · ${publicId("loginId" in r ? r.loginId : r.id)} · ${showValue(r.status)}`}
         actions={
           <>
-            <NavButton back href={`/manage/list/?entity=${entity}`}>
-              ← Danh sách
-            </NavButton>
             {(entity !== "classes" || tab === "profile") && (
               <Button variant="contained" onClick={() => setEdit(true)}>
                 Chỉnh sửa hồ sơ / trạng thái

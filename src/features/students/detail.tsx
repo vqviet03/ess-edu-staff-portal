@@ -88,12 +88,6 @@ export function StudentDetail() {
         actions={
           <>
             <NavButton
-              back
-              href={`/class/?classId=${encodeURIComponent(classId)}&tab=profile`}
-            >
-              ← Hồ sơ lớp học
-            </NavButton>
-            <NavButton
               href={`/reports/?classId=${encodeURIComponent(classId)}&studentId=${encodeURIComponent(student.id)}`}
             >
               Báo cáo học tập

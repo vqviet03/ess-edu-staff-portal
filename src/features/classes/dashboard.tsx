@@ -174,11 +174,6 @@ function TeacherClassDashboard({
       <Title
         title={c.name}
         subtitle={`${c.code} · ${c.studentCount} học sinh`}
-        actions={
-          <NavButton back href="/home/">
-            ← Danh sách lớp
-          </NavButton>
-        }
       />
       <Box sx={{ display: { xs: "none", sm: "block" } }}>
         <NavButton href={`/rewards/redeem/?classKey=${id}`}>
