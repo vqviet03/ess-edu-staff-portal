@@ -9,7 +9,6 @@ import {
   Dialog,
   DialogContent,
   DialogTitle,
-  LinearProgress,
   MenuItem,
   Paper,
   Stack,
@@ -30,7 +29,7 @@ import {
   useGiftsQuery,
   useSetGiftCartMutation,
 } from "@/api/gifts-api";
-import { Feedback } from "@/shared/ui";
+import { Feedback, Loading } from "@/shared/ui";
 import { GiftAction, GiftCart, GiftHistory, GiftImage } from "./shared";
 import { formatPoints, giftStyles, type Gift } from "./models";
 const GiftCard = memo(function GiftCard({
@@ -366,7 +365,7 @@ export function GiftCatalogView({
             }
             retry={gifts.refetch}
           />
-          {gifts.isFetching && !gifts.isLoading && <LinearProgress />}
+          {gifts.isFetching && !gifts.isLoading && <Loading />}
           <Box
             sx={{
               display: "grid",

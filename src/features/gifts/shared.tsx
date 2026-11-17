@@ -18,7 +18,6 @@ import {
   DialogContent,
   DialogTitle,
   IconButton,
-  LinearProgress,
   Paper,
   Stack,
   TextField,
@@ -45,7 +44,7 @@ import {
   type Preview,
   type Redemption,
 } from "./models";
-import { Feedback } from "@/shared/ui";
+import { Feedback, Loading } from "@/shared/ui";
 export const GiftImage = memo(function GiftImage({
   id,
   size = 56,
@@ -534,7 +533,7 @@ export function GiftHistory({
         error={query.error}
         retry={query.refetch}
       />
-      {query.isFetching && !query.isLoading && <LinearProgress />}
+      {query.isFetching && !query.isLoading && <Loading />}
       {query.currentData?.items.map((r) => (
         <Paper key={r.id} sx={giftStyles.surface}>
           <Stack spacing={1.5}>

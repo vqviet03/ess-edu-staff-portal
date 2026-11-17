@@ -50,7 +50,7 @@ export function NotificationToast() {
       key={notice?.id}
       open={!!notice}
       autoHideDuration={notice?.priority === "IMPORTANT" ? null : 8000}
-      anchorOrigin={{ vertical: "top", horizontal: "right" }}
+      anchorOrigin={{ vertical: "top", horizontal: "center" }}
       onClose={(_, reason) => {
         if (reason !== "clickaway") close();
       }}
@@ -61,8 +61,11 @@ export function NotificationToast() {
             <Paper
               role="alert"
               sx={{
-                p: 1.5,
-                maxWidth: 420,
+                p: 1,
+                pl: 1.5,
+                maxWidth: 380,
+                borderRadius: "14px",
+                fontSize: 13,
                 width: "100%",
                 boxShadow: 4,
                 border: "1px solid",
