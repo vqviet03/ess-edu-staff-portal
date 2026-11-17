@@ -1,4 +1,5 @@
 "use client";
+import { PageHeader, Loading } from "@/shared/ui";
 import { NotificationPreferencesPanel } from "@/features/pwa/preferences";
 import { ChangePassword } from "@/features/assignments/password";
 import { useState } from "react";
@@ -11,7 +12,6 @@ import Button from "@mui/material/Button";
 import IconButton from "@mui/material/IconButton";
 import Tooltip from "@mui/material/Tooltip";
 import Box from "@mui/material/Box";
-import LinearProgress from "@mui/material/LinearProgress";
 import PhotoCamera from "@mui/icons-material/PhotoCamera";
 import Save from "@mui/icons-material/Save";
 import {
@@ -34,10 +34,8 @@ export function PersonalProfilePage() {
   const [message, setMessage] = useState("");
   return (
     <Stack spacing={2} sx={{ maxWidth: 720, mx: "auto" }}>
-      <Typography component="h1" variant="h4">
-        Hồ sơ cá nhân
-      </Typography>
-      {q.isLoading && <LinearProgress />}
+      <PageHeader title="Hồ sơ cá nhân" />
+      {q.isLoading && <Loading />}
       {q.error && (
         <Alert
           severity="error"

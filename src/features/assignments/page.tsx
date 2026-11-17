@@ -1,4 +1,5 @@
 "use client";
+import { PageHeader } from "@/shared/ui";
 import dynamic from "next/dynamic";
 import { useState } from "react";
 import Link from "next/link";
@@ -12,7 +13,6 @@ import Edit from "@mui/icons-material/EditOutlined";
 import { SubmissionWindow } from "./acceptance";
 import { RichContent } from "./media";
 import { DeadlineChip } from "@/features/materials/deadline-chip";
-import { BackAction } from "@/shared/back-action";
 import { useAssignmentQuery } from "@/api/assignment-api";
 import { useWorkspace } from "@/features/access/hooks";
 import { useClassCapabilities } from "@/features/access/hooks";
@@ -31,22 +31,7 @@ const Preview = dynamic(
   { loading: () => <Feedback loading /> },
 );
 export function AssignmentPage() {
-  const params = useSearchParams();
-  const classId = params.get("classId") ?? "",
-    id = params.get("assignmentId");
-  const fallback = !classId
-    ? "/home/"
-    : id && ["edit", "grade"].includes(params.get("mode") ?? "")
-      ? `/assignment/?${new URLSearchParams({ assignmentId: id, classId })}`
-      : `/class/thread/?classId=${encodeURIComponent(classId)}`;
-  return (
-    <Stack spacing={2}>
-      <Stack direction="row">
-        <BackAction fallback={fallback} />
-      </Stack>
-      <AssignmentContent />
-    </Stack>
-  );
+  return <AssignmentContent />;
 }
 function AssignmentContent() {
   const [showReport, setShowReport] = useState(false),
@@ -66,17 +51,34 @@ function AssignmentContent() {
         ? `/assignment/?${new URLSearchParams({ assignmentId: id, classId })}`
         : `/class/thread/?classId=${encodeURIComponent(classId)}`,
     );
-  if (!classId) return <Feedback empty="Mở bài tập từ lớp học." />;
+  // Editor and detail views title the common PageHeader themselves; every
+  // other state keeps Back in the same place with a title-less header.
+  const back = <PageHeader />;
+  if (!classId)
+    return (
+      <>
+        {back}
+        <Feedback empty="Mở bài tập từ lớp học." />
+      </>
+    );
   if (access.loading || access.error)
     return (
-      <Feedback
-        loading={access.loading}
-        error={access.error}
-        retry={() => void access.retry()}
-      />
+      <>
+        {back}
+        <Feedback
+          loading={access.loading}
+          error={access.error}
+          retry={() => void access.retry()}
+        />
+      </>
     );
   if (!access.viewLearning)
-    return <Feedback empty="Bạn không có quyền xem lớp này." />;
+    return (
+      <>
+        {back}
+        <Feedback empty="Bạn không có quyền xem lớp này." />
+      </>
+    );
   if (mode === "create")
     return access.editLearning ? (
       <Editor
@@ -85,11 +87,21 @@ function AssignmentContent() {
         sessionId={params.get("sessionId") ?? undefined}
       />
     ) : (
-      <Feedback empty="Chỉ giảng viên đang phụ trách được tạo bài tập." />
+      <>
+        {back}
+        <Feedback empty="Chỉ giảng viên đang phụ trách được tạo bài tập." />
+      </>
     );
-  if (!id) return <Feedback empty="Thiếu bài tập." />;
+  if (!id)
+    return (
+      <>
+        {back}
+        <Feedback empty="Thiếu bài tập." />
+      </>
+    );
   return (
     <Stack spacing={2}>
+      {!query.data && back}
       <Feedback
         loading={query.isLoading}
         error={query.error}
@@ -106,34 +118,20 @@ function AssignmentContent() {
             cancel={cancel}
           />
         ) : mode === "grade" && submissionId ? (
-          <SubmissionGrading
-            id={id}
-            submissionId={submissionId}
-            editable={access.editLearning}
-          />
+          <>
+            {back}
+            <SubmissionGrading
+              id={id}
+              submissionId={submissionId}
+              editable={access.editLearning}
+            />
+          </>
         ) : (
           <>
-            <Stack
-              direction="row"
-              sx={{
-                justifyContent: "space-between",
-                alignItems: "flex-start",
-                gap: 1,
-              }}
-            >
-              <Typography
-                component="h1"
-                variant="h4"
-                sx={{
-                  fontWeight: 700,
-                  flex: 1,
-                  minWidth: 0,
-                  overflowWrap: "anywhere",
-                }}
-              >
-                {query.data.title}
-              </Typography>
-              {access.editLearning &&
+            <PageHeader
+              title={query.data.title}
+              actions={
+                access.editLearning &&
                 (query.data.canEditSchema ?? query.data.canEdit) && (
                   <Tooltip title="Chỉnh sửa bài tập">
                     <IconButton
@@ -145,8 +143,9 @@ function AssignmentContent() {
                       <Edit fontSize="small" />
                     </IconButton>
                   </Tooltip>
-                )}
-            </Stack>
+                )
+              }
+            />
             <Typography component="div">
               <RichContent value={query.data.instructions} />
             </Typography>

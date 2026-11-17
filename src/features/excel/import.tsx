@@ -24,9 +24,8 @@ import {
   useCommitImportMutation,
 } from "@/api/api";
 import { errorMessage } from "@/api/base-query";
-import { Card, Feedback, NavButton, Title } from "@/shared/ui";
+import { Card, Feedback, Title } from "@/shared/ui";
 import { useUnsaved } from "@/shared/unsaved";
-import { route } from "@/utils/context";
 import { calculate, percent } from "@/utils/scores";
 import {
   skillNames,
@@ -118,11 +117,6 @@ export function ExcelImport() {
       <Title
         title="Import từ Excel"
         subtitle={`${a.name} · Tải mẫu theo schema v${a.schemaVersion} hiện tại.`}
-        actions={
-          <NavButton back href={route("/scores/", q.context)}>
-            ← Bảng điểm
-          </NavButton>
-        }
       />
       <Stack
         sx={{

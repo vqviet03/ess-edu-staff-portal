@@ -28,7 +28,7 @@ import {
   useClassCapabilities,
   useWorkspace,
 } from "@/features/access/hooks";
-import { Card, Feedback, NavButton, Title } from "@/shared/ui";
+import { Card, Feedback, Title } from "@/shared/ui";
 import { selectUnit } from "./utils";
 import { CommentEditor } from "./comments";
 const ReportView = dynamic(() => import("./view"), {
@@ -119,23 +119,10 @@ export function StudentReports({
         </Stack>
       ) : (
         <Title
+          back={!embedded}
           title="Báo cáo học tập học sinh"
           subtitle="Báo cáo đã công bố, cùng dữ liệu học sinh đang xem."
-          actions={
-            <>
-              <NavButton
-                back
-                href={
-                  classId
-                    ? `/class/?classId=${encodeURIComponent(classId)}`
-                    : "/home/"
-                }
-              >
-                ← Lớp học
-              </NavButton>
-              {editButton}
-            </>
-          }
+          actions={<>{editButton}</>}
         />
       )}
       <ReadOnlyNotice editable={editable} />

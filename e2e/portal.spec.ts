@@ -147,13 +147,13 @@ test("form/table dùng chung, null/0, cảnh báo rời trang, lưu dòng và x�
   ).toBeVisible();
   await page.getByLabel("Số câu / điểm đạt", { exact: true }).first().fill("0");
   page.once("dialog", (d) => d.dismiss());
-  await page.getByRole("link", { name: "← Bảng điểm" }).click();
+  await page.getByRole("link", { name: "Quay lại", exact: true }).click();
   await expect(
     page.getByRole("heading", { name: "Nhập điểm học sinh" }),
   ).toBeVisible();
   await page.getByRole("button", { name: "Lưu", exact: true }).click();
   await expect(page.getByText("Đã lưu điểm thành công.")).toBeVisible();
-  await page.getByRole("link", { name: "← Bảng điểm" }).click();
+  await page.getByRole("link", { name: "Quay lại", exact: true }).click();
   await page.getByLabel("Điểm Từ vựng HV1001", { exact: true }).fill("1");
   page.once("dialog", (d) => d.dismiss());
   await page.goBack();

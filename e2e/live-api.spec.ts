@@ -118,7 +118,7 @@ test.describe("ASP.NET + PostgreSQL integration (isolated demo backend only)", (
       .fill("0");
     await page.getByRole("button", { name: "Lưu", exact: true }).click();
     await expect(page.getByText("Đã lưu điểm thành công.")).toBeVisible();
-    await page.getByRole("link", { name: "← Bảng điểm" }).click();
+    await page.getByRole("link", { name: "Quay lại", exact: true }).click();
     await page.getByLabel(`Điểm Từ vựng ${bon.id}`, { exact: true }).fill("1");
     await page.getByRole("button", { name: "Lưu 1 dòng đã sửa" }).click();
     await expect(page.getByText("Đã lưu 1 học sinh.")).toBeVisible();

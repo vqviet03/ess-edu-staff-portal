@@ -1,6 +1,5 @@
 "use client";
 import { compactRadii } from "@/theme/compact";
-import { usePageBack } from "./page-navigation";
 import { AppIcon } from "@/features/pwa/app-icon";
 import {
   Children,
@@ -24,6 +23,7 @@ import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Chip from "@mui/material/Chip";
 import LinearProgress from "@mui/material/LinearProgress";
+import CircularProgress from "@mui/material/CircularProgress";
 import MenuItem from "@mui/material/MenuItem";
 import Paper from "@mui/material/Paper";
 import Stack from "@mui/material/Stack";
@@ -33,7 +33,8 @@ import IconButton from "@mui/material/IconButton";
 import Tooltip from "@mui/material/Tooltip";
 import LogoutIcon from "@mui/icons-material/Logout";
 import { ProfileAvatar } from "@/features/profile/avatar";
-import { Sidebar, BackButton } from "./navigation";
+import { Sidebar } from "./navigation";
+import { FloatingBack, PageBack, useFloatingBack } from "./page-back";
 import { PreferencesMenu } from "./preferences-menu";
 import { MobileAppBar } from "./mobile-bar";
 import { useApplicationSettings } from "@/features/settings/hooks";
@@ -60,13 +61,7 @@ export function Feedback({
   empty?: string;
   retry?: () => void;
 }) {
-  if (loading)
-    return (
-      <Box role="status" sx={{ py: 4 }}>
-        <Typography sx={{ mb: 2 }}>Đang tải…</Typography>
-        <LinearProgress />
-      </Box>
-    );
+  if (loading) return <Loading page />;
   if (error)
     return (
       <Alert
@@ -84,6 +79,32 @@ export function Feedback({
     );
   return null;
 }
+/**
+ * Circular loading indicator. `page` centres it in the page area; without it
+ * it is a compact inline spinner for a section that is refreshing.
+ */
+export function Loading({ page = false }: { page?: boolean }) {
+  return (
+    <Box
+      role="status"
+      aria-label="Đang tải"
+      sx={{
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        py: page ? 0 : 1.5,
+        minHeight: page ? "40vh" : undefined,
+        animation: "ess-loading-in 240ms cubic-bezier(0.2, 0, 0, 1) both",
+        "@keyframes ess-loading-in": {
+          from: { opacity: 0, transform: "scale(0.6)" },
+          to: { opacity: 1, transform: "none" },
+        },
+      }}
+    >
+      <CircularProgress size={page ? 36 : 24} thickness={4.5} />
+    </Box>
+  );
+}
 export function Card({ children }: { children: ReactNode }) {
   return (
     <Paper
@@ -97,45 +118,72 @@ export function Card({ children }: { children: ReactNode }) {
     </Paper>
   );
 }
-export function Title({
+/**
+ * The common page header: Back (on every non-entry page, from the route
+ * table in `page-back`), title, subtitle and actions. On phones primary
+ * actions stay visible and the rest move behind ⋮. Pages whose own design
+ * shows the title (post detail, assignments) render it without `title` so
+ * Back stays in the same place.
+ */
+export function PageHeader({
   title,
   subtitle,
   actions,
+  back = true,
 }: {
-  title: string;
-  subtitle?: string;
+  title?: ReactNode;
+  subtitle?: ReactNode;
   actions?: ReactNode;
+  /** `false` for a section embedded in a page that already shows Back. */
+  back?: boolean;
 }) {
   const compact = useMediaQuery((theme: Theme) => theme.breakpoints.down("sm"));
   const split = compact ? splitActions(actions) : null;
+  // Below md the sticky app bar (top 8px + 52px) sits above the floating Back.
+  const barLayout = useMediaQuery((theme: Theme) =>
+    theme.breakpoints.down("md"),
+  );
+  const floatTop = barLayout ? 68 : 12;
+  const [floatRef, floatState] = useFloatingBack(floatTop);
   return (
     <Stack spacing={{ xs: 1, sm: 2 }} sx={{ mb: { xs: 2, sm: 2.5 } }}>
       <Stack
+        ref={floatRef}
         direction="row"
         sx={{ alignItems: "center", gap: { xs: 0.5, sm: 1 } }}
       >
-        <Suspense>
-          <BackButton />
-        </Suspense>
-        <Typography
-          component="h1"
-          variant="h4"
-          sx={{
-            fontSize: { xs: 19, sm: 25, md: 30 },
-            lineHeight: { xs: 1.3, sm: 1.235 },
-            flex: { xs: 1, sm: "0 1 auto" },
-            minWidth: 0,
-            overflowWrap: "anywhere",
-          }}
-        >
-          {title}
-        </Typography>
+        {back && (
+          <Suspense>
+            <PageBack />
+            <FloatingBack
+              shown={floatState.shown}
+              left={floatState.left}
+              top={floatTop}
+            />
+          </Suspense>
+        )}
+        {title && (
+          <Typography
+            component="h1"
+            variant="h4"
+            sx={{
+              fontSize: { xs: 19, sm: 25, md: 30 },
+              lineHeight: { xs: 1.3, sm: 1.235 },
+              flex: { xs: 1, sm: "0 1 auto" },
+              minWidth: 0,
+              overflowWrap: "anywhere",
+            }}
+          >
+            {title}
+          </Typography>
+        )}
         {split && split.overflow.length > 0 && (
           <OverflowActions>{split.overflow}</OverflowActions>
         )}
       </Stack>
       {subtitle && (
         <Typography
+          component="div"
           color="text.secondary"
           sx={{ fontSize: { xs: 13, sm: 16 } }}
         >
@@ -163,6 +211,8 @@ export function Title({
     </Stack>
   );
 }
+/** Existing pages import the header as `Title`. */
+export const Title = PageHeader;
 /** Flattens fragments so page actions can be distributed one by one. */
 function flattenActions(node: ReactNode): ReactElement[] {
   return Children.toArray(node).flatMap((child) =>
@@ -174,13 +224,11 @@ function flattenActions(node: ReactNode): ReactElement[] {
   );
 }
 /**
- * Mobile page actions: back links are dropped (the header arrow already goes
- * back), primary actions stay visible and the remaining ones move behind ⋮.
+ * Mobile page actions: primary actions stay visible and the remaining ones
+ * move behind ⋮. Back lives in the app header for every page.
  */
 function splitActions(actions: ReactNode) {
-  const items = flattenActions(actions).filter(
-    (item) => !(item.props as { back?: boolean }).back,
-  );
+  const items = flattenActions(actions);
   const primary = (item: ReactElement) => {
     const props = item.props as { variant?: string; primary?: boolean };
     return props.variant === "contained" || props.primary === true;
@@ -272,32 +320,13 @@ export function NavButton({
   href,
   children,
   primary = false,
-  back = false,
 }: {
   href: string;
   children: ReactNode;
   primary?: boolean;
-  back?: boolean;
 }) {
-  const goBack = usePageBack(href);
   return (
     <Button
-      data-navigation-back={back || undefined}
-      onClick={
-        back
-          ? (event) => {
-              if (
-                !event.metaKey &&
-                !event.ctrlKey &&
-                !event.shiftKey &&
-                !event.altKey
-              ) {
-                event.preventDefault();
-                goBack();
-              }
-            }
-          : undefined
-      }
       component={Link}
       href={href}
       variant={primary ? "contained" : "outlined"}
@@ -373,6 +402,21 @@ export function Shell({ children }: { children: ReactNode }) {
     }
   };
   const appName = settings.portals?.staff?.name || settings.appName;
+  const mobileBrand = (
+    <Box
+      component={Link}
+      href={auth.status === "authenticated" ? "/home/" : "/login/"}
+      aria-label={appName}
+      title={appName}
+      sx={{
+        display: "inline-flex",
+        alignItems: "center",
+        "& > *": { mr: "0 !important" },
+      }}
+    >
+      <AppIcon />
+    </Box>
+  );
   const brand = (
     <Typography
       component={Link}
@@ -496,23 +540,8 @@ export function Shell({ children }: { children: ReactNode }) {
                 CSS still hides the desktop header before the query resolves. */}
             {mobileLayout && (
               <MobileAppBar
-                brand={
-                  <Box
-                    component={Link}
-                    href={
-                      auth.status === "authenticated" ? "/home/" : "/login/"
-                    }
-                    aria-label={appName}
-                    title={appName}
-                    sx={{
-                      display: "inline-flex",
-                      alignItems: "center",
-                      "& > *": { mr: "0 !important" },
-                    }}
-                  >
-                    <AppIcon />
-                  </Box>
-                }
+                lead={mobileBrand}
+                brand={mobileBrand}
                 authenticated={auth.status === "authenticated"}
                 manager={workspace.selected === "manager"}
                 avatar={

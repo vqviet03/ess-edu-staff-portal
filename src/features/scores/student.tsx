@@ -24,7 +24,7 @@ import {
 import { calculate, emptyResult, percent, resultInput } from "@/utils/scores";
 import { route } from "@/utils/context";
 import { useUnsaved } from "@/shared/unsaved";
-import { Card, Feedback, NavButton, Title } from "@/shared/ui";
+import { Card, Feedback, Title } from "@/shared/ui";
 import { useScoreContext } from "./context";
 import { ScoreInput } from "./fields";
 function StudentForm({
@@ -310,11 +310,6 @@ export function StudentScore() {
       <Title
         title={q.canEdit ? "Nhập điểm học sinh" : "Báo cáo học sinh · Chỉ xem"}
         subtitle={a.name}
-        actions={
-          <NavButton back href={route("/scores/", q.context)}>
-            ← Bảng điểm
-          </NavButton>
-        }
       />
       <ReadOnlyNotice editable={q.canEdit && s.status === "ACTIVE"} />
       <StudentForm

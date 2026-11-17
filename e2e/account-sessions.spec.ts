@@ -142,7 +142,7 @@ test("Mobile tối: bảo vệ MANAGER, giữ form khi version conflict và cả
     expect(dialog.message()).toContain("chưa lưu");
     await dialog.dismiss();
   });
-  // Phones rely on the title's back arrow instead of a "← Danh sách" link.
+  // Every page uses the single header Back control.
   await page.getByRole("link", { name: "Quay lại", exact: true }).click();
   await expect(page).toHaveURL(/acc-BOTH0001/);
   expect(
