@@ -76,8 +76,16 @@ export function Providers({ children }: { children: ReactNode }) {
           typography: {
             fontFamily: "Roboto, sans-serif",
             fontSize: 14,
-            h4: { fontSize: "1.875rem", fontWeight: 700 },
-            h5: { fontSize: "1.25rem", fontWeight: 700 },
+            h4: {
+              fontSize: "1.875rem",
+              fontWeight: 700,
+              "@media (max-width:599.95px)": { fontSize: "1.25rem" },
+            },
+            h5: {
+              fontSize: "1.25rem",
+              fontWeight: 700,
+              "@media (max-width:599.95px)": { fontSize: "1.1rem" },
+            },
             h6: { fontSize: "1.1rem", fontWeight: 700 },
             button: { textTransform: "none", fontWeight: 600 },
           },
