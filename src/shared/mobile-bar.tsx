@@ -129,7 +129,7 @@ export function MobileAppBar({
           onChange={(e) => onWorkspace(e.target.value as Workspace)}
           slotProps={{
             select: {
-              "aria-label": "Không gian làm việc",
+              "aria-label": "Không gian",
               renderValue: (value) => (
                 <Stack direction="row" sx={{ alignItems: "center", gap: 0.5 }}>
                   <SwapHoriz sx={{ fontSize: 16 }} />

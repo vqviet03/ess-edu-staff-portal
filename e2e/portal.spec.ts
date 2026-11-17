@@ -1,6 +1,7 @@
 import { test, expect, type Page } from "@playwright/test";
 import { Workbook } from "exceljs";
 import { installHttpFixture } from "./support/http-fixture";
+import { openAppearance } from "./support/display";
 test.beforeEach(async ({ page }) => {
   if (process.env.NEXT_PUBLIC_USE_MOCK !== "true")
     await installHttpFixture(page);
@@ -34,7 +35,7 @@ test("đăng nhập, reload, theme, deep links và 401", async ({ page }) => {
   await expect(
     page.getByRole("heading", { name: "Lớp học của tôi" }),
   ).toBeVisible();
-  await page.getByRole("button", { name: "Giao diện", exact: true }).click();
+  await openAppearance(page);
   await page.getByRole("menuitem", { name: "Tối", exact: true }).click();
   await page.reload();
   await expect(
