@@ -43,6 +43,7 @@ type Workspace = "manager" | "teacher";
  * header/sidebar are hidden with CSS so the first paint never flashes.
  */
 export function MobileAppBar({
+  lead,
   brand,
   authenticated,
   manager,
@@ -54,6 +55,9 @@ export function MobileAppBar({
   signingOut,
   onResetDemo,
 }: {
+  /** Leftmost slot after the menu: Back on inner pages, the app icon otherwise. */
+  lead: ReactNode;
+  /** App icon shown in the navigation drawer. */
   brand: ReactNode;
   authenticated: boolean;
   manager: boolean;
@@ -107,17 +111,12 @@ export function MobileAppBar({
         sx={{
           flex: 1,
           minWidth: 0,
-          pl: authenticated ? 0.25 : 1,
-          "& > *": {
-            display: "flex",
-            alignItems: "center",
-            whiteSpace: "nowrap",
-            overflow: "hidden",
-            textOverflow: "ellipsis",
-          },
+          pl: authenticated ? 0 : 1,
+          display: "flex",
+          alignItems: "center",
         }}
       >
-        {brand}
+        {lead}
       </Box>
       {authenticated && workspaces.length > 1 && (
         // Dual-role staff switch workspaces constantly, so the switch stays

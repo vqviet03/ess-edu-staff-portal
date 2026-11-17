@@ -12,7 +12,6 @@ import Edit from "@mui/icons-material/EditOutlined";
 import { SubmissionWindow } from "./acceptance";
 import { RichContent } from "./media";
 import { DeadlineChip } from "@/features/materials/deadline-chip";
-import { BackAction } from "@/shared/back-action";
 import { useAssignmentQuery } from "@/api/assignment-api";
 import { useWorkspace } from "@/features/access/hooks";
 import { useClassCapabilities } from "@/features/access/hooks";
@@ -31,22 +30,7 @@ const Preview = dynamic(
   { loading: () => <Feedback loading /> },
 );
 export function AssignmentPage() {
-  const params = useSearchParams();
-  const classId = params.get("classId") ?? "",
-    id = params.get("assignmentId");
-  const fallback = !classId
-    ? "/home/"
-    : id && ["edit", "grade"].includes(params.get("mode") ?? "")
-      ? `/assignment/?${new URLSearchParams({ assignmentId: id, classId })}`
-      : `/class/thread/?classId=${encodeURIComponent(classId)}`;
-  return (
-    <Stack spacing={2}>
-      <Stack direction="row">
-        <BackAction fallback={fallback} />
-      </Stack>
-      <AssignmentContent />
-    </Stack>
-  );
+  return <AssignmentContent />;
 }
 function AssignmentContent() {
   const [showReport, setShowReport] = useState(false),

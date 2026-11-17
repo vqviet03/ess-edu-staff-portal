@@ -1,6 +1,5 @@
 "use client";
 import { compactRadii } from "@/theme/compact";
-import { usePageBack } from "./page-navigation";
 import { AppIcon } from "@/features/pwa/app-icon";
 import {
   Children,
@@ -33,7 +32,8 @@ import IconButton from "@mui/material/IconButton";
 import Tooltip from "@mui/material/Tooltip";
 import LogoutIcon from "@mui/icons-material/Logout";
 import { ProfileAvatar } from "@/features/profile/avatar";
-import { Sidebar, BackButton } from "./navigation";
+import { Sidebar } from "./navigation";
+import { PageBack } from "./page-back";
 import { PreferencesMenu } from "./preferences-menu";
 import { MobileAppBar } from "./mobile-bar";
 import { useApplicationSettings } from "@/features/settings/hooks";
@@ -114,9 +114,6 @@ export function Title({
         direction="row"
         sx={{ alignItems: "center", gap: { xs: 0.5, sm: 1 } }}
       >
-        <Suspense>
-          <BackButton />
-        </Suspense>
         <Typography
           component="h1"
           variant="h4"
@@ -174,13 +171,11 @@ function flattenActions(node: ReactNode): ReactElement[] {
   );
 }
 /**
- * Mobile page actions: back links are dropped (the header arrow already goes
- * back), primary actions stay visible and the remaining ones move behind ⋮.
+ * Mobile page actions: primary actions stay visible and the remaining ones
+ * move behind ⋮. Back lives in the app header for every page.
  */
 function splitActions(actions: ReactNode) {
-  const items = flattenActions(actions).filter(
-    (item) => !(item.props as { back?: boolean }).back,
-  );
+  const items = flattenActions(actions);
   const primary = (item: ReactElement) => {
     const props = item.props as { variant?: string; primary?: boolean };
     return props.variant === "contained" || props.primary === true;
@@ -272,32 +267,13 @@ export function NavButton({
   href,
   children,
   primary = false,
-  back = false,
 }: {
   href: string;
   children: ReactNode;
   primary?: boolean;
-  back?: boolean;
 }) {
-  const goBack = usePageBack(href);
   return (
     <Button
-      data-navigation-back={back || undefined}
-      onClick={
-        back
-          ? (event) => {
-              if (
-                !event.metaKey &&
-                !event.ctrlKey &&
-                !event.shiftKey &&
-                !event.altKey
-              ) {
-                event.preventDefault();
-                goBack();
-              }
-            }
-          : undefined
-      }
       component={Link}
       href={href}
       variant={primary ? "contained" : "outlined"}
@@ -373,6 +349,21 @@ export function Shell({ children }: { children: ReactNode }) {
     }
   };
   const appName = settings.portals?.staff?.name || settings.appName;
+  const mobileBrand = (
+    <Box
+      component={Link}
+      href={auth.status === "authenticated" ? "/home/" : "/login/"}
+      aria-label={appName}
+      title={appName}
+      sx={{
+        display: "inline-flex",
+        alignItems: "center",
+        "& > *": { mr: "0 !important" },
+      }}
+    >
+      <AppIcon />
+    </Box>
+  );
   const brand = (
     <Typography
       component={Link}
@@ -496,23 +487,12 @@ export function Shell({ children }: { children: ReactNode }) {
                 CSS still hides the desktop header before the query resolves. */}
             {mobileLayout && (
               <MobileAppBar
-                brand={
-                  <Box
-                    component={Link}
-                    href={
-                      auth.status === "authenticated" ? "/home/" : "/login/"
-                    }
-                    aria-label={appName}
-                    title={appName}
-                    sx={{
-                      display: "inline-flex",
-                      alignItems: "center",
-                      "& > *": { mr: "0 !important" },
-                    }}
-                  >
-                    <AppIcon />
-                  </Box>
+                lead={
+                  <Suspense fallback={mobileBrand}>
+                    <PageBack otherwise={mobileBrand} />
+                  </Suspense>
                 }
+                brand={mobileBrand}
                 authenticated={auth.status === "authenticated"}
                 manager={workspace.selected === "manager"}
                 avatar={
@@ -550,7 +530,12 @@ export function Shell({ children }: { children: ReactNode }) {
                   gap: 1,
                 }}
               >
-                {brand}
+                <Stack direction="row" sx={{ alignItems: "center", gap: 0.5 }}>
+                  <Suspense>
+                    <PageBack />
+                  </Suspense>
+                  {brand}
+                </Stack>
                 {headerControls}
               </Stack>
             )}

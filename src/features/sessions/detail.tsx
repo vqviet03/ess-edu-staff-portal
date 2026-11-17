@@ -114,12 +114,6 @@ export function SessionDetail() {
         subtitle={`${c.currentData.name} · ${session.date}`}
         actions={
           <>
-            <NavButton
-              back
-              href={"/class/?classId=" + encodeURIComponent(classId)}
-            >
-              ← Dashboard lớp
-            </NavButton>
             <Button
               disabled={!permissions.editLearning}
               onClick={() => setEditing(true)}

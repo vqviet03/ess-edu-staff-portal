@@ -1,6 +1,5 @@
 "use client";
 import Public from "@mui/icons-material/Public";
-import { BackAction } from "./back-action";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
@@ -23,7 +22,6 @@ import MenuOpen from "@mui/icons-material/MenuOpen";
 import Menu from "@mui/icons-material/Menu";
 import Badge from "@mui/material/Badge";
 import { libraryApi } from "@/api/library-api";
-import Box from "@mui/material/Box";
 import IconButton from "@mui/material/IconButton";
 import ListItemButton from "@mui/material/ListItemButton";
 import ListItemIcon from "@mui/material/ListItemIcon";
@@ -306,25 +304,5 @@ export function NavList({
           },
         )}
     </Stack>
-  );
-}
-export function BackButton() {
-  const pathname = usePathname(),
-    p = useSearchParams();
-  if (["/home/", "/login/", "/login/link/", "/activate/"].includes(pathname))
-    return null;
-  let target = "/home/";
-  if (pathname.startsWith("/manage/profile/"))
-    target = `/manage/list/?entity=${encodeURIComponent(p.get("entity") ?? "students")}`;
-  if (["session", "reports", "student"].includes(pathname.split("/")[1]))
-    target = `/class/?classId=${encodeURIComponent(p.get("classId") ?? "")}&tab=${pathname.startsWith("/session/") ? "progress" : "profile"}`;
-  if (pathname === "/assessment/")
-    target = `/session/?${new URLSearchParams({ classId: p.get("classId") ?? "", sessionId: p.get("sessionId") ?? "" })}`;
-  if (["/scores/", "/student-score/", "/import/"].includes(pathname))
-    target = `/assessment/?${new URLSearchParams({ classId: p.get("classId") ?? "", sessionId: p.get("sessionId") ?? "", assessmentId: p.get("assessmentId") ?? "" })}`;
-  return (
-    <Box>
-      <BackAction fallback={target} />
-    </Box>
   );
 }
