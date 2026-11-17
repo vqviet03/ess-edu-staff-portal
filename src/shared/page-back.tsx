@@ -70,7 +70,8 @@ export function backFallback(
       return "/home/";
     case "rewards": {
       const classKey = params.get("classKey");
-      if (pathname.startsWith("/rewards/catalogs/")) return "/home/";
+      if (pathname.startsWith("/rewards/catalogs/"))
+        return params.get("id") ? "/rewards/catalogs/" : "/home/";
       return classKey
         ? `/class/?${query({ classId: classKey })}`
         : "/rewards/catalogs/";
@@ -88,8 +89,8 @@ export function useBackFallback() {
 }
 
 /**
- * The single Back control used by the app header on every non-entry page.
- * Renders `otherwise` (for example the app icon) on entry pages.
+ * The single Back control, rendered by the common page header on every
+ * non-entry page. Renders `otherwise` on entry pages.
  */
 export function PageBack({ otherwise = null }: { otherwise?: ReactNode }) {
   const fallback = useBackFallback();
