@@ -10,6 +10,9 @@ export default defineConfig({
   use: {
     baseURL: `http://127.0.0.1:${port}${base}/`,
     trace: "retain-on-failure",
+    // Spring transitions are decorative; reduced motion (honoured by the
+    // theme) keeps browser tests fast without waiting on animations.
+    reducedMotion: "reduce",
     launchOptions: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH
       ? { executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH }
       : {},
