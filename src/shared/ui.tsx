@@ -97,14 +97,24 @@ export function Card({ children }: { children: ReactNode }) {
     </Paper>
   );
 }
-export function Title({
+/**
+ * The common page header: Back (on every non-entry page, from the route
+ * table in `page-back`), title, subtitle and actions. On phones primary
+ * actions stay visible and the rest move behind ⋮. Pages whose own design
+ * shows the title (post detail, assignments) render it without `title` so
+ * Back stays in the same place.
+ */
+export function PageHeader({
   title,
   subtitle,
   actions,
+  back = true,
 }: {
-  title: string;
-  subtitle?: string;
+  title?: ReactNode;
+  subtitle?: ReactNode;
   actions?: ReactNode;
+  /** `false` for a section embedded in a page that already shows Back. */
+  back?: boolean;
 }) {
   const compact = useMediaQuery((theme: Theme) => theme.breakpoints.down("sm"));
   const split = compact ? splitActions(actions) : null;
@@ -114,25 +124,33 @@ export function Title({
         direction="row"
         sx={{ alignItems: "center", gap: { xs: 0.5, sm: 1 } }}
       >
-        <Typography
-          component="h1"
-          variant="h4"
-          sx={{
-            fontSize: { xs: 19, sm: 25, md: 30 },
-            lineHeight: { xs: 1.3, sm: 1.235 },
-            flex: { xs: 1, sm: "0 1 auto" },
-            minWidth: 0,
-            overflowWrap: "anywhere",
-          }}
-        >
-          {title}
-        </Typography>
+        {back && (
+          <Suspense>
+            <PageBack />
+          </Suspense>
+        )}
+        {title && (
+          <Typography
+            component="h1"
+            variant="h4"
+            sx={{
+              fontSize: { xs: 19, sm: 25, md: 30 },
+              lineHeight: { xs: 1.3, sm: 1.235 },
+              flex: { xs: 1, sm: "0 1 auto" },
+              minWidth: 0,
+              overflowWrap: "anywhere",
+            }}
+          >
+            {title}
+          </Typography>
+        )}
         {split && split.overflow.length > 0 && (
           <OverflowActions>{split.overflow}</OverflowActions>
         )}
       </Stack>
       {subtitle && (
         <Typography
+          component="div"
           color="text.secondary"
           sx={{ fontSize: { xs: 13, sm: 16 } }}
         >
@@ -160,6 +178,8 @@ export function Title({
     </Stack>
   );
 }
+/** Existing pages import the header as `Title`. */
+export const Title = PageHeader;
 /** Flattens fragments so page actions can be distributed one by one. */
 function flattenActions(node: ReactNode): ReactElement[] {
   return Children.toArray(node).flatMap((child) =>
@@ -487,11 +507,7 @@ export function Shell({ children }: { children: ReactNode }) {
                 CSS still hides the desktop header before the query resolves. */}
             {mobileLayout && (
               <MobileAppBar
-                lead={
-                  <Suspense fallback={mobileBrand}>
-                    <PageBack otherwise={mobileBrand} />
-                  </Suspense>
-                }
+                lead={mobileBrand}
                 brand={mobileBrand}
                 authenticated={auth.status === "authenticated"}
                 manager={workspace.selected === "manager"}
@@ -530,12 +546,7 @@ export function Shell({ children }: { children: ReactNode }) {
                   gap: 1,
                 }}
               >
-                <Stack direction="row" sx={{ alignItems: "center", gap: 0.5 }}>
-                  <Suspense>
-                    <PageBack />
-                  </Suspense>
-                  {brand}
-                </Stack>
+                {brand}
                 {headerControls}
               </Stack>
             )}

@@ -1,4 +1,5 @@
 "use client";
+import { PageHeader } from "@/shared/ui";
 import { compactRadii } from "@/theme/compact";
 import { NavigationRow } from "@/shared/navigation-row";
 import ButtonBase from "@mui/material/ButtonBase";
@@ -83,14 +84,10 @@ export function GiftCatalogManager() {
   if (id) return <CatalogDetail id={id} />;
   return (
     <Stack spacing={2.5}>
-      <Box>
-        <Typography component="h1" sx={giftStyles.title}>
-          Danh sách phần thưởng
-        </Typography>
-        <Typography color="text.secondary">
-          Quản lý quà, tồn kho và các lớp sử dụng.
-        </Typography>
-      </Box>
+      <PageHeader
+        title="Danh sách phần thưởng"
+        subtitle="Quản lý quà, tồn kho và các lớp sử dụng."
+      />
       <Stack
         direction="row"
         spacing={1}
@@ -295,40 +292,28 @@ function CatalogDetail({ id }: { id: string }) {
       />
       {catalog && (
         <>
-          <Stack
-            direction="row"
-            sx={{
-              justifyContent: "space-between",
-              alignItems: "center",
-              gap: 1,
-            }}
-          >
-            <Box>
-              <Typography component="h1" sx={giftStyles.title}>
-                {catalog.name}
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                {catalog.ownerName} · {catalog.managerIds.length + 1} thành viên
-                quản lý
-              </Typography>
-            </Box>
-            {catalog.canManage && (
-              <Stack direction="row">
-                <GiftAction
-                  label="Sửa danh sách"
-                  onClick={() => setEditCatalog(true)}
-                >
-                  <EditOutlined />
-                </GiftAction>
-                <GiftAction
-                  label="Xóa danh sách"
-                  onClick={() => setDeletion("catalog")}
-                >
-                  <DeleteOutline />
-                </GiftAction>
-              </Stack>
-            )}
-          </Stack>
+          <PageHeader
+            title={catalog.name}
+            subtitle={`${catalog.ownerName} · ${catalog.managerIds.length + 1} thành viên quản lý`}
+            actions={
+              catalog.canManage && (
+                <>
+                  <GiftAction
+                    label="Sửa danh sách"
+                    onClick={() => setEditCatalog(true)}
+                  >
+                    <EditOutlined />
+                  </GiftAction>
+                  <GiftAction
+                    label="Xóa danh sách"
+                    onClick={() => setDeletion("catalog")}
+                  >
+                    <DeleteOutline />
+                  </GiftAction>
+                </>
+              )
+            }
+          />
           <Tabs
             value={tab}
             variant="scrollable"

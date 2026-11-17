@@ -55,7 +55,7 @@ export function MobileAppBar({
   signingOut,
   onResetDemo,
 }: {
-  /** Leftmost slot after the menu: Back on inner pages, the app icon otherwise. */
+  /** Leftmost slot after the menu (the app icon). */
   lead: ReactNode;
   /** App icon shown in the navigation drawer. */
   brand: ReactNode;

@@ -1,4 +1,5 @@
 "use client";
+import { PageHeader } from "@/shared/ui";
 import { NotificationPreferencesPanel } from "@/features/pwa/preferences";
 import { ChangePassword } from "@/features/assignments/password";
 import { useState } from "react";
@@ -34,9 +35,7 @@ export function PersonalProfilePage() {
   const [message, setMessage] = useState("");
   return (
     <Stack spacing={2} sx={{ maxWidth: 720, mx: "auto" }}>
-      <Typography component="h1" variant="h4">
-        Hồ sơ cá nhân
-      </Typography>
+      <PageHeader title="Hồ sơ cá nhân" />
       {q.isLoading && <LinearProgress />}
       {q.error && (
         <Alert

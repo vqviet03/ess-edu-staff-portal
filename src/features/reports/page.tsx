@@ -119,6 +119,7 @@ export function StudentReports({
         </Stack>
       ) : (
         <Title
+          back={!embedded}
           title="Báo cáo học tập học sinh"
           subtitle="Báo cáo đã công bố, cùng dữ liệu học sinh đang xem."
           actions={<>{editButton}</>}
