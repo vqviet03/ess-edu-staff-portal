@@ -2,7 +2,20 @@
 import { compactRadii } from "@/theme/compact";
 import { usePageBack } from "./page-navigation";
 import { AppIcon } from "@/features/pwa/app-icon";
-import { Suspense, useEffect, type ReactNode } from "react";
+import {
+  Children,
+  Fragment,
+  isValidElement,
+  Suspense,
+  useEffect,
+  useState,
+  type ReactElement,
+  type ReactNode,
+} from "react";
+import useMediaQuery from "@mui/material/useMediaQuery";
+import Popover from "@mui/material/Popover";
+import MoreVert from "@mui/icons-material/MoreVert";
+import type { Theme } from "@mui/material/styles";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useStore } from "react-redux";
@@ -22,6 +35,7 @@ import LogoutIcon from "@mui/icons-material/Logout";
 import { ProfileAvatar } from "@/features/profile/avatar";
 import { Sidebar, BackButton } from "./navigation";
 import { PreferencesMenu } from "./preferences-menu";
+import { MobileAppBar } from "./mobile-bar";
 import { useApplicationSettings } from "@/features/settings/hooks";
 import { type RootState, useAppDispatch, useAppSelector } from "@/store";
 import { signedOut } from "@/store/auth";
@@ -92,34 +106,150 @@ export function Title({
   subtitle?: string;
   actions?: ReactNode;
 }) {
+  const compact = useMediaQuery((theme: Theme) => theme.breakpoints.down("sm"));
+  const split = compact ? splitActions(actions) : null;
   return (
-    <Stack spacing={2} sx={{ mb: 2.5 }}>
-      <Stack direction="row" sx={{ alignItems: "center", gap: 1 }}>
+    <Stack spacing={{ xs: 1, sm: 2 }} sx={{ mb: { xs: 2, sm: 2.5 } }}>
+      <Stack
+        direction="row"
+        sx={{ alignItems: "center", gap: { xs: 0.5, sm: 1 } }}
+      >
         <Suspense>
           <BackButton />
         </Suspense>
         <Typography
           component="h1"
           variant="h4"
-          sx={{ fontSize: { xs: 25, md: 30 } }}
+          sx={{
+            fontSize: { xs: 21, sm: 25, md: 30 },
+            lineHeight: { xs: 1.25, sm: 1.235 },
+            flex: { xs: 1, sm: "0 1 auto" },
+            minWidth: 0,
+            overflowWrap: "anywhere",
+          }}
         >
           {title}
         </Typography>
+        {split && split.overflow.length > 0 && (
+          <OverflowActions>{split.overflow}</OverflowActions>
+        )}
       </Stack>
-      {subtitle && <Typography color="text.secondary">{subtitle}</Typography>}
-      {actions && (
+      {subtitle && (
+        <Typography
+          color="text.secondary"
+          sx={{ fontSize: { xs: 14, sm: 16 } }}
+        >
+          {subtitle}
+        </Typography>
+      )}
+      {split
+        ? split.visible.length > 0 && (
+            <Stack direction="row" useFlexGap sx={{ flexWrap: "wrap", gap: 1 }}>
+              {split.visible}
+            </Stack>
+          )
+        : actions && (
+            <Stack
+              direction="row"
+              useFlexGap
+              sx={{
+                flexWrap: "wrap",
+                gap: 1,
+              }}
+            >
+              {actions}
+            </Stack>
+          )}
+    </Stack>
+  );
+}
+/** Flattens fragments so page actions can be distributed one by one. */
+function flattenActions(node: ReactNode): ReactElement[] {
+  return Children.toArray(node).flatMap((child) =>
+    isValidElement(child) && child.type === Fragment
+      ? flattenActions((child.props as { children?: ReactNode }).children)
+      : isValidElement(child)
+        ? [child]
+        : [],
+  );
+}
+/**
+ * Mobile page actions: back links are dropped (the header arrow already goes
+ * back), primary actions stay visible and the remaining ones move behind ⋮.
+ */
+function splitActions(actions: ReactNode) {
+  const items = flattenActions(actions).filter(
+    (item) => !(item.props as { back?: boolean }).back,
+  );
+  const primary = (item: ReactElement) => {
+    const props = item.props as { variant?: string; primary?: boolean };
+    return props.variant === "contained" || props.primary === true;
+  };
+  let visible = items.filter(primary).slice(0, 2);
+  if (!visible.length) visible = items.slice(0, 2);
+  let overflow = items.filter((item) => !visible.includes(item));
+  if (overflow.length === 1) {
+    visible = items;
+    overflow = [];
+  }
+  return { visible, overflow };
+}
+export function OverflowActions({
+  children,
+  label = "Thao tác khác",
+}: {
+  children: ReactNode;
+  label?: string;
+}) {
+  const [anchor, setAnchor] = useState<HTMLElement | null>(null);
+  return (
+    <>
+      <Tooltip title={label}>
+        <IconButton
+          aria-label={label}
+          aria-haspopup="true"
+          aria-expanded={!!anchor}
+          onClick={(e) => setAnchor(e.currentTarget)}
+          sx={{ flexShrink: 0 }}
+        >
+          <MoreVert />
+        </IconButton>
+      </Tooltip>
+      <Popover
+        open={!!anchor}
+        anchorEl={anchor}
+        onClose={() => setAnchor(null)}
+        keepMounted
+        anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+        transformOrigin={{ vertical: "top", horizontal: "right" }}
+        slotProps={{ paper: { sx: { minWidth: 220, py: 0.5 } } }}
+      >
         <Stack
-          direction="row"
-          useFlexGap
+          role="group"
+          aria-label={label}
+          onClick={() => setAnchor(null)}
           sx={{
-            flexWrap: "wrap",
-            gap: 1,
+            "& .MuiButton-root, & .MuiIconButton-root": {
+              width: "100%",
+              justifyContent: "flex-start",
+              border: 0,
+              borderRadius: 0,
+              bgcolor: "transparent",
+              boxShadow: "none",
+              color: "text.primary",
+              fontWeight: 500,
+              fontSize: 14,
+              minHeight: 44,
+              px: 2,
+              textAlign: "left",
+              "&:hover": { bgcolor: "action.hover" },
+            },
           }}
         >
-          {actions}
+          {children}
         </Stack>
-      )}
-    </Stack>
+      </Popover>
+    </>
   );
 }
 export const labelStatus: Record<string, string> = {
@@ -225,6 +355,37 @@ export function Shell({ children }: { children: ReactNode }) {
   };
   const { zoom } = useAppDisplay();
   const [reset, { isLoading }] = useResetDemoMutation();
+  const resetDemo = async () => {
+    if (
+      confirmLeave() &&
+      window.confirm("Khôi phục dữ liệu demo ban đầu và đăng xuất?")
+    ) {
+      try {
+        await reset().unwrap();
+        dispatch(signedOut());
+        router.replace("/login/");
+      } catch (e) {
+        window.alert(errorMessage(e));
+      }
+    }
+  };
+  const appName = settings.portals?.staff?.name || settings.appName;
+  const brand = (
+    <Typography
+      component={Link}
+      href={auth.status === "authenticated" ? "/home/" : "/login/"}
+      sx={{
+        fontSize: { xs: 18, md: 20 },
+        fontWeight: 700,
+        color: "primary.main",
+        textDecoration: "none",
+        minWidth: 0,
+      }}
+    >
+      <AppIcon />
+      {appName}
+    </Typography>
+  );
   const headerControls = (
     <Stack
       direction="row"
@@ -291,23 +452,7 @@ export function Shell({ children }: { children: ReactNode }) {
         </>
       )}
       {useMock && (
-        <Button
-          disabled={isLoading}
-          onClick={async () => {
-            if (
-              confirmLeave() &&
-              window.confirm("Khôi phục dữ liệu demo ban đầu và đăng xuất?")
-            ) {
-              try {
-                await reset().unwrap();
-                dispatch(signedOut());
-                router.replace("/login/");
-              } catch (e) {
-                window.alert(errorMessage(e));
-              }
-            }
-          }}
-        >
+        <Button disabled={isLoading} onClick={resetDemo}>
           Reset demo
         </Button>
       )}
@@ -335,7 +480,7 @@ export function Shell({ children }: { children: ReactNode }) {
             <Suspense>
               <Sidebar
                 manager={workspace.selected === "manager"}
-                appName={settings.portals?.staff?.name || settings.appName}
+                appName={appName}
               />
             </Suspense>
           )}
@@ -344,34 +489,44 @@ export function Shell({ children }: { children: ReactNode }) {
               minWidth: 0,
             }}
           >
+            <MobileAppBar
+              brand={brand}
+              authenticated={auth.status === "authenticated"}
+              manager={workspace.selected === "manager"}
+              avatar={
+                <ProfileAvatar
+                  name={auth.session?.teacher.name ?? "Bạn"}
+                  value={auth.session?.teacher.avatar}
+                  size={30}
+                />
+              }
+              workspaces={workspace.allowed as ("manager" | "teacher")[]}
+              workspace={workspace.selected as "manager" | "teacher" | null}
+              onWorkspace={(value) => {
+                if (confirmLeave()) {
+                  workspace.choose(value);
+                  if (pathname.startsWith("/manage/")) router.push("/home/");
+                }
+              }}
+              onSignOut={() => void signOut()}
+              signingOut={logoutState.isLoading}
+              onResetDemo={useMock ? () => void resetDemo() : undefined}
+            />
             <Stack
               component="header"
               direction="row"
               useFlexGap
               sx={{
-                ...{
-                  mb: 2,
-                  py: 1,
-                },
+                display: { xs: "none", md: "flex" },
+                mb: 2,
+                py: 1,
                 alignItems: "center",
                 justifyContent: "space-between",
                 flexWrap: "wrap",
                 gap: 1,
               }}
             >
-              <Typography
-                component={Link}
-                href={auth.status === "authenticated" ? "/home/" : "/login/"}
-                sx={{
-                  fontSize: 20,
-                  fontWeight: 700,
-                  color: "primary.main",
-                  textDecoration: "none",
-                }}
-              >
-                <AppIcon />
-                {settings.portals?.staff?.name || settings.appName}
-              </Typography>
+              {brand}
               {headerControls}
             </Stack>
             <GuideLayout workspace={workspace.selected}>

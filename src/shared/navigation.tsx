@@ -113,10 +113,7 @@ export function Sidebar({
   manager: boolean;
   appName: string;
 }) {
-  const notices = libraryApi.endpoints.notifications.useQueryState({});
-  const [collapsed, setCollapsed] = useState(false),
-    pathname = usePathname(),
-    params = useSearchParams();
+  const [collapsed, setCollapsed] = useState(false);
   useEffect(() => {
     try {
       setCollapsed(
@@ -139,6 +136,7 @@ export function Sidebar({
       data-collapsed={collapsed}
       sx={{
         alignSelf: "start",
+        display: { xs: "none", md: "block" },
         p: 1,
         width: { md: collapsed ? 68 : 220 },
         position: { md: "sticky" },
@@ -177,113 +175,137 @@ export function Sidebar({
           </IconButton>
         </Tooltip>
       </Stack>
-      <Stack
-        component="nav"
-        aria-label={manager ? "Menu quản lý" : "Menu giảng viên"}
-        direction={{ xs: "row", md: "column" }}
-        sx={{ gap: 0.5, mt: 1, overflowX: { xs: "auto", md: "visible" } }}
-      >
-        {items
-          .filter((i) => !i.manager || manager)
-          .map(
-            (item: {
-              label: string;
-              href: string;
-              icon: SvgIconComponent;
-              entity?: string;
-              manager?: boolean;
-            }) => {
-              const active = item.entity
-                ? [
-                    "/manage/list/",
-                    "/manage/profile/",
-                    "/manage/excel/",
-                    "/manage/grid/",
-                  ].some((parent) => pathname.startsWith(parent)) &&
-                  params.get("entity") === item.entity
-                : pathname === item.href ||
-                  (item.href === "/home/" &&
-                    [
-                      "/class/",
-                      "/student/",
-                      "/session/",
-                      "/assessment/",
-                      "/scores/",
-                      "/student-score/",
-                      "/import/",
-                      "/reports/",
-                      "/assignment/",
-                      "/assignment-report/",
-                    ].some((parent) => pathname.startsWith(parent)));
-              const Icon = item.icon;
-              return (
-                <Tooltip
-                  key={item.label}
-                  title={collapsed ? item.label : ""}
-                  placement="right"
+      <NavList manager={manager} collapsed={collapsed} />
+    </Paper>
+  );
+}
+/** Navigation entries shared by the desktop rail and the mobile drawer. */
+export function NavList({
+  manager,
+  collapsed = false,
+  vertical = false,
+  onNavigate,
+}: {
+  manager: boolean;
+  collapsed?: boolean;
+  vertical?: boolean;
+  onNavigate?: () => void;
+}) {
+  const notices = libraryApi.endpoints.notifications.useQueryState({});
+  const pathname = usePathname(),
+    params = useSearchParams();
+  return (
+    <Stack
+      component="nav"
+      aria-label={manager ? "Menu quản lý" : "Menu giảng viên"}
+      direction={vertical ? "column" : { xs: "row", md: "column" }}
+      sx={{
+        gap: 0.5,
+        mt: 1,
+        overflowX: vertical ? "visible" : { xs: "auto", md: "visible" },
+      }}
+    >
+      {items
+        .filter((i) => !i.manager || manager)
+        .map(
+          (item: {
+            label: string;
+            href: string;
+            icon: SvgIconComponent;
+            entity?: string;
+            manager?: boolean;
+          }) => {
+            const active = item.entity
+              ? [
+                  "/manage/list/",
+                  "/manage/profile/",
+                  "/manage/excel/",
+                  "/manage/grid/",
+                ].some((parent) => pathname.startsWith(parent)) &&
+                params.get("entity") === item.entity
+              : pathname === item.href ||
+                (item.href === "/home/" &&
+                  [
+                    "/class/",
+                    "/student/",
+                    "/session/",
+                    "/assessment/",
+                    "/scores/",
+                    "/student-score/",
+                    "/import/",
+                    "/reports/",
+                    "/assignment/",
+                    "/assignment-report/",
+                  ].some((parent) => pathname.startsWith(parent)));
+            const Icon = item.icon;
+            return (
+              <Tooltip
+                key={item.label}
+                title={collapsed ? item.label : ""}
+                placement="right"
+              >
+                <ListItemButton
+                  component={Link}
+                  href={item.href}
+                  onClick={onNavigate}
+                  aria-label={
+                    item.label +
+                    (item.href === "/notifications/" &&
+                    notices.data?.unreadCount
+                      ? ` (${notices.data.unreadCount})`
+                      : "")
+                  }
+                  aria-current={active ? "page" : undefined}
+                  selected={active}
+                  sx={{
+                    borderRadius: 2,
+                    minHeight: 44,
+                    px: collapsed ? 1.5 : 1,
+                    justifyContent: collapsed ? "center" : "flex-start",
+                    flexShrink: 0,
+                    "&.Mui-selected": {
+                      bgcolor: "action.selected",
+                      color: "primary.main",
+                      boxShadow: "inset 3px 0 0 currentColor",
+                    },
+                  }}
                 >
-                  <ListItemButton
-                    component={Link}
-                    href={item.href}
-                    aria-label={
-                      item.label +
-                      (item.href === "/notifications/" &&
-                      notices.data?.unreadCount
-                        ? ` (${notices.data.unreadCount})`
-                        : "")
-                    }
-                    aria-current={active ? "page" : undefined}
-                    selected={active}
+                  <ListItemIcon
                     sx={{
-                      borderRadius: 2,
-                      minHeight: 44,
-                      px: collapsed ? 1.5 : 1,
-                      justifyContent: collapsed ? "center" : "flex-start",
-                      flexShrink: 0,
-                      "&.Mui-selected": {
-                        bgcolor: "action.selected",
-                        color: "primary.main",
-                        boxShadow: "inset 3px 0 0 currentColor",
-                      },
+                      minWidth: collapsed ? 0 : 36,
+                      color: "inherit",
                     }}
                   >
-                    <ListItemIcon
-                      sx={{
-                        minWidth: collapsed ? 0 : 36,
-                        color: "inherit",
-                      }}
+                    <Badge
+                      badgeContent={
+                        item.href === "/notifications/"
+                          ? notices.data?.unreadCount
+                          : 0
+                      }
+                      color="error"
                     >
-                      <Badge
-                        badgeContent={
-                          item.href === "/notifications/"
-                            ? notices.data?.unreadCount
-                            : 0
-                        }
-                        color="error"
-                      >
-                        <Icon />
-                      </Badge>
-                    </ListItemIcon>
-                    {!collapsed && (
-                      <ListItemText
-                        primary={item.label}
-                        slotProps={{
-                          primary: {
-                            variant: "body2",
-                            sx: {
-                              whiteSpace: "nowrap",
-                            },
+                      <Icon />
+                    </Badge>
+                  </ListItemIcon>
+                  {!collapsed && (
+                    <ListItemText
+                      primary={item.label}
+                      slotProps={{
+                        primary: {
+                          variant: "body2",
+                          sx: {
+                            whiteSpace: "nowrap",
                           },
-                        }}
-                      />
-                    )}
-                  </ListItemButton>
-                </Tooltip>
-              );
-            },
-          )}
-      </Stack>
-    </Paper>
+                        },
+                      }}
+                    />
+                  )}
+                </ListItemButton>
+              </Tooltip>
+            );
+          },
+        )}
+    </Stack>
   );
 }
 export function BackButton() {

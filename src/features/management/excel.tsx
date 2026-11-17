@@ -12,6 +12,9 @@ import Stack from "@mui/material/Stack";
 import Table from "@mui/material/Table";
 import TableBody from "@mui/material/TableBody";
 import TableCell from "@mui/material/TableCell";
+import DeleteOutline from "@mui/icons-material/DeleteOutlined";
+import Tooltip from "@mui/material/Tooltip";
+import IconButton from "@mui/material/IconButton";
 import TableContainer from "@mui/material/TableContainer";
 import TableHead from "@mui/material/TableHead";
 import TableRow from "@mui/material/TableRow";
@@ -376,7 +379,7 @@ function InputGrid({ group }: { group: ProfileGroup }) {
                       left: 0,
                       zIndex: 4,
                       bgcolor: "background.paper",
-                      minWidth: 90,
+                      minWidth: 84,
                     }}
                   >
                     Dòng
@@ -402,32 +405,50 @@ function InputGrid({ group }: { group: ProfileGroup }) {
                         bgcolor: "background.paper",
                       }}
                     >
-                      {i + 2}
-                      <Button
-                        color="error"
-                        aria-label={`Xóa dòng ${i + 2}`}
-                        disabled={p.isLoading}
-                        sx={{ minHeight: 44 }}
-                        onClick={() => {
-                          if (
-                            nonemptyRow(row) &&
-                            !window.confirm(
-                              `Xóa dữ liệu chưa lưu ở dòng ${i + 2}?`,
-                            )
-                          )
-                            return;
-                          setRowKeys((old) =>
-                            old.filter((_, index) => index !== i),
-                          );
-                          setRows((old) =>
-                            old.filter((_, index) => index !== i),
-                          );
-                          setData(null);
-                          setMessage("");
-                        }}
+                      <Stack
+                        direction="row"
+                        sx={{ alignItems: "center", gap: 0.5 }}
                       >
-                        Xóa
-                      </Button>
+                        <Typography
+                          variant="body2"
+                          sx={{
+                            minWidth: 28,
+                            textAlign: "right",
+                            fontVariantNumeric: "tabular-nums",
+                            fontWeight: 600,
+                          }}
+                        >
+                          {i + 1}
+                        </Typography>
+                        <Tooltip title={`Xóa dòng ${i + 1}`}>
+                          <span>
+                            <IconButton
+                              color="error"
+                              aria-label={`Xóa dòng ${i + 1}`}
+                              disabled={p.isLoading}
+                              onClick={() => {
+                                if (
+                                  nonemptyRow(row) &&
+                                  !window.confirm(
+                                    `Xóa dữ liệu chưa lưu ở dòng ${i + 1}?`,
+                                  )
+                                )
+                                  return;
+                                setRowKeys((old) =>
+                                  old.filter((_, index) => index !== i),
+                                );
+                                setRows((old) =>
+                                  old.filter((_, index) => index !== i),
+                                );
+                                setData(null);
+                                setMessage("");
+                              }}
+                            >
+                              <DeleteOutline fontSize="small" />
+                            </IconButton>
+                          </span>
+                        </Tooltip>
+                      </Stack>
                     </TableCell>
                     {keys.map((k, j) => (
                       <TableCell
@@ -435,7 +456,7 @@ function InputGrid({ group }: { group: ProfileGroup }) {
                         sx={{ minWidth: k === "notes" ? 280 : 180 }}
                       >
                         <TextField
-                          label={`${fieldNames[k]} dòng ${i + 2}`}
+                          label={`${fieldNames[k]} dòng ${i + 1}`}
                           value={row[k] ?? ""}
                           disabled={p.isLoading}
                           multiline={k === "notes"}
@@ -542,7 +563,7 @@ function InputGrid({ group }: { group: ProfileGroup }) {
                       mode,
                       rows: rows.map((r, i) => ({
                         ...profileGridRow(r, mode),
-                        _excelRow: i + 2,
+                        _excelRow: i + 1,
                       })),
                     }).unwrap(),
                   );
