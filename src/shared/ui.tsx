@@ -23,6 +23,7 @@ import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Chip from "@mui/material/Chip";
 import LinearProgress from "@mui/material/LinearProgress";
+import CircularProgress from "@mui/material/CircularProgress";
 import MenuItem from "@mui/material/MenuItem";
 import Paper from "@mui/material/Paper";
 import Stack from "@mui/material/Stack";
@@ -33,7 +34,7 @@ import Tooltip from "@mui/material/Tooltip";
 import LogoutIcon from "@mui/icons-material/Logout";
 import { ProfileAvatar } from "@/features/profile/avatar";
 import { Sidebar } from "./navigation";
-import { PageBack } from "./page-back";
+import { FloatingBack, PageBack, useFloatingBack } from "./page-back";
 import { PreferencesMenu } from "./preferences-menu";
 import { MobileAppBar } from "./mobile-bar";
 import { useApplicationSettings } from "@/features/settings/hooks";
@@ -60,13 +61,7 @@ export function Feedback({
   empty?: string;
   retry?: () => void;
 }) {
-  if (loading)
-    return (
-      <Box role="status" sx={{ py: 4 }}>
-        <Typography sx={{ mb: 2 }}>Đang tải…</Typography>
-        <LinearProgress />
-      </Box>
-    );
+  if (loading) return <Loading page />;
   if (error)
     return (
       <Alert
@@ -83,6 +78,32 @@ export function Feedback({
       </Paper>
     );
   return null;
+}
+/**
+ * Circular loading indicator. `page` centres it in the page area; without it
+ * it is a compact inline spinner for a section that is refreshing.
+ */
+export function Loading({ page = false }: { page?: boolean }) {
+  return (
+    <Box
+      role="status"
+      aria-label="Đang tải"
+      sx={{
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        py: page ? 0 : 1.5,
+        minHeight: page ? "40vh" : undefined,
+        animation: "ess-loading-in 240ms cubic-bezier(0.2, 0, 0, 1) both",
+        "@keyframes ess-loading-in": {
+          from: { opacity: 0, transform: "scale(0.6)" },
+          to: { opacity: 1, transform: "none" },
+        },
+      }}
+    >
+      <CircularProgress size={page ? 36 : 24} thickness={4.5} />
+    </Box>
+  );
 }
 export function Card({ children }: { children: ReactNode }) {
   return (
@@ -118,15 +139,27 @@ export function PageHeader({
 }) {
   const compact = useMediaQuery((theme: Theme) => theme.breakpoints.down("sm"));
   const split = compact ? splitActions(actions) : null;
+  // Below md the sticky app bar (top 8px + 52px) sits above the floating Back.
+  const barLayout = useMediaQuery((theme: Theme) =>
+    theme.breakpoints.down("md"),
+  );
+  const floatTop = barLayout ? 68 : 12;
+  const [floatRef, floatState] = useFloatingBack(floatTop);
   return (
     <Stack spacing={{ xs: 1, sm: 2 }} sx={{ mb: { xs: 2, sm: 2.5 } }}>
       <Stack
+        ref={floatRef}
         direction="row"
         sx={{ alignItems: "center", gap: { xs: 0.5, sm: 1 } }}
       >
         {back && (
           <Suspense>
             <PageBack />
+            <FloatingBack
+              shown={floatState.shown}
+              left={floatState.left}
+              top={floatTop}
+            />
           </Suspense>
         )}
         {title && (

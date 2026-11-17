@@ -1,9 +1,10 @@
 import type { Page } from "@playwright/test";
 
-/** Below `md` the header keeps display preferences behind its ⋮ menu. */
+/** Below `md` the header keeps display preferences in the avatar menu. */
 const compact = (page: Page) => (page.viewportSize()?.width ?? 1280) < 900;
+/** Signed-in phones open preferences from the avatar; sign-in uses ⋮. */
 const more = (page: Page) =>
-  page.getByRole("button", { name: "Tùy chọn khác", exact: true });
+  page.getByRole("button", { name: /^(Tài khoản|Tùy chọn khác)$/ });
 
 /** Opens the menu that lists Sáng / Tối / Theo hệ thống. */
 export async function openAppearance(page: Page) {

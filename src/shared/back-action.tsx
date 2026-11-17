@@ -22,9 +22,12 @@ const backButtonSx = (theme: Theme) => {
 export function BackAction({
   fallback = "/home/",
   label = "Quay lại",
+  focusable = true,
 }: {
   fallback?: string;
   label?: string;
+  /** `false` hides a duplicate (the floating copy) from keyboard and readers. */
+  focusable?: boolean;
 }) {
   const back = usePageBack(fallback);
   return (
@@ -34,6 +37,8 @@ export function BackAction({
         component={Link}
         href={fallback}
         aria-label={label}
+        tabIndex={focusable ? undefined : -1}
+        aria-hidden={focusable ? undefined : true}
         sx={backButtonSx}
         onClick={(e) => {
           if (!e.metaKey && !e.ctrlKey && !e.shiftKey && !e.altKey) {

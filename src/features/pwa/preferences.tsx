@@ -1,4 +1,5 @@
 "use client";
+import { Loading } from "@/shared/ui";
 import { useEffect, useState } from "react";
 import Alert from "@mui/material/Alert";
 import Paper from "@mui/material/Paper";
@@ -7,7 +8,6 @@ import Typography from "@mui/material/Typography";
 import Switch from "@mui/material/Switch";
 import FormControlLabel from "@mui/material/FormControlLabel";
 import Button from "@mui/material/Button";
-import LinearProgress from "@mui/material/LinearProgress";
 import {
   useNotificationPreferencesQuery,
   useSaveNotificationPreferencesMutation,
@@ -96,7 +96,7 @@ export function NotificationPreferencesPanel() {
     <Paper sx={{ p: 2 }}>
       <Stack spacing={1.5}>
         <Typography variant="h6">Thông báo & ứng dụng</Typography>
-        {q.isLoading && <LinearProgress />}
+        {q.isLoading && <Loading />}
         {(error || q.error) && (
           <Alert severity="error">
             {typeof error === "string" ? error : errorMessage(error || q.error)}
