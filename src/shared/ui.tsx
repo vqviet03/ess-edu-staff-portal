@@ -121,8 +121,8 @@ export function Title({
           component="h1"
           variant="h4"
           sx={{
-            fontSize: { xs: 21, sm: 25, md: 30 },
-            lineHeight: { xs: 1.25, sm: 1.235 },
+            fontSize: { xs: 19, sm: 25, md: 30 },
+            lineHeight: { xs: 1.3, sm: 1.235 },
             flex: { xs: 1, sm: "0 1 auto" },
             minWidth: 0,
             overflowWrap: "anywhere",
@@ -137,7 +137,7 @@ export function Title({
       {subtitle && (
         <Typography
           color="text.secondary"
-          sx={{ fontSize: { xs: 14, sm: 16 } }}
+          sx={{ fontSize: { xs: 13, sm: 16 } }}
         >
           {subtitle}
         </Typography>
@@ -490,7 +490,21 @@ export function Shell({ children }: { children: ReactNode }) {
             }}
           >
             <MobileAppBar
-              brand={brand}
+              brand={
+                <Box
+                  component={Link}
+                  href={auth.status === "authenticated" ? "/home/" : "/login/"}
+                  aria-label={appName}
+                  title={appName}
+                  sx={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    "& > *": { mr: "0 !important" },
+                  }}
+                >
+                  <AppIcon />
+                </Box>
+              }
               authenticated={auth.status === "authenticated"}
               manager={workspace.selected === "manager"}
               avatar={

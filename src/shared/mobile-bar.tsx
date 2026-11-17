@@ -83,17 +83,15 @@ export function MobileAppBar({
         alignItems: "center",
         gap: 0.25,
         position: "sticky",
-        top: 0,
+        top: 8,
         zIndex: (theme) => theme.zIndex.appBar,
-        mx: { xs: -1.5 },
-        mt: { xs: -1.5 },
         mb: 1.5,
-        px: 0.5,
+        pl: 0.5,
+        pr: 0.25,
         minHeight: 52,
-        borderRadius: 0,
-        borderBottom: 1,
+        border: 1,
         borderColor: "divider",
-        bgcolor: "background.default",
+        bgcolor: "background.paper",
       }}
     >
       {authenticated && (
@@ -109,7 +107,7 @@ export function MobileAppBar({
         sx={{
           flex: 1,
           minWidth: 0,
-          pl: authenticated ? 0 : 1,
+          pl: authenticated ? 0.25 : 1,
           "& > *": {
             display: "flex",
             alignItems: "center",

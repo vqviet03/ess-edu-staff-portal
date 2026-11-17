@@ -572,18 +572,33 @@ export function ClassRewardActions({
   return (
     <Box sx={{ mb: { xs: 1.5, sm: 2.5 } }}>
       <Stack direction="row" spacing={1} sx={{ alignItems: "center", mb: 1 }}>
-        <IconAction
-          label={editable ? "Cộng điểm động viên" : "Xem điểm động viên"}
-          icon={<EmojiEvents />}
-          onClick={() => setOpen(true)}
-        />
-        <Typography variant="body2" sx={{ flex: 1, minWidth: 0 }}>
-          Điểm động viên
-          <Box component="span" sx={{ display: { xs: "none", sm: "inline" } }}>
-            {" "}
-            theo lớp
-          </Box>
+        <Box sx={{ display: { xs: "none", sm: "inline-flex" } }}>
+          <IconAction
+            label={editable ? "Cộng điểm động viên" : "Xem điểm động viên"}
+            icon={<EmojiEvents />}
+            onClick={() => setOpen(true)}
+          />
+        </Box>
+        <Typography
+          variant="body2"
+          sx={{ flex: 1, minWidth: 0, display: { xs: "none", sm: "block" } }}
+        >
+          Điểm động viên theo lớp
         </Typography>
+        {/* Phones show the label inside one tappable button. */}
+        <Box
+          sx={{ flex: 1, minWidth: 0, display: { xs: "block", sm: "none" } }}
+        >
+          <Button
+            variant="outlined"
+            startIcon={<EmojiEvents />}
+            aria-label={editable ? "Cộng điểm động viên" : "Xem điểm động viên"}
+            onClick={() => setOpen(true)}
+            sx={{ ...rewardButton, maxWidth: "100%" }}
+          >
+            Điểm động viên
+          </Button>
+        </Box>
         {tools && (
           <Stack direction="row" sx={{ alignItems: "center", flexShrink: 0 }}>
             {tools}
