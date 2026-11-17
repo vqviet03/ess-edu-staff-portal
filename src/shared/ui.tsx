@@ -1,5 +1,8 @@
 "use client";
-import type { ReactNode } from "react";
+import { compactRadii } from "@/theme/compact";
+import { usePageBack } from "./page-navigation";
+import { AppIcon } from "@/features/pwa/app-icon";
+import { Suspense, useEffect, type ReactNode } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useStore } from "react-redux";
@@ -13,12 +16,24 @@ import Paper from "@mui/material/Paper";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
-import { usePreferences } from "@/theme/providers";
+import IconButton from "@mui/material/IconButton";
+import Tooltip from "@mui/material/Tooltip";
+import LogoutIcon from "@mui/icons-material/Logout";
+import { ProfileAvatar } from "@/features/profile/avatar";
+import { Sidebar, BackButton } from "./navigation";
+import { PreferencesMenu } from "./preferences-menu";
+import { useApplicationSettings } from "@/features/settings/hooks";
 import { type RootState, useAppDispatch, useAppSelector } from "@/store";
 import { signedOut } from "@/store/auth";
 import { useLogoutMutation, useResetDemoMutation } from "@/api/api";
 import { errorMessage, useMock } from "@/api/base-query";
 import { useWorkspace } from "@/features/access/hooks";
+import {
+  AppScale,
+  DisplayTools,
+  GuideLayout,
+  useAppDisplay,
+} from "@/features/help/display";
 import { confirmLeave } from "./unsaved";
 export function Feedback({
   loading,
@@ -57,7 +72,15 @@ export function Feedback({
 }
 export function Card({ children }: { children: ReactNode }) {
   return (
-    <Paper sx={{ p: { xs: 2.5, md: 2.5 }, minWidth: 0 }}>{children}</Paper>
+    <Paper
+      sx={{
+        p: { xs: 1.5, md: 2.5 },
+        borderRadius: compactRadii.surface,
+        minWidth: 0,
+      }}
+    >
+      {children}
+    </Paper>
   );
 }
 export function Title({
@@ -71,13 +94,18 @@ export function Title({
 }) {
   return (
     <Stack spacing={2} sx={{ mb: 2.5 }}>
-      <Typography
-        component="h1"
-        variant="h4"
-        sx={{ fontSize: { xs: 25, md: 30 } }}
-      >
-        {title}
-      </Typography>
+      <Stack direction="row" sx={{ alignItems: "center", gap: 1 }}>
+        <Suspense>
+          <BackButton />
+        </Suspense>
+        <Typography
+          component="h1"
+          variant="h4"
+          sx={{ fontSize: { xs: 25, md: 30 } }}
+        >
+          {title}
+        </Typography>
+      </Stack>
       {subtitle && <Typography color="text.secondary">{subtitle}</Typography>}
       {actions && (
         <Stack
@@ -114,13 +142,32 @@ export function NavButton({
   href,
   children,
   primary = false,
+  back = false,
 }: {
   href: string;
   children: ReactNode;
   primary?: boolean;
+  back?: boolean;
 }) {
+  const goBack = usePageBack(href);
   return (
     <Button
+      data-navigation-back={back || undefined}
+      onClick={
+        back
+          ? (event) => {
+              if (
+                !event.metaKey &&
+                !event.ctrlKey &&
+                !event.shiftKey &&
+                !event.altKey
+              ) {
+                event.preventDefault();
+                goBack();
+              }
+            }
+          : undefined
+      }
       component={Link}
       href={href}
       variant={primary ? "contained" : "outlined"}
@@ -152,8 +199,12 @@ export function Progress({
 export function Shell({ children }: { children: ReactNode }) {
   const workspace = useWorkspace(),
     pathname = usePathname();
-  const { mode, setMode } = usePreferences(),
-    auth = useAppSelector((s) => s.auth),
+  const { settings } = useApplicationSettings();
+  useEffect(() => {
+    document.title =
+      (settings.portals?.staff?.name || settings.appName) + " · Staff Portal";
+  }, [settings.appName, settings.portals?.staff?.name]);
+  const auth = useAppSelector((s) => s.auth),
     dispatch = useAppDispatch(),
     router = useRouter();
   const store = useStore<RootState>();
@@ -172,207 +223,173 @@ export function Shell({ children }: { children: ReactNode }) {
       }
     }
   };
+  const { zoom } = useAppDisplay();
   const [reset, { isLoading }] = useResetDemoMutation();
-  return (
-    <Box
+  const headerControls = (
+    <Stack
+      direction="row"
+      useFlexGap
       sx={{
-        maxWidth: 1600,
-        mx: "auto",
-        p: { xs: 2.5, md: 4 },
-        minHeight: "100vh",
+        alignItems: "center",
+        gap: 1,
+        flexWrap: "wrap",
       }}
     >
+      {auth.status === "authenticated" && workspace.allowed.length > 1 && (
+        <TextField
+          select
+          label="Không gian"
+          value={workspace.selected ?? ""}
+          sx={{ width: 145 }}
+          onChange={(e) => {
+            if (confirmLeave()) {
+              workspace.choose(e.target.value as "manager" | "teacher");
+              if (pathname.startsWith("/manage/")) router.push("/home/");
+            }
+          }}
+        >
+          <MenuItem value="manager">Quản lý</MenuItem>
+          <MenuItem value="teacher">Giảng viên</MenuItem>
+        </TextField>
+      )}
+      <DisplayTools />
+      <PreferencesMenu />
+      {auth.status === "authenticated" && (
+        <>
+          <Typography
+            variant="body2"
+            color="text.secondary"
+            sx={{ display: { xs: "none", sm: "block" } }}
+          >
+            {auth.session?.teacher.roles?.includes("MANAGER")
+              ? "Quản lý"
+              : "Giảng viên"}{" "}
+            · {auth.session?.teacher.name}
+          </Typography>
+          <Tooltip title="Hồ sơ cá nhân">
+            <IconButton
+              component={Link}
+              href="/profile/"
+              aria-label="Hồ sơ cá nhân"
+            >
+              <ProfileAvatar
+                name={auth.session?.teacher.name ?? "Bạn"}
+                value={auth.session?.teacher.avatar}
+                size={30}
+              />
+            </IconButton>
+          </Tooltip>
+          <Tooltip title="Đăng xuất">
+            <IconButton
+              aria-label="Đăng xuất"
+              disabled={logoutState.isLoading}
+              onClick={signOut}
+            >
+              <LogoutIcon />
+            </IconButton>
+          </Tooltip>
+        </>
+      )}
+      {useMock && (
+        <Button
+          disabled={isLoading}
+          onClick={async () => {
+            if (
+              confirmLeave() &&
+              window.confirm("Khôi phục dữ liệu demo ban đầu và đăng xuất?")
+            ) {
+              try {
+                await reset().unwrap();
+                dispatch(signedOut());
+                router.replace("/login/");
+              } catch (e) {
+                window.alert(errorMessage(e));
+              }
+            }
+          }}
+        >
+          Reset demo
+        </Button>
+      )}
+    </Stack>
+  );
+  return (
+    <AppScale>
       <Box
         sx={{
-          display: {
-            md:
-              workspace.selected === "manager" &&
-              auth.status === "authenticated"
-                ? "grid"
-                : "block",
-          },
-          gridTemplateColumns: "216px minmax(0,1fr)",
-          gap: 3,
-          alignItems: "start",
+          maxWidth: 1800 / (zoom / 100),
+          mx: "auto",
+          p: { xs: 1.5, md: 2 },
+          minHeight: "100vh",
         }}
       >
-        {auth.status === "authenticated" &&
-          workspace.selected === "manager" && (
-            <Paper
-              component="aside"
-              sx={{ p: 2, position: { md: "sticky" }, top: 24 }}
-            >
-              <Typography
-                sx={{ fontWeight: 700, fontSize: 21 }}
-                color="primary"
-              >
-                ESS / STAFF
-              </Typography>
-              <Typography variant="caption" color="text.secondary">
-                Không gian làm việc
-              </Typography>
-              <Stack
-                component="nav"
-                aria-label="Menu quản lý"
-                direction={{ xs: "row", md: "column" }}
-                sx={{
-                  gap: 0.5,
-                  mt: 2,
-                  overflowX: { xs: "auto", md: "visible" },
-                }}
-              >
-                {[
-                  ["Tổng quan", "/home/"],
-                  ["Học sinh", "/manage/list/?entity=students"],
-                  ["Giảng viên", "/manage/list/?entity=teachers"],
-                  ["Lớp học", "/manage/list/?entity=classes"],
-                  ["Tài khoản", "/manage/list/?entity=accounts"],
-                  ["Nhãn phụ trách", "/manage/list/?entity=labels"],
-                  ["Cảnh báo", "/manage/warnings/"],
-                  ["Nhật ký", "/manage/audit/"],
-                ].map(([label, href]) => (
-                  <Button
-                    component={Link}
-                    key={href}
-                    href={href}
-                    sx={{
-                      justifyContent: "flex-start",
-                      whiteSpace: "nowrap",
-                      flexShrink: 0,
-                    }}
-                  >
-                    {label}
-                  </Button>
-                ))}
-              </Stack>
-            </Paper>
+        <Box
+          sx={{
+            display: { md: auth.status === "authenticated" ? "grid" : "block" },
+            gridTemplateColumns: "auto minmax(0,1fr)",
+            gap: 3,
+            alignItems: "start",
+          }}
+        >
+          {auth.status === "authenticated" && (
+            <Suspense>
+              <Sidebar
+                manager={workspace.selected === "manager"}
+                appName={settings.portals?.staff?.name || settings.appName}
+              />
+            </Suspense>
           )}
-        <Box sx={{ minWidth: 0 }}>
-          <Stack
-            component="header"
-            direction="row"
-            useFlexGap
+          <Box
             sx={{
-              ...{ mb: { xs: 3, md: 4 } },
-              alignItems: "center",
-              justifyContent: "space-between",
-              flexWrap: "wrap",
-              gap: 1,
+              minWidth: 0,
             }}
           >
-            <Typography
-              component={Link}
-              href={auth.status === "authenticated" ? "/home/" : "/login/"}
-              sx={{
-                fontSize: 20,
-                fontWeight: 700,
-                color: "primary.main",
-                textDecoration: "none",
-              }}
-            >
-              {workspace.selected === "manager"
-                ? "Staff Portal / Quản lý"
-                : "◈ ESS"}
-            </Typography>
             <Stack
+              component="header"
               direction="row"
               useFlexGap
               sx={{
+                ...{
+                  mb: 2,
+                  py: 1,
+                },
                 alignItems: "center",
-                gap: 1,
+                justifyContent: "space-between",
                 flexWrap: "wrap",
+                gap: 1,
               }}
             >
-              {auth.status === "authenticated" &&
-                workspace.allowed.length > 1 && (
-                  <TextField
-                    select
-                    label="Không gian"
-                    value={workspace.selected ?? ""}
-                    sx={{ width: 145 }}
-                    onChange={(e) => {
-                      if (confirmLeave()) {
-                        workspace.choose(
-                          e.target.value as "manager" | "teacher",
-                        );
-                        if (pathname.startsWith("/manage/"))
-                          router.push("/home/");
-                      }
-                    }}
-                  >
-                    <MenuItem value="manager">Quản lý</MenuItem>
-                    <MenuItem value="teacher">Giảng viên</MenuItem>
-                  </TextField>
-                )}
-              <TextField select label="Ngôn ngữ" value="vi" sx={{ width: 125 }}>
-                <MenuItem value="vi">Tiếng Việt</MenuItem>
-              </TextField>
-              <TextField
-                select
-                label="Giao diện"
-                value={mode}
-                onChange={(e) => setMode(e.target.value as typeof mode)}
-                sx={{ width: 150 }}
+              <Typography
+                component={Link}
+                href={auth.status === "authenticated" ? "/home/" : "/login/"}
+                sx={{
+                  fontSize: 20,
+                  fontWeight: 700,
+                  color: "primary.main",
+                  textDecoration: "none",
+                }}
               >
-                <MenuItem value="light">Sáng</MenuItem>
-                <MenuItem value="dark">Tối</MenuItem>
-                <MenuItem value="system">Theo hệ thống</MenuItem>
-              </TextField>
-              {auth.status === "authenticated" && (
-                <>
-                  <Typography
-                    variant="body2"
-                    color="text.secondary"
-                    sx={{ display: { xs: "none", sm: "block" } }}
-                  >
-                    {auth.session?.teacher.roles?.includes("MANAGER")
-                      ? "Quản lý"
-                      : "Giảng viên"}{" "}
-                    · {auth.session?.teacher.name}
-                  </Typography>
-                  <Button loading={logoutState.isLoading} onClick={signOut}>
-                    Đăng xuất
-                  </Button>
-                </>
-              )}
-              {useMock && (
-                <Button
-                  disabled={isLoading}
-                  onClick={async () => {
-                    if (
-                      confirmLeave() &&
-                      window.confirm(
-                        "Khôi phục dữ liệu demo ban đầu và đăng xuất?",
-                      )
-                    ) {
-                      try {
-                        await reset().unwrap();
-                        dispatch(signedOut());
-                        router.replace("/login/");
-                      } catch (e) {
-                        window.alert(errorMessage(e));
-                      }
-                    }
-                  }}
-                >
-                  Reset demo
-                </Button>
-              )}
+                <AppIcon />
+                {settings.portals?.staff?.name || settings.appName}
+              </Typography>
+              {headerControls}
             </Stack>
-          </Stack>
-          <Box component="main">{children}</Box>
-          <Typography
-            component="footer"
-            variant="caption"
-            color="text.secondary"
-            sx={{ display: "block", mt: 4 }}
-          >
-            {useMock
-              ? "Bản demo · Dữ liệu giả lập được lưu trên thiết bị này."
-              : "ESS · Cổng thông tin giảng viên"}
-          </Typography>
+            <GuideLayout workspace={workspace.selected}>
+              <Box component="main">{children}</Box>
+            </GuideLayout>
+            <Typography
+              component="footer"
+              variant="caption"
+              color="text.secondary"
+              sx={{ display: "block", mt: 4 }}
+            >
+              {useMock
+                ? "Bản demo · Dữ liệu giả lập được lưu trên thiết bị này."
+                : `${settings.portals?.staff?.name || settings.appName} · Cổng thông tin giảng viên`}
+            </Typography>
+          </Box>
         </Box>
       </Box>
-    </Box>
+    </AppScale>
   );
 }

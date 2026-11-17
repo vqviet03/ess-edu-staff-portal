@@ -1,7 +1,10 @@
 import { test, expect, type Page } from "@playwright/test";
 import { Workbook } from "exceljs";
 import { installHttpFixture } from "./support/http-fixture";
-test.beforeEach(async ({page}) => { if (process.env.NEXT_PUBLIC_USE_MOCK !== "true") await installHttpFixture(page); });
+test.beforeEach(async ({ page }) => {
+  if (process.env.NEXT_PUBLIC_USE_MOCK !== "true")
+    await installHttpFixture(page);
+});
 const context =
   "classId=class-green&sessionId=session-3&assessmentId=assessment-seven";
 async function login(page: Page) {
@@ -31,10 +34,12 @@ test("đăng nhập, reload, theme, deep links và 401", async ({ page }) => {
   await expect(
     page.getByRole("heading", { name: "Lớp học của tôi" }),
   ).toBeVisible();
-  await page.getByLabel("Giao diện").click();
-  await page.getByRole("option", { name: "Tối", exact: true }).click();
+  await page.getByRole("button", { name: "Giao diện", exact: true }).click();
+  await page.getByRole("menuitem", { name: "Tối", exact: true }).click();
   await page.reload();
-  await expect(page.getByLabel("Giao diện")).toHaveText("Tối");
+  await expect(
+    page.getByRole("button", { name: "Giao diện", exact: true }),
+  ).toHaveAttribute("data-mode", "dark");
   for (const route of [
     "class/?classId=class-green",
     "session/?classId=class-green&sessionId=session-3",
@@ -55,9 +60,9 @@ test("đăng nhập, reload, theme, deep links và 401", async ({ page }) => {
       localStorage.setItem("learnleaf.staff.mock.v1", JSON.stringify(db));
     } else {
       const key = "learnleaf.staff.auth";
-      const session = JSON.parse(sessionStorage.getItem(key)!);
+      const session = JSON.parse(localStorage.getItem(key)!);
       session.accessToken = "invalid";
-      sessionStorage.setItem(key, JSON.stringify(session));
+      localStorage.setItem(key, JSON.stringify(session));
     }
   }, process.env.NEXT_PUBLIC_USE_MOCK === "true");
   await page.goto("home/");
@@ -65,7 +70,7 @@ test("đăng nhập, reload, theme, deep links và 401", async ({ page }) => {
     page.getByRole("heading", { name: "Đăng nhập ESS Staff" }),
   ).toBeVisible();
   expect(
-    await page.evaluate(() => sessionStorage.getItem("learnleaf.staff.auth")),
+    await page.evaluate(() => localStorage.getItem("learnleaf.staff.auth")),
   ).toBeNull();
   expect(errors).toEqual([]);
 });
@@ -90,13 +95,22 @@ test("sửa học sinh, tạo phiên và bài 2 kỹ năng; phiên mới không 
 }) => {
   await login(page);
   await page.goto("class/?classId=class-green");
-  await page.getByRole("button", { name: "Sửa Hữu Văn" }).click();
+  await page.getByRole("tab", { name: "Hồ sơ & quan hệ", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Thao tác học sinh Hữu Văn", exact: true })
+    .click();
+  await page
+    .getByRole("menuitem", {
+      name: "Chỉnh sửa thông tin học sinh",
+      exact: true,
+    })
+    .click();
   await page.getByLabel("Biệt danh").fill("Bon mới");
   await page.getByRole("button", { name: "Lưu học sinh" }).click();
   await expect(
     page.getByRole("cell", { name: "Bon mới", exact: true }),
   ).toBeVisible();
-  await page.getByRole("tab", { name: "Phiên học", exact: true }).click();
+  await page.getByRole("tab", { name: "Tiến độ lớp", exact: true }).click();
   await page
     .getByRole("button", { name: "Tạo phiên học", exact: true })
     .click();
@@ -107,11 +121,7 @@ test("sửa học sinh, tạo phiên và bài 2 kỹ năng; phiên mới không 
   await expect(page.getByText("Buổi luyện tập", { exact: true })).toBeVisible();
   await expect(page.getByText("2/8 Unit · 25%")).toBeVisible();
   await page
-    .getByText("Buổi luyện tập", { exact: true })
-    .locator("..")
-    .locator("..")
-    .locator("..")
-    .getByRole("link", { name: "Mở phiên" })
+    .getByRole("link", { name: "Phiên học Buổi luyện tập", exact: true })
     .click();
   await page.getByRole("button", { name: "Tạo bài đánh giá" }).click();
   await page.getByLabel("Tên bài đánh giá").fill("Luyện nghe và nói");
@@ -204,12 +214,15 @@ test("Excel tải mẫu thực, preview và commit; mobile không tràn màn hì
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("scores/?" + context);
   await expect(
-    page.getByRole("link", { name: "Nhập điểm học sinh" }).first(),
+    page.getByRole("link", { name: /^Nhập điểm cho / }).first(),
   ).toBeVisible();
   expect(
     await page.evaluate(() => document.documentElement.scrollWidth),
   ).toBeLessThanOrEqual(390);
-  await page.getByRole("link", { name: "Nhập điểm học sinh" }).first().click();
+  await page
+    .getByRole("link", { name: /^Nhập điểm cho / })
+    .first()
+    .click();
   await expect(
     page.getByLabel("Số câu / điểm đạt", { exact: true }).first(),
   ).toHaveValue("0");

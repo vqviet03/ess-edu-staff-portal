@@ -1,3 +1,4 @@
+import type { SessionDuration } from "./session-duration";
 import type { Class, Teacher } from "@/types";
 export type Role = "TEACHER" | "MANAGER";
 export type Workspace = "manager" | "teacher";
@@ -39,6 +40,45 @@ export interface Account extends Versioned {
   kind: "STUDENT" | "STAFF";
   roles: Role[];
   status: "PENDING" | "ACTIVE" | "LOCKED";
+  sessionLifetimeMinutes?: number | null;
+  sessionDuration?: SessionDuration | null;
+}
+export interface LoginHistoryEntry {
+  loggedInAt: string;
+  expiresAt: string;
+  revokedAt: string | null;
+  ipAddress: string | null;
+  device: string | null;
+  browser: string | null;
+  operatingSystem: string | null;
+}
+export interface LoginHistory {
+  items: LoginHistoryEntry[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
+export interface AccountSessionPolicy {
+  sessionDuration: SessionDuration | null;
+  defaultLifetimeMinutes: number;
+  serverNow: string;
+  previewExpiresAt: string;
+  accountId: string;
+  sessionLifetimeMinutes: number | null;
+  effectiveLifetimeMinutes: number;
+  activeSessionCount: number;
+  managerProtected: boolean;
+  version: number;
+}
+export interface SessionPolicyRequest {
+  sessionDuration?: SessionDuration | null;
+  sessionLifetimeMinutes: number | null;
+  version: number;
+  reason: string;
+}
+export interface SessionRevocation {
+  revokedSessions: number;
+  policy: AccountSessionPolicy;
 }
 export interface AssignmentLabel extends Versioned {
   name: string;
@@ -63,10 +103,17 @@ export interface TeacherClassAssignment extends Versioned {
   requiresReconfirmation?: boolean;
 }
 export interface Enrollment extends Versioned {
+  joinedOn?: string;
+  endedOn?: string | null;
+  datesConfirmed?: boolean;
+  recordedAt?: string;
   classId: string;
   studentId: string;
   status: "ACTIVE" | "ENDED" | "COMPLETED";
   history: {
+    id?: string;
+    joinedOn?: string;
+    endedOn?: string | null;
     startAt: string;
     endAt: string | null;
     status: Enrollment["status"];
@@ -168,6 +215,9 @@ export interface AuditEvent {
   id: string;
   at: string;
   actorId: string;
+  actorUserId?: string | null;
+  actorLoginId?: string | null;
+  actorName?: string | null;
   action: string;
   entity: string;
   ids: string[];

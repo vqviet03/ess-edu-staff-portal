@@ -1,5 +1,6 @@
 # ESS Staff Portal
 
+[Thread, đính kèm bình luận, file private và rollout](docs/thread-materials.md): mặc định tab Thread cho học sinh; liên hệ giảng viên; routing upload theo storage; migration Materials `005_materials.sql` trước triển khai frontend.
 Next.js App Router, TypeScript strict, MUI, Redux Toolkit/RTK Query, React Hook Form/Zod. Giao diện tiếng Việt, sáng/tối/theo hệ thống; bảng desktop và form mobile. Theo [Figma](https://www.figma.com/design/lijTH4LOpagJqMJHv6gv7w): Roboto tự host, nền #f4f8f5, xanh #317b58, card bo góc. Không có API Routes, Server Actions, middleware hoặc backend trong repository.
 
 ## Chạy và thử
@@ -14,24 +15,19 @@ npm run dev
 
 - Mặc định gọi API thật tại `https://ess-edu-portal-api-246816830212.asia-southeast1.run.app/v1`. Auth và endpoint giảng viên đã hoạt động; các endpoint/quyền quản lý mới cần triển khai theo contract quản lý.
 - Tài khoản backend demo: **GV000001 / TeacherDemo123!** (email `teacher@ess.local` cũng được), lớp **ess20-a1**. Chỉ dùng trong môi trường thử nghiệm đã seed; không dùng mật khẩu demo cho tài khoản thật.
-- Để chạy offline: đặt `NEXT_PUBLIC_USE_MOCK=true`. Các hướng dẫn mock bên dưới chỉ áp dụng khi bật rõ ràng chế độ này. Mock demo: **GV0001 / Demo123!**.
-- Link demo: `http://localhost:3000/login/link/#code=teacher-demo` (dùng một lần). Thử `expired-demo` để xem lỗi hết hạn. URL đã đọc sẽ xóa fragment ngay.
-- Nút **Reset demo** khôi phục fixtures và đăng xuất, cho phép dùng lại link demo. Chỉ có trong chế độ mock.
-- Mock có delay, đăng nhập sai, token hết hạn, code đã dùng, dữ liệu rỗng, kiểm tra quyền, version conflict. Dữ liệu giả lập lưu ở localStorage của thiết bị; JWT truy cập của phiên lưu sessionStorage. Không dùng thông tin cá nhân/credential thật.
 - Seed: 6 lớp, 34 học sinh, 17 hồ sơ Staff, phiên cùng Unit để kiểm tra không đếm trùng; bài 7 kỹ năng và bài 2 kỹ năng. Bon có 23.1/35 = 66%.
 - Thử: đăng nhập → Juniors03 → sửa học sinh / tab Phiên học → Unit 3 → cấu hình / bảng / form từng học sinh / Excel.
 - Đánh dấu phiên hoàn thành để tăng tiến độ; tạo phiên nháp không tăng. Bài đánh giá hoàn thành khóa điểm, cần về nháp để sửa. Hoàn thành bài yêu cầu từng học sinh có đủ điểm hoặc xác nhận vắng.
 
 ## API thật
 
-| Biến công khai | Mặc định / ý nghĩa |
-|---|---|
-| NEXT_PUBLIC_USE_MOCK | `false` mặc định; `true` bật mock offline |
-| NEXT_PUBLIC_API_BASE_URL | URL Cloud Run đã có trong `.env.example`; root tự thêm `/v1` |
-| NEXT_PUBLIC_API_TIMEOUT_MS | `15000`, thời gian chờ request |
-| NEXT_PUBLIC_BASE_PATH | Trống local/root; `/ess-edu-staff-portal` cho project Pages |
+| Biến công khai             | Mặc định / ý nghĩa                                           |
+| -------------------------- | ------------------------------------------------------------ |
+| NEXT_PUBLIC_API_BASE_URL   | URL Cloud Run đã có trong `.env.example`; root tự thêm `/v1` |
+| NEXT_PUBLIC_API_TIMEOUT_MS | `15000`, thời gian chờ request                               |
+| NEXT_PUBLIC_BASE_PATH      | Trống local/root; `/ess-edu-staff-portal` cho project Pages  |
 
-Đổi `.env.local`, build lại; không sửa component. Production build thiếu/sai URL, mode hoặc timeout bị từ chối; không fallback mock. HTTP chỉ dùng localhost khi phát triển. Backend ESS đã hỗ trợ auth, giảng viên, quản lý và access theo lớp; mọi request vẫn cần kiểm tra quyền ở backend. Không đưa JWT signing key, mật khẩu DB hoặc secret vào NEXT_PUBLIC_*.
+Đổi `.env.local`, build lại; không sửa component. Production build thiếu/sai URL, mode hoặc timeout bị từ chối; không fallback mock. HTTP chỉ dùng localhost khi phát triển. Backend ESS đã hỗ trợ auth, giảng viên, quản lý và access theo lớp; mọi request vẫn cần kiểm tra quyền ở backend. Không đưa JWT signing key, mật khẩu DB hoặc secret vào NEXT*PUBLIC*\*.
 
 Đăng nhập mới xóa RTK Query cache để không giữ dữ liệu phiên trước. JWT cũ từ mock hoặc backend khác bị xóa khi khôi phục phiên; reload xác minh `/auth/me`. Logout gọi `POST /auth/logout` thu hồi session trên backend rồi xóa session và RTK Query cache; mạng lỗi vẫn đăng xuất tại browser. Login/link không gửi JWT cũ; phản hồi 401 đến muộn không xóa phiên mới. Models lưu thêm `teacherCode`, `roles`, `permissions` do backend trả, sẵn sàng cho tài khoản MANAGER/TEACHER cùng dùng portal.
 
@@ -58,7 +54,7 @@ npx playwright install chromium
 NEXT_PUBLIC_BASE_PATH=/ess-edu-staff-portal npm run test:e2e
 ```
 
-`output: export`, `trailingSlash: true`; deploy thư mục `out/`, không dùng next start. Mỗi route có index.html nên reload trực tiếp hoạt động. basePath do Next quản lý cho links/assets; mock và API thật độc lập với basePath. Thay env cần build lại. Không có service worker/offline hoặc Next server. Phiên giới hạn theo expiresAt/JWT exp, kiểm tra khi reload, focus và mỗi 10 giây; 401 xóa phiên/cache. sessionStorage bị chặn: phiên không thể khôi phục khi reload; localStorage bị chặn: mock trả lỗi lưu, dùng trình duyệt cho phép storage.
+`output: export`, `trailingSlash: true`; deploy thư mục `out/`, không dùng next start. Mỗi route có index.html nên reload trực tiếp hoạt động. basePath do Next quản lý cho links/assets; API thật độc lập với basePath. Thay env cần build lại. Không có service worker/offline hoặc Next server. Phiên giới hạn theo expiresAt/JWT exp; reload xác minh phiên, 401 xóa phiên/cache. Không polling định kỳ. localStorage bị chặn: phiên không thể khôi phục khi reload; lựa chọn giao diện cần browser storage được cho phép.
 
 ## GitHub Pages
 
@@ -94,19 +90,18 @@ Backend test phải cho phép CORS `http://127.0.0.1:4173`, có seed `GV000001 /
 
 `src/features/{auth,classes,students,sessions,assessments,scores,excel}`, `types`, `api`, `store`, `mock`, `theme`, `shared`, `utils`. Model, fixtures, adapter, endpoints và UI tách riêng. `tests/` kiểm tra công thức/null/0/schema/version/mode/import nguyên tử; `e2e/` kiểm tra thao tác trình duyệt/static/mobile. [API contract](docs/api-contract.md) mô tả nghiệp vụ giảng viên; [contract quản lý](docs/management-api-contract.md) mô tả API quản lý của backend ESS.
 
-
 ## Quản lý trong cùng ESS Staff Portal
 
 Không tạo app/auth/deployment riêng. Thiết kế [Figma](https://www.figma.com/design/FbROYl4kQMTW4XbvvShuWV?node-id=2-3004); sidebar xanh pastel, dashboard, bảng desktop/card mobile, sáng/tối/theo hệ thống. Chỉ tài khoản có cả TEACHER và MANAGER thấy switch; lựa chọn hợp lệ nhớ theo ID. Quản lý chỉ xem learning; sửa phiên/schema/điểm phải ở không gian Giảng viên và có phân công hợp lệ trong chính lớp ACTIVE.
 
-Chạy bản duyệt quản lý: `NEXT_PUBLIC_USE_MOCK=true npm run dev`. Tài khoản demo (tất cả mật khẩu `Demo123!`):
+Các fixtures sau chỉ phục vụ unit test, không đăng nhập vào ứng dụng API thật (tất cả mật khẩu thử nghiệm `Demo123!`):
 
-| ID | Vai trò | Link đăng nhập demo dùng một lần |
-|---|---|---|
-| GV0001 | TEACHER | `/login/link/#code=teacher-demo` |
-| MG0001 | MANAGER | `/login/link/#code=manager-demo` |
-| BOTH0001 | TEACHER + MANAGER | `/login/link/#code=dual-demo` |
-| GV0002 | TEACHER (người phụ trách thứ hai) | Đăng nhập ID/password |
+| ID       | Vai trò                           | Link đăng nhập demo dùng một lần |
+| -------- | --------------------------------- | -------------------------------- |
+| GV0001   | TEACHER                           | `/login/link/#code=teacher-demo` |
+| MG0001   | MANAGER                           | `/login/link/#code=manager-demo` |
+| BOTH0001 | TEACHER + MANAGER                 | `/login/link/#code=dual-demo`    |
+| GV0002   | TEACHER (người phụ trách thứ hai) | Đăng nhập ID/password            |
 
 Thêm basePath repo trước route khi chạy Pages. Reset demo giữ cơ chế cũ, xóa dữ liệu demo và đăng xuất; dữ liệu mock mutations lưu localStorage. Đây là dữ liệu công khai giả lập. Account tạo mới PENDING không nhận mật khẩu demo; cấp link kích hoạt tại profile rồi đặt mật khẩu. Mock chỉ lưu hash demo cho mật khẩu mới, không mật khẩu rõ. Backend thật phải hash bằng cơ chế phù hợp và lưu code dạng digest.
 
@@ -124,12 +119,123 @@ Kiểm tra: `npm run lint`, `npm run typecheck`, `npm test`, `npm run build`; br
 
 ## ID và thông báo realtime
 
-[Contract ID/tác vụ nền](docs/identifiers-operations.md): nhập tên gọi backend sinh ID, ID tùy chỉnh có nút kiểm tra trùng; CREATE bảng/Excel cho phép ID trống/trùng và xem ID đã cấp ở preview. Lớp tự cấp `ess21…`, hậu tố tên sửa riêng. Các ID hiện có giữ nguyên.
+[Contract ID/tác vụ nền](docs/identifiers-operations.md): nhập tên gọi backend sinh ID, ID tùy chỉnh có nút kiểm tra trùng; CREATE bảng/Excel cho phép ID trống/trùng và xem ID đã cấp ở preview. Lớp gợi ý `ess21…` theo cấu hình; manager sửa được ID/tên/mã, kiểm tra trùng và xem trước ảnh hưởng.
 
-Mutation gửi `Prefer: respond-async` và idempotency key, UI báo đang xử lý sau HTTP 202. WebSocket trong RTK Query nhận completion, Redux invalidate dữ liệu liên quan; polling là dự phòng và phục hồi sau reload. JWT gửi ở frame AUTH, không trên URL. Mock cũng có queue, events và lưu dữ liệu khi reload. Khi Cloud Run scale về 0/mọi client offline, job tiếp tục lúc truy cập lại; xử lý liên tục cần cấu hình backend riêng. Không cần thêm biến NEXT_PUBLIC hoặc thư viện.
+Mutation gửi `Prefer: respond-async` và idempotency key, UI báo đang xử lý sau HTTP 202. WebSocket trong RTK Query nhận completion, Redux invalidate dữ liệu liên quan; không có polling; kết quả đầy đủ đến qua socket OPERATION, WATCH xử lý kết quả đến trước HTTP 202 hoặc sau reconnect. Chỉ nút Kiểm tra trạng thái mới gọi GET trạng thái. JWT gửi ở frame AUTH, không trên URL. Mock xử lý mutation trực tiếp; các test hàng đợi backend riêng vẫn kiểm tra async/idempotency. Backend mới có chế độ Cloud Tasks: tác vụ tiếp tục khi mọi client đã đóng, dừng khi hết hàng đợi. Cấu hình/migration backend được hướng dẫn trong PR backend tương ứng. Không cần thêm biến NEXT_PUBLIC hoặc thư viện.
 
 ## Công bố báo cáo sang trang học sinh
 
 Trong Giảng viên → lớp đang phụ trách → phiên → bài đánh giá: nhập đủ điểm hoặc xác nhận vắng cho từng học sinh, **Đánh dấu hoàn thành**, sau đó **Công bố báo cáo cho học sinh**. Hoàn thành chỉ khóa điểm, chưa công bố. Học sinh chọn đúng lớp và tải lại trang để xem Unit đã công bố. Một Unit dùng một bài làm nguồn; UI xác nhận trước khi thay nguồn. Gỡ công bố trước khi chuyển bài về nháp/sửa; lịch sử và điểm được giữ. Quản lý chỉ xem trạng thái, không công bố nếu không có quyền giảng viên của lớp.
 
 `GET /assessments/:id/publication` và POST publish/unpublish dùng RTK Query, Prefer/queue/idempotency hiện tại. Backend cần có endpoint trạng thái trước khi merge frontend. Mock thực hiện snapshot, version, quyền, gỡ công bố và persist khi reload.
+
+## Thời hạn và kết thúc phiên tài khoản
+
+Quản lý → hồ sơ Học sinh/Giảng viên/Tài khoản → **Phiên đăng nhập**: đặt năm/tháng/ngày/giờ/phút (tổng lớn hơn 0, tối đa 10 năm), hoặc mặc định hệ thống. Chính sách áp dụng cho đăng nhập mới bằng mật khẩu và link. **Buộc kết thúc tất cả phiên** cần lý do/xác nhận; tài khoản vẫn đăng nhập lại được. MANAGER và tài khoản hai vai trò được bảo vệ khỏi thao tác này. Form giữ dữ liệu khi lỗi/version conflict, có cảnh báo chưa lưu; HTTP 202 và realtime dùng RTK Query/queue sẵn có.
+
+Xem [contract phiên tài khoản](docs/account-sessions.md). Mock thực hiện thu hồi mọi token đích, thời hạn riêng, audit/version/idempotency và persist khi reload; tài khoản demo hiện tại dùng mặc định 60 phút. Không cần biến môi trường hay thư viện mới. Backend cần áp dụng migration 007 và deploy API trước khi merge frontend.
+
+Lịch sử đăng nhập trong hồ sơ tài khoản hiển thị thời gian Việt Nam, thiết bị/trình duyệt/OS và IP kết nối (có thể là proxy; chưa xác định vị trí). Chỉ MANAGER xem được. Bảng nhập hỗ trợ Tạo mới/Cập nhật, ID tự sinh ở CREATE, ô trống giữ dữ liệu ở UPDATE, xóa dòng và kiểm tra boolean/vai trò trước preview. Xem [contract chi tiết](docs/account-sessions.md).
+
+## Báo cáo học sinh, hướng dẫn và thu/phóng
+
+Xem [hướng dẫn tính năng và API](docs/student-reports.md). Mở “Báo cáo học tập” từ học sinh của lớp/hồ sơ quản lý; quản lý chỉ xem, giảng viên đang phụ trách có thể sửa nhận xét. Header có “Hướng dẫn” theo màn hình (vừa đọc vừa thao tác), nút −/100%/+ lưu kích thước 75–125%. Biểu đồ báo cáo cho bật/tắt từng kỹ năng hoặc tất cả. Route `/reports/` được static export như các route hiện có; Pages từ dev sau merge, cấu hình API thật và workflow giữ nguyên.
+
+### Kho tài liệu và phiên học
+
+Routes mới: `/materials/`, `/storages/` (quản lý), `/deletion-requests/`, `/notifications/`. Phiên học có hai tab Tài liệu/Bài kiểm tra; chuyển tab giữ bản nháp và vị trí cuộn. Kho/picker dùng chung component, lưới hai cột trên mobile, cây lazy-load, chọn file xuyên thư mục. Viewer PDF/ảnh có zoom, audio có tốc độ 0.25–2x; PDF viewer/thumbnail loader tải khi cần. RTK Query mutations cập nhật cache đúng entity; phản ứng lạc quan rollback nếu lỗi. Bình luận chỉ xóa bản nháp sau khi API xác nhận lưu thành công.
+
+Luồng mới **chỉ dùng API thật**, không có seed tài liệu, không fallback sang mock. Các adapter cũ chỉ phục vụ regression tests/cấu hình demo cũ; build Pages vẫn đặt `NEXT_PUBLIC_USE_MOCK=false`. Kiểm thử HTTP trong `e2e/material-library.spec.ts` dùng fixtures riêng trong runner, không có trong dữ liệu production.
+
+Cần deploy backend mới và cấu hình DB `ess-materials` trước khi merge/deploy frontend. Backend đã có các endpoints; [contract, quyền, quota và bước rollout](docs/material-library-api.md). PR không tự merge, workflow Pages chỉ deploy sau push vào dev. Browser PUT tới Neon bucket dùng signed URL, không gửi JWT. Hủy/retry riêng từng file; lỗi 409 giữ form để xem lại. Không xóa vật lý file từ frontend. Storage tính cả thumbnail, mặc định 4,5 GB/area; file chỉ giải phóng byte sau khi server xóa thật original + thumbnail, reservations chưa đối soát vẫn giữ; đối chiếu thêm giới hạn Neon thực tế.
+
+Học sinh đang dùng API `/me/classes/.../materials` vẫn nhận tài liệu được công bố từ post mới, không cần đổi frontend học sinh để tải các file này. Feed/bình luận học sinh cần màn hình riêng nếu bổ sung vào portal học sinh sau.
+
+### Request theo nhu cầu
+
+Không có polling ở bất kỳ màn hình nào; tắt refetch theo focus/reconnect/thời gian mount. Login/link dùng Staff trong response, reload chỉ xác minh `/auth/me` một lần ở AuthRuntime; Guard đọc cùng cache. JWT hết hạn kiểm tra tại browser, 401 xóa phiên/cache. Khi thao tác trả 403, baseQuery refresh `/auth/me` một lần cho các request đồng thời và kiểm tra lại ClassAccess nếu cần; không gửi lại thao tác bị từ chối. Quyền sửa cuối cùng luôn do backend quyết định.
+
+Thông báo mặc định/số chưa đọc được đẩy qua socket NOTIFICATIONS/NOTIFICATION và cập nhật cache trực tiếp, đọc/xóa không refetch danh sách. Chọn bộ lọc/trang hoặc bấm Tải lại mới gọi HTTP. Mutation async chỉ gửi một request, chờ OPERATION; socket mất kết nối không tạo HTTP fallback. Sự kiện CHANGE mới làm mới dữ liệu liên quan, khử trùng replay và không invalidate lần nữa với mutation đang được chính browser xử lý. Lỗi tác vụ không làm mới dữ liệu. Một cache entry dùng chung socket cho các subscriber đang hoạt động. Ẩn tab/offline/pagehide/logout hoặc hết subscriber đóng socket; mở lại dùng cursor đã lưu và snapshot để lấy phần bỏ lỡ. Không reconnect khi ở nền; khi trở lại foreground chỉ mở một kết nối dù có nhiều tín hiệu visibility/online.
+
+Rollout backend hỗ trợ OPERATION/WATCH và LISTEN/NOTIFY thông báo **trước** frontend. Frontend không thêm biến môi trường. Backend event-driven mới cần migration Core 013 và cấu hình Cloud Tasks; xem tài liệu rollout trong repo ess-edu-api. CORS cache preflight 3600 giây (trình duyệt có thể giới hạn); OPTIONS vẫn có thể cần cho request khác origin. WebSocket còn được Cloud Run tính phí theo thời gian kết nối; bỏ polling không có nghĩa chi phí bằng 0.
+
+## ID, audit, giao diện và cấu hình mới
+
+Xem [contract cập nhật](docs/management-refinements.md). Audit có paging, ID đăng nhập/public ID và tên người thao tác; manager sửa public ID với nút kiểm tra trùng. Tên/mã lớp tự do, format chỉ gợi ý tạo. Sidebar thu/mở, header icon, nút quay lại và menu thư mục gọn hơn. `/manage/settings/` đề xuất tên ứng dụng/tiền tố lớp, cần tất cả quản lý khác đồng ý. Xóa tài liệu được server purge original + thumbnail; metadata và log giữ nguyên.
+
+Deploy backend có migration Core 012/Materials 003 trước frontend; đặt sáu quota GCP 4500000000 byte để ghi đè cấu hình cũ. Mock quản lý/cấu hình hoạt động khi bật demo; kho vẫn gọi backend thật như hiện tại. Workflow deploy dev giữ nguyên, PR không tự merge.
+
+## Quản lý storage (API thật)
+
+Không gian Quản lý → Storage: xem file theo ổ, thêm kết nối Neon S3, sửa quota/trạng thái, chuyển file cùng thumbnail sang ổ cùng nhóm. Tác vụ chạy ở backend và cập nhật qua socket, không thêm polling. UUID chỉ giữ cho routing/cache; giao diện và template điểm hiển thị public ID.
+
+Backend cần migration Core 012 và Materials 004 trước deploy. Cần cấu hình GCP Secret Manager một lần; sau đó thêm ổ trực tiếp trong ứng dụng. Xem `docs/storage-management.md` và tài liệu backend `docs/storage-registry.md`. Production storage keys không nằm trong env frontend, Redux/cache hoặc browser storage.
+
+Thread lớp, quyền tác giả và triển khai: [docs/class-thread-posts.md](docs/class-thread-posts.md).
+
+Chi tiết lớp: **Thread / Tiến độ lớp / Hồ sơ & quan hệ**. Unit và danh sách phiên nằm trực tiếp trong Tiến độ lớp; học sinh chuyển vào bảng hồ sơ với menu ba chấm. Giảng viên xem hồ sơ qua `/student/?classId=...&studentId=...`; quản lý dùng hồ sơ đầy đủ hiện có. Xem [chi tiết tabs và quyền](docs/class-thread-posts.md#chi-tiết-lớp-trên-staff-portal).
+
+Thread: bài đăng căn giữa, controls MUI small/icon với tooltip, thống kê riêng từng reaction. Nhấp để bật/tắt reaction; nhấn giữ 450ms để mở bộ chọn với phản hồi thị giác/rung nếu thiết bị hỗ trợ, kéo để cuộn hủy thao tác giữ; bàn phím ArrowDown/Shift+F10. Ảnh bài đăng/bình luận dùng thumbnail xác thực trong khung cố định `object-fit: cover`; chỉ tải bản gốc khi mở viewer. Danh sách thông báo hỗ trợ thêm loại REPLY và SCORE từ backend.
+
+### Điểm động viên và lịch học
+
+[Thông báo, ngày tham gia và điểm quá khứ](docs/notification-enrollment-rewards.md): manager sửa ngày tham gia từ menu học sinh trong lớp; teacher chọn ngày đã điểm danh để bổ sung/sửa điểm, giữ lịch sử gốc. Phê duyệt/đồng ý chưa đọc được giữ khi dọn giới hạn 15 thông báo. Không cần migration mới cho phần mở rộng này.
+
+Thiết kế [Figma](https://www.figma.com/design/4HTHoXVUEgn4o3Iq0JzBRB). Icon cúp ở đầu lớp mở popup ghi 1–5 điểm/lượt, lưu nhanh hoặc ghi chú; icon chi tiết mở `/student/?classId=...&studentId=...&tab=rewards`. Quỹ bắt đầu 0, không tạo dữ liệu khi mở. Có điểm danh/chốt ngày; lịch cố định tuần/tháng, ngày linh động và giờ chung/riêng/thông báo sau. Quản lý chỉ xem; giảng viên đang phụ trách lớp ACTIVE được thưởng/trừ/sử dụng/đảo giao dịch và sửa lịch.
+
+Bốn đường E, V, E−V, E−V−S theo ngày thực; ngày vắng/chưa xác nhận không bị tạo mốc 0. Thống kê và lịch sử sử dụng màu vàng. Số dư âm vì vi phạm được giữ, không tiêu vượt số dư. Ẩn/hiện đường, ngày/tháng/năm trong tooltip, filter thời gian và lịch sử phân trang. Không có interval cho reward; socket REWARD/SCHEDULE refresh đúng tags, audit refresh sau sự kiện archive hoàn tất.
+
+[Contract và rollout reward/schedule](docs/rewards-schedules.md). Backend cần migration **Core 015** trước merge/deploy frontend. Không đổi cấu hình Pages/Cloud Tasks; deployment chỉ chạy khi merge vào dev. Dữ liệu seed trong tests chỉ là fixtures HTTP; giao diện bản thật gọi API qua RTK Query như cấu hình hiện tại.
+
+## Điểm danh và thread theo thiết kế
+
+Tab Điểm danh trong chi tiết lớp: roster hôm nay, xác nhận buổi ngoài lịch với lý do, lịch tháng và chỉnh sửa/bổ sung ngày quá khứ. Chỉ giảng viên đang phụ trách lớp ACTIVE trong không gian Giảng viên được lưu; Quản lý chỉ xem. Xác nhận toàn bộ vắng có bước kiểm tra riêng. Ô chưa tích không tự trở thành vắng khi chưa lưu. Số buổi kế hoạch ban đầu khai báo trong trình sửa lịch của Quản lý, độc lập tổng Unit và giữ nguyên mẫu số.
+
+Thread bỏ panel đếm bài/kho; nút Tạo bài đăng mở trình soạn giống post với loại bài/công bố và hai mục chọn kho/upload. Post căn giữa; ảnh đơn theo tỷ lệ tự nhiên, nhiều ảnh dùng tile cover. Bình luận ghim luôn hiển thị, xem thêm nối trang/Đóng thu gọn; thích và reply có tên người được trả lời. Các API mới: [docs/attendance-api.md](docs/attendance-api.md).
+
+Production vẫn dùng RTK Query/API thật và static export như cấu hình hiện có. HTTP fixtures chỉ nằm trong tests/e2e; không có dữ liệu điểm danh giả trong ứng dụng. Backend cần Core migration 016 + Materials 007 trước rollout chức năng mới; không thêm timer/polling hoặc biến GCP.
+
+Biểu đồ Unit, chênh lệch và điểm tích luỹ dùng Apache ECharts 6 (Apache-2.0, không cần license thương mại), tải theo màn hình báo cáo. Zoom/pan và slider là `dataZoom` native trên trục X: khung biểu đồ/trục Y luôn cố định, mặc định hiển thị các mốc mới nhất theo chiều rộng. Kéo biểu đồ/slider để xem lịch sử; chụm hai ngón hoặc Ctrl + lăn chuột để zoom, Shift + lăn chuột để pan. Icon −/+ thu/phóng, icon khung xem toàn bộ, icon cuối về dữ liệu mới nhất. Khi focus biểu đồ: ←/→ pan, +/− zoom, End về mới nhất. Trục ngày giữ khoảng cách thời gian thực và tooltip ngày/tháng/năm; ô null không thành 0. Giữ đủ 7 kỹ năng, 8 biểu đồ chênh lệch và 4 đường điểm tích luỹ, màu/chú thích/nút ẩn hiện theo giao diện MUI. Đường cong monotone-X đi qua điểm, không vượt giá trị hai đầu đoạn. Pan/zoom/ẩn hiện không gọi API và không có interval. GitHub Pages vẫn static export; không thay đổi cấu hình backend hoặc deployment.
+
+## Lịch ngoại lệ, thông báo và thành viên
+
+Xem [hướng dẫn chức năng và API](docs/calendar-notifications-presence.md). Bản này cần migrations mới của backend trước khi dùng. Không có polling presence/notifications hoặc worker quét DB; tab ẩn đóng socket.
+
+## Hồ sơ, avatar và thông báo
+
+Trang `/profile/` sửa thông tin cá nhân, đổi ID đăng nhập yêu cầu mật khẩu hiện tại; email/số điện thoại cá nhân là alias đăng nhập. Avatar dùng MUI và màu pastel hoặc upload ảnh qua API có xác thực. Xem [hướng dẫn và API](docs/personal-profile-notifications.md). Yêu cầu backend đã áp dụng migration Core 020, Materials 009, Notifications 004. Không thêm dependency hoặc polling.
+
+### Xác minh phiên khi socket lỗi
+
+Socket đóng `1008/UNAUTHORIZED` không tự đăng xuất. Client gọi `/auth/me` qua RTK Query một lần, dùng chung request đang chạy. Chỉ HTTP 401 mới xóa phiên/cache; 403, lỗi mạng và 5xx giữ phiên. Nếu xác minh thành công, nối lại socket tối đa một lần trong vòng đời phiên/socket. Không polling, không retry timer; socket cũ không ảnh hưởng phiên mới.
+
+## Tên miền riêng
+
+Xem [cấu hình eeslern.com / staff.eeslern.com](docs/custom-domains.md): DNS, GitHub Pages, CORS Cloud Run và deploy lại ở đường dẫn gốc. Không cần migration.
+
+## Bài tập
+
+Runtime luôn gọi API thật; biến NEXT_PUBLIC_USE_MOCK không bật mock trong ứng dụng. Fixtures cũ được giữ riêng cho kiểm thử hồi quy.
+
+Xem [hướng dẫn bài tập/API thật](docs/assignments.md): soạn form, làm bài/ghi âm, chấm/công bố, báo cáo riêng và đổi mật khẩu. Backend cần migration trước khi triển khai frontend.
+
+Giao diện bài tập: đối chiếu frame desktop/mobile, theme và icon được ghi trong [docs/assignment-design.md](docs/assignment-design.md). Route `/assignment-report/` dùng query parameters và vẫn hỗ trợ static export.
+
+Liên kết qua đăng nhập, chia sẻ theo portal và preview toàn màn hình: [hướng dẫn](docs/post-links-preview.md).
+
+### Post, ảnh và ứng dụng trên màn hình chính
+
+Thread: tiêu đề một dòng, nội dung tối đa tám dòng; tiêu đề/nội dung/“Xem thêm” mở trang post đầy đủ. Trang post có icon về thread. Desktop dùng cột tương tác bên phải, bình luận cuộn riêng; mobile xếp dọc. Preview fullscreen, PDF cuộn dọc; ảnh rộng theo vùng xem.
+
+Hồ sơ cá nhân → **Thông báo & ứng dụng**: bật push bằng thao tác người dùng, chọn từng loại. Inbox được giữ; tương tác/lượt xem/trạng thái online/thông báo hệ thống ít quan trọng mặc định không đẩy toast/push. Quan trọng được giữ trừ khi người dùng chủ động tắt loại. iOS/iPadOS cần thêm app vào màn hình chính để bật Web Push; UI trình duyệt/OS còn tùy hỗ trợ của thiết bị.
+
+Manifest/icon lấy từ API public branding; manager đổi tên/icon/màu riêng cho hai portal qua đề xuất được duyệt. SVG logo tối đa 32KB và được server kiểm tra. Service worker không lưu JWT, không cache dữ liệu/tài liệu riêng tư, không polling. Cấu hình API/basePath và static export/GitHub Pages không đổi; không thêm API Routes hay server cho FE.
+
+Backend cần migration Core022, Materials011, Logs002, Notifications005 và VAPID/EncryptionKey trong Secret Manager cho push. Xem `ess-edu-api/docs/portal-media-pwa.md`. File cũ fallback thumbnail cũ; server tạo ba thumbnail cho ảnh upload mới và kiểm tra quyền mọi lần access. Chế độ review/build của bản này dùng API thật; fixtures chỉ dùng trong kiểm thử.
+[Giữ đăng nhập khi đóng/mở web](docs/persistent-session.md).
+
+Chuyển API project mới và proxy cùng host Staff: [hướng dẫn](docs/staff-api-proxy.md).
+
+## Page navigation and formatting
+
+See [page architecture and navigation](docs/navigation.md) for static tab routes, Back behavior, draft/cache lifecycle, assignment deadlines and Prettier commands.

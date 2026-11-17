@@ -16,7 +16,7 @@ import type {
 } from "@/types";
 import { verifiedSession, verifiedStaff } from "@/features/auth/contract";
 import { baseQuery } from "./base-query";
-const unwrap = <T>(r: Envelope<T>) => r.data;
+export const unwrap = <T>(r: Envelope<T>) => r.data;
 const tags = (type: "Students" | "Sessions" | "Results", id: string) => [
   { type, id },
 ];
@@ -24,11 +24,26 @@ export const createStaffApi = (query = baseQuery) =>
   createApi({
     reducerPath: "staffApi",
     baseQuery: query,
-    refetchOnFocus: true,
-    refetchOnReconnect: true,
-    refetchOnMountOrArgChange: 30,
+    refetchOnFocus: false,
+    refetchOnReconnect: false,
+    refetchOnMountOrArgChange: false,
     tagTypes: [
+      "GiftCatalog",
+      "Gift",
+      "GiftCart",
+      "Redemption",
+      "LearningAssignments",
+      "AssignmentForm",
+      "AssignmentDraft",
+      "AssignmentSubmissions",
+      "AssignmentReport",
+      "Attendance",
+      "Members",
+      "Rewards",
+      "Schedule",
       "Auth",
+      "ApplicationSettings",
+      "SettingsProposals",
       "Management",
       "Dashboard",
       "Assignments",
@@ -41,7 +56,15 @@ export const createStaffApi = (query = baseQuery) =>
       "Sessions",
       "Assessments",
       "Results",
+      "Reports",
       "Operations",
+      "Materials",
+      "Folders",
+      "Posts",
+      "Comments",
+      "Storages",
+      "DeletionRequests",
+      "Notifications",
     ],
     endpoints: (b) => ({
       login: b.mutation<AuthSession, { teacherId: string; password: string }>({
@@ -181,10 +204,32 @@ export const createStaffApi = (query = baseQuery) =>
         transformResponse: unwrap<Publication>,
         providesTags: ["Assessments"],
       }),
-      publishAssessment: b.mutation<{ published: boolean }, { id: string; version: number; publish: boolean }>({
-        query: ({ id, version, publish }) => ({ url: `/assessments/${encodeURIComponent(id)}/${publish ? "publish" : "unpublish"}`, method: "POST", body: { version } }),
+      publishAssessment: b.mutation<
+        { published: boolean },
+        {
+          id: string;
+          version: number;
+          publish: boolean;
+          notifyStudents?: boolean;
+          notificationPriority?: "NORMAL" | "IMPORTANT";
+        }
+      >({
+        query: ({
+          id,
+          version,
+          publish,
+          notificationPriority,
+          notifyStudents,
+        }) => ({
+          url: `/assessments/${encodeURIComponent(id)}/${publish ? "publish" : "unpublish"}`,
+          method: "POST",
+          body: { version, notificationPriority, notifyStudents },
+        }),
         transformResponse: unwrap<{ published: boolean }>,
-        invalidatesTags: (_, error) => error ? [] : ["Assessments", "Results", "Classes", "Class"],
+        invalidatesTags: (_, error) =>
+          error
+            ? []
+            : ["Assessments", "Results", "Reports", "Classes", "Class"],
       }),
       updateAssessment: b.mutation<
         Assessment,

@@ -21,6 +21,7 @@ export type Attendance = "PRESENT" | "ABSENT" | "UNSET";
 export type Status = "DRAFT" | "ACTIVE" | "COMPLETED" | "PAUSED" | "INACTIVE";
 export type WorkStatus = "DRAFT" | "COMPLETED";
 export interface Teacher {
+  avatar?: import("@/features/profile/models").AvatarChoice | null;
   id: string;
   name: string;
   teacherCode?: string;
@@ -46,6 +47,8 @@ export interface Class {
   completedUnits: number;
 }
 export interface Student {
+  publicId?: string;
+  studentCode?: string;
   id: string;
   name: string;
   nickname: string;

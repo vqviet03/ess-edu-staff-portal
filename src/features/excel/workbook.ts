@@ -1,3 +1,4 @@
+import { applicationName } from "@/features/settings/branding";
 import type ExcelJS from "exceljs";
 import {
   type Assessment,
@@ -39,7 +40,7 @@ export async function createTemplate(
 ): Promise<Blob> {
   const { default: Excel } = await import("exceljs");
   const book = new Excel.Workbook();
-  book.creator = "ESS";
+  book.creator = applicationName();
   const sheet = book.addWorksheet("Scores", {
     views: [{ state: "frozen", xSplit: 3, ySplit: 1 }],
   });
@@ -55,7 +56,7 @@ export async function createTemplate(
       results.find((r) => r.studentId === student.id) ??
       emptyResult(student.id, assessment.skills);
     const row = sheet.addRow([
-      student.id,
+      student.publicId ?? student.studentCode ?? student.id,
       student.name,
       result.attendance,
       ...assessment.skills.flatMap((s) => {
@@ -153,7 +154,7 @@ export async function createTemplate(
   schema.columns.forEach((c) => (c.width = 25));
   const instructions = book.addWorksheet("Instructions");
   [
-    "ESS · Mẫu nhập điểm. Không sửa sheet Schema hoặc ID học sinh.",
+    `${applicationName()} · Mẫu nhập điểm. Không sửa sheet Schema hoặc ID học sinh.`,
     "attended: PRESENT = Có mặt; ABSENT = Vắng; UNSET = Chưa xác định. Vắng không nhập điểm 0.",
     "Điểm từ 0 đến max_questions. Chỉ nhập thập phân khi allow_decimal=true. Ví dụ Speaking 2.1/4.",
     "Ô trống giữ dữ liệu cũ mặc định; số 0 cập nhật. Muốn xóa, chọn chế độ thay thế và xác nhận trong ứng dụng.",
@@ -228,10 +229,19 @@ export async function parseWorkbook(
     if (!row.hasValues) continue;
     const value = (name: string) =>
       scalar(row.getCell(headers.indexOf(name) + 1));
-    const id = value("student_id");
+    const suppliedId = value("student_id");
+    const id =
+      typeof suppliedId === "string"
+        ? (students.find((s) =>
+            [s.id, s.publicId, s.studentCode].includes(suppliedId),
+          )?.id ?? suppliedId)
+        : suppliedId;
     const add = (column: string, message: string) =>
       errors.push({ row: n, column, message });
-    if (typeof id !== "string" || !students.some((s) => s.id === id)) {
+    if (
+      typeof id !== "string" ||
+      !students.some((s) => [s.id, s.publicId, s.studentCode].includes(id))
+    ) {
       add("student_id", "ID không thuộc lớp hoặc không hợp lệ");
       continue;
     }

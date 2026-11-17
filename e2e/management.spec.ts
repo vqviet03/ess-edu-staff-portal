@@ -25,7 +25,9 @@ async function confirmPreview(
       !(await c.isChecked())
     )
       await c.check();
-  const reasonField = page.getByLabel(/Lý do thay đổi|Lý do \/ ghi chú/);
+  const reasonField = page.getByRole("textbox", {
+    name: /Lý do thay đổi \(bắt buộc\)|Lý do \/ ghi chú/,
+  });
   await reasonField.fill(reason);
   await expect(button).toBeEnabled();
   await button.click();
@@ -35,6 +37,34 @@ async function confirmPreview(
 test.beforeEach(async ({ page }) => {
   if (process.env.NEXT_PUBLIC_USE_MOCK !== "true")
     await installHttpFixture(page);
+});
+test("manager adjusts joining date from a class student menu and persists after reload", async ({
+  page,
+}) => {
+  await login(page);
+  await go(page, "/manage/profile/?entity=classes&id=class-green&tab=profile");
+  await page
+    .getByRole("button", { name: "Thao tác học sinh Hữu Văn", exact: true })
+    .click();
+  await page
+    .getByRole("menuitem", { name: "Chỉnh sửa ngày tham gia lớp", exact: true })
+    .click();
+  const dialog = page.getByRole("dialog");
+  await dialog.getByLabel("Ngày tham gia lớp").fill("2026-01-01");
+  await dialog
+    .getByRole("button", { name: "Kiểm tra ảnh hưởng", exact: true })
+    .click();
+  await confirmPreview(page, "Bổ sung ngày nhập học thực tế");
+  await page.reload();
+  await page
+    .getByRole("button", { name: "Thao tác học sinh Hữu Văn", exact: true })
+    .click();
+  await page
+    .getByRole("menuitem", { name: "Chỉnh sửa ngày tham gia lớp", exact: true })
+    .click();
+  await expect(
+    page.getByRole("dialog").getByLabel("Ngày tham gia lớp"),
+  ).toHaveValue("2026-01-01");
 });
 test("manager dashboard, navigation, readonly grades/schema, dark/mobile và deep links", async ({
   page,
@@ -70,8 +100,8 @@ test("manager dashboard, navigation, readonly grades/schema, dark/mobile và dee
     page.getByRole("button", { name: "Đánh dấu hoàn thành" }),
   ).toBeDisabled();
   await go(page, "/home/");
-  await page.getByLabel("Giao diện").click();
-  await page.getByRole("option", { name: "Tối", exact: true }).click();
+  await page.getByRole("button", { name: "Giao diện", exact: true }).click();
+  await page.getByRole("menuitem", { name: "Tối", exact: true }).click();
   await page.screenshot({
     path: "test-results/management-overview-dark.png",
     fullPage: true,
@@ -82,7 +112,7 @@ test("manager dashboard, navigation, readonly grades/schema, dark/mobile và dee
     page.getByRole("heading", { name: "Học sinh", exact: true }),
   ).toBeVisible();
   await expect(
-    page.getByRole("link", { name: "Hồ sơ", exact: true }).first(),
+    page.getByRole("link", { name: /^Xem hồ sơ / }).first(),
   ).toBeVisible();
   await page.screenshot({
     path: "test-results/management-students-mobile.png",
@@ -122,7 +152,7 @@ test("dual switch giữ lựa chọn, lịch sử chỉ xem; teacher không đư
   await go(page, "/manage/list/?entity=students");
   await expect(page.getByText(/Cần không gian Quản lý/)).toBeVisible();
 });
-test("tạo học sinh cùng tài khoản PENDING, sửa ID khóa; preview giữ form và sinh link kích hoạt", async ({
+test("tạo học sinh cùng tài khoản PENDING, ID có thể sửa bởi quản lý; preview giữ form và sinh link kích hoạt", async ({
   page,
 }) => {
   await login(page);
@@ -149,7 +179,10 @@ test("tạo học sinh cùng tài khoản PENDING, sửa ID khóa; preview giữ
     .click();
   await expect(
     page.getByRole("dialog").getByLabel("ID", { exact: true }),
-  ).toBeDisabled();
+  ).toBeEnabled();
+  await expect(
+    page.getByRole("dialog").getByRole("button", { name: "Kiểm tra trùng" }),
+  ).toBeVisible();
   await page.getByRole("button", { name: "Hủy", exact: true }).click();
   await page
     .getByRole("button", { name: "Tạo / cấp lại link kích hoạt" })
@@ -203,6 +236,7 @@ test("ngừng/khôi phục giảng viên rồi xác nhận phân công; cảnh b
   await page.getByRole("button", { name: "Kiểm tra & xem trước" }).click();
   await confirmPreview(page);
   await go(page, "/manage/profile/?entity=classes&id=class-single");
+  await page.getByRole("tab", { name: "Hồ sơ & quan hệ", exact: true }).click();
   await page
     .getByRole("button", { name: "Cập nhật phụ trách", exact: true })
     .first()
@@ -351,4 +385,53 @@ test("activation Staff mới, xóa fragment, đặt mật khẩu và từ chối
   await expect(
     page.getByText(/Link không hợp lệ, hết hạn hoặc đã dùng/),
   ).toBeVisible();
+});
+
+test("mobile filters stage changes and profile rows navigate without selecting", async ({
+  page,
+}) => {
+  let reads = 0;
+  page.on("request", (request) => {
+    if (
+      request.method() === "GET" &&
+      new URL(request.url()).pathname.endsWith("/manager/students")
+    )
+      reads++;
+  });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await login(page);
+  await go(page, "/manage/list/?entity=students");
+  const profile = page.getByRole("link", { name: /^Xem hồ sơ / }).first();
+  await expect(profile).toBeVisible();
+  const beforeFilter = reads;
+  await expect(page.getByLabel("Trạng thái", { exact: true })).toHaveCount(0);
+  await page.getByRole("button", { name: "Lọc học sinh", exact: true }).click();
+  const dialog = page.getByRole("dialog");
+  await dialog.getByLabel("Trạng thái", { exact: true }).click();
+  await page.getByRole("option", { name: "Tạm dừng", exact: true }).click();
+  await dialog.screenshot({ path: "test-results/compact-mobile-filters.png" });
+  await page.waitForTimeout(500);
+  expect(reads).toBe(beforeFilter);
+  await dialog.getByRole("button", { name: "Đóng bộ lọc" }).click();
+  await expect(profile).toBeVisible();
+  await page.getByRole("button", { name: "Lọc học sinh", exact: true }).click();
+  await expect(dialog.getByLabel("Trạng thái", { exact: true })).not.toHaveText(
+    "Tạm dừng",
+  );
+  await dialog.getByLabel("Trạng thái", { exact: true }).click();
+  await page.getByRole("option", { name: "Hoạt động", exact: true }).click();
+  await dialog.getByRole("button", { name: "Áp dụng bộ lọc" }).click();
+  await expect(dialog).not.toBeVisible();
+  await expect(profile).toBeVisible();
+  await page.screenshot({
+    path: "test-results/compact-students-mobile.png",
+    fullPage: true,
+  });
+  const checkbox = page.getByRole("checkbox", { name: /^Chọn / }).first();
+  await checkbox.check();
+  await expect(page).toHaveURL(/manage\/list/);
+  await expect(checkbox).toBeChecked();
+  const target = await profile.getAttribute("href");
+  await profile.click();
+  await expect(page).toHaveURL(new URL(target!, page.url()).toString());
 });

@@ -1,3 +1,4 @@
 import { ProfilePage } from "@/features/management/profile";
-import { ProtectedPage } from "@/shared/protected-page";
-export default function Page(){return <ProtectedPage><ProfilePage/></ProtectedPage>;}
+export default function Page() {
+  return <ProfilePage />;
+}

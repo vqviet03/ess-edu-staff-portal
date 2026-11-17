@@ -1,0 +1,14 @@
+# Storage trong không gian Quản lý
+
+- Backend: migration Core **012**, Materials **004**; Secret Manager secret `ess-storage-connections`, runtime IAM accessor + version-adder trên đúng secret, biến `StorageRegistry__SecretName` trên Cloud Run. Chi tiết vận hành: repo `ess-edu-api/docs/storage-registry.md`. Frontend giữ base URL/real mode hiện có; không thêm env secret.
+- Tạo bucket private ở nhánh production trên Neon, lấy thông số **S3** (không phải URL Postgres/API key Neon). Thêm ổ với mã công khai, tên, category, quota GB decimal, S3 keys và lý do.
+- `Kiểm tra kết nối` kiểm tra bucket private; xóa keys trên form sau gửi, cần nhập lại keys để lưu. Khi sửa không xem lại kết nối đã lưu; có thể thay keys cùng bucket. Endpoint/region/bucket không được đổi khi còn file; thêm ổ mới rồi chuyển dữ liệu.
+- Xem file trên card ổ: dùng chung browser grid/tree, search public mã/tên, checkbox xuyên thư mục. Chọn file → Chuyển sang ổ khác, chọn ổ cùng nhóm, xem dung lượng gồm thumbnail, nhập lý do và xác nhận. API giữ liên kết bài đăng/tác giả/lịch sử. File đang upload cần đợi signed PUT cũ hết hạn trước chuyển.
+- ACTIVE nhận upload; DRAINING chỉ đọc/chuyển ra; INACTIVE khi hết dung lượng used/reserved. Ngừng ổ không drop bucket. Backend chặn quota thấp hơn dữ liệu hiện tại, bucket đăng ký trùng và version conflict.
+- Tác vụ chuyển có PENDING, FAILED, DONE, CANCELLED; lỗi trước switch giữ nguồn, sau switch dùng đích và retry dọn nguồn. Quản lý có thể retry hoặc hủy trước switch. Dọn file đích dở dang xong mới trả quota. Không tự polling; notice/socket invalidate cache, nút Làm mới phục vụ kiểm tra thủ công.
+- Quota mặc định 4,5 GB theo decimal. File size hiển thị KiB/MiB/GiB; dung lượng có cả thumbnail/giữ chỗ/bản nguồn chưa dọn. Quota ứng dụng không nâng quota Neon; Neon có thể giữ phiên bản đã xóa theo retention của provider.
+- Endpoints qua RTK Query: GET/POST/PATCH/DELETE `/storages`, POST `/storages/connection-check`, GET `/materials?storageId=...`, GET/POST `/materials/storage-transfers`, POST `/materials/storage-transfers/:id/retry|cancel`. Envelope/lỗi/phân quyền như API hiện có. Connection qua queryFn với transport key một lần, không đưa plaintext credentials vào action args/cache. Không tự retry mutation.
+- Giảng viên chỉ lấy ID/tên/category ổ upload qua `/material-upload-settings`; manager mới thấy quota/config và file theo ổ. Không hiển thị UUID, object keys hoặc secret refs. Public file `MAT<number>` tìm kiếm được; internal ID vẫn dùng API/routing. File mẫu điểm dùng public ID học sinh, backend tiếp tục nhận template UUID cũ.
+- Settings trả `schemaReady:false` khi Core 012 chưa có: hiển thị hướng dẫn, không gọi proposals/mutation chưa sẵn sàng. Không giả thành công khi thiếu GCP/schema.
+
+Chỉ tính năng storage mới gọi API thật của backend đã mở rộng; không tạo thêm mock dữ liệu/credential thật. Dữ liệu kiểm thử HTTP/Neon transport chỉ dùng trong tests. CI/CD Pages từ dev giữ nguyên; PR không deploy trước merge.

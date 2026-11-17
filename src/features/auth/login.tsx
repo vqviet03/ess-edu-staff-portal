@@ -9,7 +9,6 @@ import Button from "@mui/material/Button";
 import InputAdornment from "@mui/material/InputAdornment";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
-import Typography from "@mui/material/Typography";
 import { api, useLoginMutation } from "@/api/api";
 import { errorMessage, useMock } from "@/api/base-query";
 import { loginInput } from "@/utils/scores";
@@ -17,8 +16,11 @@ import { signedIn } from "@/store/auth";
 import { useAppDispatch, useAppSelector } from "@/store";
 import { Card, Feedback, NavButton, Shell, Title } from "@/shared/ui";
 import type { AuthSession } from "@/types";
+import { useApplicationSettings } from "@/features/settings/hooks";
+import { loginDestination, loginRedirect } from "@/shared/auth-navigation";
 const exchanges = new Map<string, Promise<AuthSession>>();
 export function Login() {
+  const { settings } = useApplicationSettings();
   const router = useRouter(),
     dispatch = useAppDispatch(),
     auth = useAppSelector((s) => s.auth),
@@ -33,13 +35,16 @@ export function Login() {
     defaultValues: { teacherId: "", password: "" },
   });
   useEffect(() => {
-    if (auth.status === "authenticated") router.replace("/home/");
+    if (auth.status === "authenticated")
+      router.replace(
+        loginDestination(location.search, process.env.NEXT_PUBLIC_BASE_PATH),
+      );
   }, [auth.status, router]);
   return (
     <Shell>
       <Box sx={{ maxWidth: 440, mx: "auto", pt: { xs: 0, md: 4 } }}>
         <Title
-          title="Đăng nhập ESS Staff"
+          title={`Đăng nhập ${settings.appName} Staff`}
           subtitle="Quản lý lớp học, đánh giá và theo dõi tiến bộ của học sinh."
         />
         <Card>
@@ -49,14 +54,13 @@ export function Login() {
             onSubmit={handleSubmit(async (value) => {
               try {
                 dispatch(signedIn(await login(value).unwrap()));
-                router.replace("/home/");
               } catch {}
             })}
           >
             {auth.message && <Alert severity="info">{auth.message}</Alert>}
             {error && <Alert severity="error">{errorMessage(error)}</Alert>}
             <TextField
-              label="ID giảng viên / quản lý"
+              label="ID giảng viên / quản lý / email / số điện thoại"
               autoComplete="username"
               {...register("teacherId")}
               error={!!errors.teacherId}
@@ -87,9 +91,6 @@ export function Login() {
             <Button type="submit" variant="contained" loading={isLoading}>
               Đăng nhập
             </Button>
-            <Typography variant="caption" color="text.secondary">
-              Tài khoản do trung tâm cấp.
-            </Typography>
           </Stack>
         </Card>
         {useMock && (
@@ -107,6 +108,8 @@ export function LinkLogin() {
     dispatch = useAppDispatch(),
     started = useRef<Promise<AuthSession> | null>(null),
     initialized = useRef(false),
+    destination = useRef("/home/"),
+    [backLink, setBackLink] = useState("/login/"),
     [error, setError] = useState("");
   useEffect(() => {
     let active = true;
@@ -115,7 +118,7 @@ export function LinkLogin() {
         (session) => {
           if (active && started.current === pending) {
             dispatch(signedIn(session));
-            router.replace("/home/");
+            router.replace(destination.current);
           }
         },
         (e) => {
@@ -124,6 +127,11 @@ export function LinkLogin() {
       );
     const read = () => {
       initialized.current = true;
+      destination.current = loginDestination(
+        location.search,
+        process.env.NEXT_PUBLIC_BASE_PATH,
+      );
+      setBackLink(loginRedirect(destination.current));
       setError("");
       const code = new URLSearchParams(location.hash.slice(1)).get("code");
       history.replaceState(
@@ -166,7 +174,7 @@ export function LinkLogin() {
               <Alert severity="error" sx={{ mb: 2 }}>
                 {error}
               </Alert>
-              <NavButton href="/login/">Về đăng nhập</NavButton>
+              <NavButton href={backLink}>Về đăng nhập</NavButton>
             </>
           ) : (
             <Feedback loading />

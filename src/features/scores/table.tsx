@@ -1,4 +1,5 @@
 "use client";
+import { publicId } from "@/shared/public-id";
 import { useState } from "react";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
@@ -42,7 +43,7 @@ export default function ScoreTable({
   results,
 }: {
   assessment: Assessment;
-  editable?:boolean;
+  editable?: boolean;
   students: Student[];
   results: StudentResult[];
 }) {
@@ -51,13 +52,15 @@ export default function ScoreTable({
     [message, setMessage] = useState(""),
     [save, state] = useSaveBatchMutation();
   useUnsaved(Object.keys(drafts).length > 0);
-  const locked = !editable || assessment.status === "COMPLETED" || state.isLoading;
+  const locked =
+    !editable || assessment.status === "COMPLETED" || state.isLoading;
   const read = (id: string) =>
     drafts[id] ??
     results.find((r) => r.studentId === id) ??
     emptyResult(id, assessment.skills);
   const change = (id: string, apply: (r: StudentResult) => void) => {
-    if(locked || students.find(s=>s.id===id)?.status!=="ACTIVE")return;
+    if (locked || students.find((s) => s.id === id)?.status !== "ACTIVE")
+      return;
     setDrafts((old) => {
       const r = structuredClone(
         old[id] ??
@@ -221,7 +224,7 @@ export default function ScoreTable({
               const r = read(student.id),
                 errors = validateResult(r, assessment.skills),
                 total = calculate(r, assessment.skills),
-                rowLocked = locked || student.status!=="ACTIVE";
+                rowLocked = locked || student.status !== "ACTIVE";
               return (
                 <TableRow
                   key={student.id}
@@ -238,7 +241,13 @@ export default function ScoreTable({
                       {student.name}
                       {student.nickname ? ` (${student.nickname})` : ""}
                     </Typography>
-                    <Typography variant="caption">{student.id}</Typography>
+                    <Typography variant="caption">
+                      {publicId(
+                        student.publicId,
+                        student.studentCode,
+                        student.id,
+                      )}
+                    </Typography>
                     {rowErrors[student.id] && (
                       <>
                         <Alert severity="error">{rowErrors[student.id]}</Alert>
@@ -273,7 +282,15 @@ export default function ScoreTable({
                       indeterminate={r.attendance === "UNSET"}
                       disabled={rowLocked}
                       slotProps={{
-                        input: { "aria-label": "Có mặt " + student.id },
+                        input: {
+                          "aria-label":
+                            "Có mặt " +
+                            publicId(
+                              student.publicId,
+                              student.studentCode,
+                              student.id,
+                            ),
+                        },
                       }}
                       onChange={(_, value) =>
                         setAttendance(student.id, value ? "PRESENT" : "ABSENT")
@@ -294,7 +311,14 @@ export default function ScoreTable({
                     <Button
                       disabled={rowLocked}
                       onClick={() => setAttendance(student.id, "UNSET")}
-                      aria-label={"Bỏ xác định " + student.id}
+                      aria-label={
+                        "Bỏ xác định " +
+                        publicId(
+                          student.publicId,
+                          student.studentCode,
+                          student.id,
+                        )
+                      }
                     >
                       Đặt lại
                     </Button>
@@ -311,7 +335,7 @@ export default function ScoreTable({
                     return [
                       <TableCell key={s.skillCode + "score"}>
                         <ScoreInput
-                          label={`Điểm ${skillNames[s.skillCode]} ${student.id}`}
+                          label={`Điểm ${skillNames[s.skillCode]} ${publicId(student.publicId, student.studentCode, student.id)}`}
                           value={result?.score ?? null}
                           max={s.maxQuestions}
                           decimal={s.allowDecimal}
@@ -331,7 +355,7 @@ export default function ScoreTable({
                           <TextField
                             multiline
                             minRows={2}
-                            label={`${key === "comment" ? "Nhận xét" : "Lời khuyên"} ${skillNames[s.skillCode]} ${student.id}`}
+                            label={`${key === "comment" ? "Nhận xét" : "Lời khuyên"} ${skillNames[s.skillCode]} ${publicId(student.publicId, student.studentCode, student.id)}`}
                             value={result?.[key] ?? ""}
                             disabled={rowLocked}
                             onChange={(e) =>
@@ -374,7 +398,7 @@ export default function ScoreTable({
                     (key, i) => (
                       <TableCell key={key}>
                         <TextField
-                          label={`${i ? "Lời khuyên tổng" : "Nhận xét tổng"} ${student.id}`}
+                          label={`${i ? "Lời khuyên tổng" : "Nhận xét tổng"} ${publicId(student.publicId, student.studentCode, student.id)}`}
                           multiline
                           minRows={2}
                           disabled={rowLocked}

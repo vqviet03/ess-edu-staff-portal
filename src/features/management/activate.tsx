@@ -34,7 +34,7 @@ export function ActivateAccount() {
         {saved ? (
           <Alert severity="success">
             Đã đặt mật khẩu. Staff có thể đăng nhập tại đây; học sinh dùng cổng
-            học sinh ESS.
+            học sinh.
           </Alert>
         ) : (
           <Card>
@@ -97,7 +97,7 @@ export function ActivateAccount() {
         )}
         <NavButton href="/login/">Về đăng nhập Staff</NavButton>
         <Button component="a" href="https://vqviet03.github.io/ess-edu-portal/">
-          Cổng học sinh ESS
+          Cổng học sinh
         </Button>
       </Stack>
     </Shell>
