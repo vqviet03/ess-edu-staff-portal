@@ -9,6 +9,8 @@ import TextField from "@mui/material/TextField";
 import Tabs from "@mui/material/Tabs";
 import Tab from "@mui/material/Tab";
 import Stack from "@mui/material/Stack";
+import useMediaQuery from "@mui/material/useMediaQuery";
+import type { Theme } from "@mui/material/styles";
 import Alert from "@mui/material/Alert";
 import Typography from "@mui/material/Typography";
 import {
@@ -38,7 +40,9 @@ export function StudentReports({
   initialStudentId,
 }: { initialClassId?: string; initialStudentId?: string } = {}) {
   const params = useSearchParams(),
-    { selected: workspace } = useWorkspace();
+    { selected: workspace } = useWorkspace(),
+    embedded = initialStudentId !== undefined,
+    compact = useMediaQuery((theme: Theme) => theme.breakpoints.down("sm"));
   const [selection, setSelection] = useState({
       classId: initialClassId ?? params.get("classId") ?? "",
       studentId: initialStudentId ?? params.get("studentId") ?? "",
@@ -92,33 +96,48 @@ export function StudentReports({
       permissions.retry();
     }
   };
+  const editButton = (
+    <Button
+      disabled={!editable}
+      variant="contained"
+      onClick={() => setEditing(true)}
+    >
+      Sửa nhận xét
+    </Button>
+  );
   return (
     <>
-      <Title
-        title="Báo cáo học tập học sinh"
-        subtitle="Báo cáo đã công bố, cùng dữ liệu học sinh đang xem."
-        actions={
-          <>
-            <NavButton
-              back
-              href={
-                classId
-                  ? `/class/?classId=${encodeURIComponent(classId)}`
-                  : "/home/"
-              }
-            >
-              ← Lớp học
-            </NavButton>
-            <Button
-              disabled={!editable}
-              variant="contained"
-              onClick={() => setEditing(true)}
-            >
-              Sửa nhận xét
-            </Button>
-          </>
-        }
-      />
+      {embedded && compact ? (
+        // Inside the student profile tab the profile header already names the
+        // student and provides Back, so mobile keeps only the action.
+        <Stack
+          direction="row"
+          sx={{ justifyContent: "flex-end", mb: 1.5 }}
+          data-testid="embedded-report-actions"
+        >
+          {editButton}
+        </Stack>
+      ) : (
+        <Title
+          title="Báo cáo học tập học sinh"
+          subtitle="Báo cáo đã công bố, cùng dữ liệu học sinh đang xem."
+          actions={
+            <>
+              <NavButton
+                back
+                href={
+                  classId
+                    ? `/class/?classId=${encodeURIComponent(classId)}`
+                    : "/home/"
+                }
+              >
+                ← Lớp học
+              </NavButton>
+              {editButton}
+            </>
+          }
+        />
+      )}
       <ReadOnlyNotice editable={editable} />
       {message && (
         <Alert severity="success" onClose={() => setMessage("")}>

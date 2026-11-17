@@ -134,11 +134,6 @@ export function PostSurface({
         }}
       >
         <Stack data-testid="post-content" spacing={2} sx={{ minWidth: 0 }}>
-          {!draft && (
-            <Box sx={{ alignSelf: "flex-end" }}>
-              <ContentViews kind="POST" id={post.id} />
-            </Box>
-          )}
           <Stack
             direction="row"
             spacing={1.5}
@@ -177,6 +172,8 @@ export function PostSurface({
             {headerActions}
             {!draft && (
               <>
+                {/* View counter sits on the author row beside the post menu. */}
+                <ContentViews kind="POST" id={post.id} />
                 <Tooltip title="Thao tác bài đăng">
                   <IconButton
                     aria-label="Thao tác bài đăng"

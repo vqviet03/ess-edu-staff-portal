@@ -1,6 +1,6 @@
 "use client";
 import { NotificationPrioritySelect } from "@/features/notifications/priority";
-import { useRef, useState } from "react";
+import { useRef, useState, type ReactNode } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import Alert from "@mui/material/Alert";
@@ -558,23 +558,52 @@ export function ClassRewardActions({
   classId,
   name,
   editable = false,
+  tools,
 }: {
   classId: string;
   name: string;
   editable?: boolean;
+  /** Class-level icon actions shown on the same row (members, settings…). */
+  tools?: ReactNode;
 }) {
   const params = useSearchParams();
   const [open, setOpen] = useState(params.get("tab") === "rewards"),
     [message, setMessage] = useState("");
   return (
-    <Box sx={{ mb: 2.5 }}>
+    <Box sx={{ mb: { xs: 1.5, sm: 2.5 } }}>
       <Stack direction="row" spacing={1} sx={{ alignItems: "center", mb: 1 }}>
-        <IconAction
-          label={editable ? "Cộng điểm động viên" : "Xem điểm động viên"}
-          icon={<EmojiEvents />}
-          onClick={() => setOpen(true)}
-        />
-        <Typography variant="body2">Điểm động viên theo lớp</Typography>
+        <Box sx={{ display: { xs: "none", sm: "inline-flex" } }}>
+          <IconAction
+            label={editable ? "Cộng điểm động viên" : "Xem điểm động viên"}
+            icon={<EmojiEvents />}
+            onClick={() => setOpen(true)}
+          />
+        </Box>
+        <Typography
+          variant="body2"
+          sx={{ flex: 1, minWidth: 0, display: { xs: "none", sm: "block" } }}
+        >
+          Điểm động viên theo lớp
+        </Typography>
+        {/* Phones show the label inside one tappable button. */}
+        <Box
+          sx={{ flex: 1, minWidth: 0, display: { xs: "block", sm: "none" } }}
+        >
+          <Button
+            variant="outlined"
+            startIcon={<EmojiEvents />}
+            aria-label={editable ? "Cộng điểm động viên" : "Xem điểm động viên"}
+            onClick={() => setOpen(true)}
+            sx={{ ...rewardButton, maxWidth: "100%" }}
+          >
+            Điểm động viên
+          </Button>
+        </Box>
+        {tools && (
+          <Stack direction="row" sx={{ alignItems: "center", flexShrink: 0 }}>
+            {tools}
+          </Stack>
+        )}
       </Stack>
       <StudySchedulePanel
         classId={classId}

@@ -1,6 +1,8 @@
 "use client";
 import { useState } from "react";
 import { useMediaQuery, useTheme, IconButton } from "@mui/material";
+import Collapse from "@mui/material/Collapse";
+import ExpandMore from "@mui/icons-material/ExpandMore";
 import { MobileSchedule } from "./mobile-schedule";
 import { StudentNotificationSelect } from "@/features/notifications/delivery";
 import Alert from "@mui/material/Alert";
@@ -602,7 +604,11 @@ export function StudySchedulePanel({
   className?: string;
   onSaved?: () => void;
 }) {
-  const mobile = useMediaQuery(useTheme().breakpoints.down("md"));
+  const theme = useTheme(),
+    mobile = useMediaQuery(theme.breakpoints.down("md")),
+    compact = useMediaQuery(theme.breakpoints.down("sm")),
+    [expanded, setExpanded] = useState(false),
+    showDetails = !compact || expanded;
   const permissions = useClassCapabilities(classId),
     editable = permissions.editSchedule,
     query = useStudyScheduleQuery(classId, {
@@ -619,17 +625,53 @@ export function StudySchedulePanel({
             direction="row"
             sx={{ alignItems: "center", justifyContent: "space-between" }}
           >
-            <Typography variant="h6" sx={{ fontSize: 18 }}>
-              Lịch học{data ? ` · ${scheduleLabel(data.configuration)}` : ""}
-            </Typography>
-            {editable && (
-              <IconAction
-                label="Thiết lập lịch học"
-                icon={<EditCalendar />}
-                disabled={query.isFetching || permissions.loading}
-                onClick={() => setOpen(true)}
-              />
-            )}
+            <Box sx={{ minWidth: 0 }}>
+              <Typography variant="h6" sx={{ fontSize: { xs: 16, sm: 18 } }}>
+                Lịch học{data ? ` · ${scheduleLabel(data.configuration)}` : ""}
+              </Typography>
+              {!showDetails && data && (
+                <Typography
+                  variant="body2"
+                  color="text.secondary"
+                  data-testid="schedule-summary"
+                >
+                  {data.occurrences[0]
+                    ? `Buổi tới ${displayDate(data.occurrences[0].date)}${
+                        data.occurrences[0].startTime &&
+                        data.occurrences[0].endTime
+                          ? ` · ${data.occurrences[0].startTime}–${data.occurrences[0].endTime}`
+                          : ""
+                      }`
+                    : "Chưa có ngày học trong 60 ngày tới"}
+                </Typography>
+              )}
+            </Box>
+            <Stack direction="row" sx={{ flexShrink: 0 }}>
+              {editable && (
+                <IconAction
+                  label="Thiết lập lịch học"
+                  icon={<EditCalendar />}
+                  disabled={query.isFetching || permissions.loading}
+                  onClick={() => setOpen(true)}
+                />
+              )}
+              {compact && (
+                <IconButton
+                  aria-label={
+                    expanded ? "Thu gọn lịch học" : "Xem chi tiết lịch học"
+                  }
+                  aria-expanded={expanded}
+                  onClick={() => setExpanded((v) => !v)}
+                >
+                  <ExpandMore
+                    sx={{
+                      transition: "transform .2s",
+                      transform: expanded ? "rotate(180deg)" : "none",
+                    }}
+                  />
+                </IconButton>
+              )}
+            </Stack>
           </Stack>
           <Feedback
             loading={permissions.loading || query.isLoading}
@@ -639,51 +681,53 @@ export function StudySchedulePanel({
             }
           />
           {data && (
-            <>
-              <Typography variant="caption" color="text.secondary">
-                {data.effectiveFrom
-                  ? `Áp dụng từ ${displayDate(data.effectiveFrom)} · `
-                  : ""}
-                Múi giờ Việt Nam
-              </Typography>
-              {!data.occurrences.length ? (
-                <Typography color="text.secondary">
-                  Chưa có ngày học cụ thể trong 60 ngày tới. Theo dõi thông báo
-                  của giảng viên.
+            <Collapse in={showDetails} unmountOnExit>
+              <Stack spacing={1.5}>
+                <Typography variant="caption" color="text.secondary">
+                  {data.effectiveFrom
+                    ? `Áp dụng từ ${displayDate(data.effectiveFrom)} · `
+                    : ""}
+                  Múi giờ Việt Nam
                 </Typography>
-              ) : (
-                <Box
-                  sx={{
-                    display: "grid",
-                    gridTemplateColumns: { xs: "1fr", sm: "repeat(2,1fr)" },
-                    gap: 1,
-                  }}
-                >
-                  {data.occurrences.slice(0, 1).map((o) => (
-                    <Typography key={o.date} variant="body2">
-                      {displayDate(o.date)} ·{" "}
-                      {o.startTime && o.endTime
-                        ? `${o.startTime}–${o.endTime}`
-                        : "Giờ sẽ được giảng viên thông báo"}
-                    </Typography>
-                  ))}
-                </Box>
-              )}
-              {data.occurrences.length > 0 && (
-                <Button
-                  size="small"
-                  sx={{ ...rewardButton, alignSelf: "flex-start" }}
-                  onClick={() => setViewing(true)}
-                >
-                  Xem lịch học
-                </Button>
-              )}
-              {data.configuration.timeMode === "FLEXIBLE" && (
-                <Typography variant="body2" color="text.secondary">
-                  Phụ huynh theo dõi thông báo của giảng viên để biết giờ học.
-                </Typography>
-              )}
-            </>
+                {!data.occurrences.length ? (
+                  <Typography color="text.secondary">
+                    Chưa có ngày học cụ thể trong 60 ngày tới. Theo dõi thông
+                    báo của giảng viên.
+                  </Typography>
+                ) : (
+                  <Box
+                    sx={{
+                      display: "grid",
+                      gridTemplateColumns: { xs: "1fr", sm: "repeat(2,1fr)" },
+                      gap: 1,
+                    }}
+                  >
+                    {data.occurrences.slice(0, 1).map((o) => (
+                      <Typography key={o.date} variant="body2">
+                        {displayDate(o.date)} ·{" "}
+                        {o.startTime && o.endTime
+                          ? `${o.startTime}–${o.endTime}`
+                          : "Giờ sẽ được giảng viên thông báo"}
+                      </Typography>
+                    ))}
+                  </Box>
+                )}
+                {data.occurrences.length > 0 && (
+                  <Button
+                    size="small"
+                    sx={{ ...rewardButton, alignSelf: "flex-start" }}
+                    onClick={() => setViewing(true)}
+                  >
+                    Xem lịch học
+                  </Button>
+                )}
+                {data.configuration.timeMode === "FLEXIBLE" && (
+                  <Typography variant="body2" color="text.secondary">
+                    Phụ huynh theo dõi thông báo của giảng viên để biết giờ học.
+                  </Typography>
+                )}
+              </Stack>
+            </Collapse>
           )}
         </Stack>
       </Paper>

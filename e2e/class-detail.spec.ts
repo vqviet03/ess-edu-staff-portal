@@ -1,5 +1,6 @@
 import { test, expect, type Page } from "@playwright/test";
 import { installHttpFixture } from "./support/http-fixture";
+import { openAppearance } from "./support/display";
 
 const base = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
 const go = (page: Page, path: string) => page.goto(`${base}${path}`);
@@ -251,7 +252,7 @@ test("đường dẫn lớp của quản lý resolve ID công khai, mobile và g
   );
   await tabs(page);
   await expect(table(page)).toBeVisible();
-  await page.getByRole("button", { name: "Giao diện", exact: true }).click();
+  await openAppearance(page);
   await page.getByRole("menuitem", { name: "Tối", exact: true }).click();
   await page.setViewportSize({ width: 390, height: 844 });
   await expect(
