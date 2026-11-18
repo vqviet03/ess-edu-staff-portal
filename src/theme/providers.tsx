@@ -200,7 +200,9 @@ export function Providers({ children }: { children: ReactNode }) {
             },
             MuiTabs: {
               styleOverrides: {
-                indicator: { transition: `all 420ms ${SPRING}` },
+                // Drawn on the selected tab itself (below): the measured indicator
+                // is misplaced under the app's CSS zoom.
+                indicator: { display: "none" },
               },
             },
             MuiSwitch: {
@@ -303,6 +305,22 @@ export function Providers({ children }: { children: ReactNode }) {
               styleOverrides: {
                 root: {
                   "&&:active:not(.Mui-disabled)": { transform: "scale(0.96)" },
+                  position: "relative",
+                  "&.Mui-selected::after": {
+                    content: '""',
+                    position: "absolute",
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    height: 2,
+                    borderRadius: "2px 2px 0 0",
+                    backgroundColor: "currentColor",
+                    animation: `ess-tab-underline 380ms ${SPRING} both`,
+                  },
+                  "@keyframes ess-tab-underline": {
+                    from: { transform: "scaleX(0.2)", opacity: 0 },
+                    to: { transform: "scaleX(1)", opacity: 1 },
+                  },
                   minHeight: 44,
                   textTransform: "none",
                 },
