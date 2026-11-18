@@ -105,11 +105,21 @@ export function DisplayTools() {
 }
 export function AppScale({ children }: { children: ReactNode }) {
   const { zoom } = useAppDisplay();
+  // Menus, dialogs, drawers, tooltips and toasts render in portals outside
+  // this element; the theme scales their content with --app-zoom.
+  useEffect(() => {
+    const root = document.documentElement;
+    root.style.setProperty("--app-zoom", String(zoom / 100));
+    return () => {
+      root.style.removeProperty("--app-zoom");
+    };
+  }, [zoom]);
   return (
     <Box
       data-testid="application-scale"
       data-zoom={zoom}
-      sx={{ zoom: zoom / 100 }}
+      // Content already inside the scaled page must not be scaled twice.
+      sx={{ zoom: zoom / 100, "--app-zoom": 1 }}
     >
       {children}
     </Box>
