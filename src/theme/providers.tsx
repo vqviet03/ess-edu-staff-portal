@@ -118,6 +118,11 @@ export function Providers({ children }: { children: ReactNode }) {
           components: {
             MuiCssBaseline: {
               styleOverrides: {
+                // Mobile browsers zoom the page when a focused field is under
+                // 16px; keep typing text at 16px on touch screens instead.
+                "@media (pointer: coarse)": {
+                  "input, textarea, select": { fontSize: "16px !important" },
+                },
                 "@media (prefers-reduced-motion: reduce)": {
                   "*, *::before, *::after": {
                     animationDuration: "1ms !important",

@@ -1,11 +1,10 @@
 "use client";
-import useMediaQuery from "@mui/material/useMediaQuery";
-import type { Theme } from "@mui/material/styles";
 import { useEffect, useRef, useState } from "react";
 import { useAudioTimeline } from "@/shared/audio-timeline";
 import { releaseMedia } from "@/shared/media-lifecycle";
 import Box from "@mui/material/Box";
 import IconButton from "@mui/material/IconButton";
+import CircularProgress from "@mui/material/CircularProgress";
 import Slider from "@mui/material/Slider";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
@@ -72,10 +71,7 @@ export function InlineAudio({
       setError(e);
     }
   };
-  // Narrow cards stack the seek bar above time/speed so it gets full width.
-  const stacked =
-    useMediaQuery((theme: Theme) => theme.breakpoints.down("sm")) ||
-    !!submission;
+  const accent = submission ? "var(--a-recording-accent)" : "var(--post-green)";
   const speedControl = (
     <TextField
       select
@@ -87,17 +83,28 @@ export function InlineAudio({
       }}
       size="small"
       slotProps={{
-        select: { "aria-label": `Tốc độ audio ${label}` },
+        select: {
+          "aria-label": `Tốc độ audio ${label}`,
+          IconComponent: () => null,
+        },
       }}
       sx={{
-        width: submission ? 52 : 68,
+        width: 40,
         flexShrink: 0,
         "& .MuiInputBase-root": {
-          height: submission ? 28 : undefined,
-          color: submission ? "inherit" : undefined,
+          height: "24px !important",
+          minHeight: 0,
+          borderRadius: "8px",
+          color: submission ? "inherit" : "var(--post-muted)",
+          bgcolor: submission ? "transparent" : "var(--post-surface)",
         },
         "& fieldset": { border: 0 },
-        "& .MuiSelect-select": { fontSize: 12, p: 0.5 },
+        "& .MuiSelect-select": {
+          fontSize: 11,
+          fontWeight: 600,
+          p: "0 4px !important",
+          textAlign: "center",
+        },
       }}
     >
       {[0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2].map((v) => (
@@ -107,48 +114,61 @@ export function InlineAudio({
       ))}
     </TextField>
   );
+  // One compact row: play · title over a slim seek bar with time · speed.
   return (
     <Box
       sx={{
-        p: 1.75,
+        py: 0.75,
+        pl: 0.75,
+        pr: 1,
         bgcolor: submission ? "var(--a-recording-bg)" : "var(--post-soft)",
         color: submission ? "var(--a-recording-fg)" : undefined,
-        borderRadius: "14px",
+        borderRadius: "12px",
       }}
     >
-      <Stack direction="row" spacing={1.5} sx={{ alignItems: "center" }}>
+      <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
         <IconButton
           aria-label={`${playing ? "Tạm dừng" : "Phát"} ${label}`}
           disabled={state.isFetching}
           onClick={() => void play()}
           sx={{
-            width: 44,
-            height: 44,
-            bgcolor: submission
-              ? "var(--a-recording-accent)"
-              : "var(--post-green)",
+            width: 32,
+            height: 32,
+            flexShrink: 0,
+            bgcolor: accent,
             color: submission ? "var(--a-recording-bg)" : "var(--post-surface)",
-            "&:hover": {
-              bgcolor: submission
-                ? "var(--a-recording-accent)"
-                : "var(--post-green)",
-              opacity: 0.85,
+            "&:hover": { bgcolor: accent, opacity: 0.85 },
+            "&.Mui-disabled": {
+              bgcolor: accent,
+              color: submission
+                ? "var(--a-recording-bg)"
+                : "var(--post-surface)",
             },
           }}
         >
-          {playing ? <Pause /> : <PlayArrow />}
+          {state.isFetching ? (
+            <CircularProgress size={14} thickness={5} color="inherit" />
+          ) : playing ? (
+            <Pause sx={{ fontSize: 18 }} />
+          ) : (
+            <PlayArrow sx={{ fontSize: 18 }} />
+          )}
         </IconButton>
         <Box sx={{ flex: 1, minWidth: 0 }}>
           <Typography
-            sx={{ fontSize: 13, fontWeight: 600, overflowWrap: "anywhere" }}
+            title={label}
+            sx={{
+              fontSize: 12,
+              fontWeight: 600,
+              lineHeight: 1.3,
+              whiteSpace: "nowrap",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+            }}
           >
             {label}
           </Typography>
-          <Stack
-            direction={stacked ? "column" : "row"}
-            sx={{ alignItems: stacked ? "stretch" : "center" }}
-            spacing={stacked ? 0 : 1}
-          >
+          <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
             <Slider
               size="small"
               aria-label={`Tua ${label}`}
@@ -162,30 +182,28 @@ export function InlineAudio({
                 }
               }}
               sx={{
-                color: submission
-                  ? "var(--a-recording-accent)"
-                  : "var(--post-green)",
-                p: "12px 0",
+                color: accent,
+                height: 3,
+                p: "8px 0",
+                "& .MuiSlider-thumb": { width: 10, height: 10 },
+                "@media (pointer: coarse)": { p: "8px 0" },
               }}
             />
-            <Stack
-              direction="row"
-              sx={{ alignItems: "center", justifyContent: "space-between" }}
+            <Typography
+              sx={{
+                fontSize: 10.5,
+                lineHeight: 1,
+                color: submission ? "inherit" : "var(--post-muted)",
+                whiteSpace: "nowrap",
+                fontVariantNumeric: "tabular-nums",
+                flexShrink: 0,
+              }}
             >
-              <Typography
-                sx={{
-                  fontSize: { xs: 11, sm: 10 },
-                  color: submission ? "inherit" : "var(--post-muted)",
-                  whiteSpace: "nowrap",
-                }}
-              >
-                {time(current)} / {duration ? time(duration) : "--:--"}
-              </Typography>
-              {stacked && speedControl}
-            </Stack>
+              {time(current)} / {duration ? time(duration) : "--:--"}
+            </Typography>
           </Stack>
         </Box>
-        {!stacked && speedControl}
+        {speedControl}
       </Stack>
       <audio
         ref={audio}
@@ -201,7 +219,7 @@ export function InlineAudio({
         onEnded={() => setPlaying(false)}
         onError={() => setError(new Error("Không phát được audio."))}
       />
-      <Feedback loading={state.isFetching} error={error} />
+      <Feedback error={error} />
     </Box>
   );
 }
