@@ -8,10 +8,11 @@ import Button from "@mui/material/Button";
 import Snackbar from "@mui/material/Snackbar";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
+import { alpha } from "@mui/material/styles";
 import { useSessionsQuery } from "@/api/api";
 import { ReadOnlyNotice } from "@/features/access/hooks";
 import { SessionEditor } from "@/features/sessions/editor";
-import { Card, Feedback, Progress, StatusChip } from "@/shared/ui";
+import { Card, Feedback, StatusChip } from "@/shared/ui";
 import { completedUnitNumbers } from "@/utils/scores";
 import type { Class } from "@/types";
 
@@ -47,36 +48,13 @@ export function ClassProgress({
         <Typography variant="h5" sx={{ mb: 2 }}>
           Tiến độ Unit
         </Typography>
-        <Progress completed={completed.length} total={classInfo.totalUnits} />
-        <Box
-          sx={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit,minmax(100px,1fr))",
-            gap: 1,
-            mt: 2,
-          }}
-        >
-          {Array.from({ length: classInfo.totalUnits }, (_, i) => {
-            const done = completed.includes(i + 1),
-              started = query.currentData?.some((s) => s.unitNumber === i + 1);
-            return (
-              <Box
-                key={i}
-                sx={{
-                  p: 1.5,
-                  borderRadius: compactRadii.item,
-                  bgcolor: done ? "primary.main" : "action.hover",
-                  color: done ? "primary.contrastText" : "text.primary",
-                }}
-              >
-                <Typography sx={{ fontWeight: 600 }}>Unit {i + 1}</Typography>
-                <Typography variant="caption">
-                  {done ? "Hoàn thành" : started ? "Đang học" : "Chưa học"}
-                </Typography>
-              </Box>
-            );
-          })}
-        </Box>
+        <UnitTrack
+          total={classInfo.totalUnits}
+          completed={completed}
+          started={(query.currentData ?? []).flatMap((s) =>
+            s.unitNumber ? [s.unitNumber] : [],
+          )}
+        />
         <Typography
           variant="caption"
           color="text.secondary"
@@ -177,5 +155,136 @@ export function ClassProgress({
         onClose={() => setMessage("")}
       />
     </Stack>
+  );
+}
+
+/**
+ * Unit progress as one bar split into a segment per Unit: completed Units are
+ * filled, Units with sessions but no completed one are tinted, and a marker
+ * above the bar names the Unit the class is on now.
+ */
+function UnitTrack({
+  total,
+  completed,
+  started,
+}: {
+  total: number;
+  completed: number[];
+  started: number[];
+}) {
+  const units = Array.from({ length: total }, (_, i) => i + 1),
+    done = new Set(completed),
+    open = started.filter((unit) => !done.has(unit) && unit <= total);
+  const current = open.length
+    ? Math.max(...open)
+    : (units.find((unit) => !done.has(unit)) ?? total);
+  const percent = total ? Math.round((completed.length / total) * 100) : 0,
+    // Centre of the current Unit's segment, as a share of the bar.
+    at = total ? ((current - 0.5) / total) * 100 : 0;
+  return (
+    <Box>
+      <Typography variant="body2" sx={{ mb: 1 }}>
+        {completed.length}/{total} Unit · {percent}%
+      </Typography>
+      {total > 0 && (
+        <Box
+          role="progressbar"
+          aria-label="Tiến độ Unit"
+          aria-valuemin={0}
+          aria-valuemax={total}
+          aria-valuenow={completed.length}
+          aria-valuetext={`${completed.length}/${total} Unit hoàn thành, đang ở Unit ${current}`}
+          sx={{ position: "relative", pt: 4 }}
+        >
+          <Box
+            aria-hidden
+            data-testid="unit-track-marker"
+            sx={(theme) => ({
+              position: "absolute",
+              top: 0,
+              left: `${at}%`,
+              // Shift the label by the same share so it never leaves the bar.
+              transform: `translateX(-${at}%)`,
+              transition: theme.transitions.create(["left", "transform"]),
+              px: 1,
+              py: 0.25,
+              borderRadius: 999,
+              bgcolor: "primary.main",
+              color: "primary.contrastText",
+              fontSize: 12,
+              fontWeight: 700,
+              lineHeight: "18px",
+              whiteSpace: "nowrap",
+            })}
+          >
+            Unit {current}
+          </Box>
+          <Box
+            aria-hidden
+            sx={(theme) => ({
+              position: "absolute",
+              top: 20,
+              left: `${at}%`,
+              transform: "translateX(-50%)",
+              transition: theme.transitions.create("left"),
+              borderLeft: "5px solid transparent",
+              borderRight: "5px solid transparent",
+              borderTop: `6px solid ${theme.palette.primary.main}`,
+            })}
+          />
+          <Box
+            sx={{
+              display: "grid",
+              gridTemplateColumns: `repeat(${total}, 1fr)`,
+              gap: total > 24 ? "1px" : "3px",
+            }}
+          >
+            {units.map((unit) => (
+              <Box
+                key={unit}
+                title={`Unit ${unit} · ${
+                  done.has(unit)
+                    ? "Hoàn thành"
+                    : started.includes(unit)
+                      ? "Đang học"
+                      : "Chưa học"
+                }`}
+                sx={(theme) => ({
+                  height: 10,
+                  borderRadius: "3px",
+                  "&:first-of-type": { borderRadius: "999px 3px 3px 999px" },
+                  "&:last-of-type": {
+                    borderRadius: total > 1 ? "3px 999px 999px 3px" : 999,
+                  },
+                  bgcolor: done.has(unit)
+                    ? "primary.main"
+                    : started.includes(unit)
+                      ? alpha(theme.palette.primary.main, 0.45)
+                      : "action.selected",
+                  outline:
+                    unit === current
+                      ? `2px solid ${theme.palette.primary.main}`
+                      : "none",
+                  outlineOffset: 1,
+                })}
+              />
+            ))}
+          </Box>
+          <Stack
+            direction="row"
+            aria-hidden
+            sx={{
+              justifyContent: "space-between",
+              mt: 0.5,
+              color: "text.secondary",
+              fontSize: 11,
+            }}
+          >
+            <span>Unit 1</span>
+            <span>Unit {total}</span>
+          </Stack>
+        </Box>
+      )}
+    </Box>
   );
 }
