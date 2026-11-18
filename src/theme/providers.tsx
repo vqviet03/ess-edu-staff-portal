@@ -29,6 +29,20 @@ import { OperationsRuntime } from "@/features/operations/runtime";
 const SPRING = "cubic-bezier(0.34, 1.56, 0.64, 1)";
 const EMPHASIZED = "cubic-bezier(0.2, 0, 0, 1)";
 const DRAWER = "cubic-bezier(0.32, 0.72, 0, 1)";
+/**
+ * Select menus copy the field's width as min-width in unzoomed CSS px, but
+ * the menu renders outside the zoomed page; scale it before positioning so
+ * the menu matches the field at every app zoom.
+ */
+const fitMenuToZoom = (node: HTMLElement) => {
+  const zoom =
+    parseFloat(
+      getComputedStyle(document.documentElement).getPropertyValue("--app-zoom"),
+    ) || 1;
+  if (zoom === 1 || !node.style.minWidth || node.dataset.zoomFitted) return;
+  node.style.minWidth = `${parseFloat(node.style.minWidth) * zoom}px`;
+  node.dataset.zoomFitted = "1";
+};
 type Mode = "light" | "dark" | "system";
 const Preferences = createContext<{
   mode: Mode;
@@ -116,6 +130,13 @@ export function Providers({ children }: { children: ReactNode }) {
             },
           },
           components: {
+            // Popups render outside the zoomed page: scale their content with the app zoom.
+            MuiTooltip: {
+              styleOverrides: { tooltip: { zoom: "var(--app-zoom, 1)" } },
+            },
+            MuiAutocomplete: {
+              styleOverrides: { paper: { zoom: "var(--app-zoom, 1)" } },
+            },
             MuiCssBaseline: {
               styleOverrides: {
                 // Mobile browsers zoom the page when a focused field is under
@@ -160,6 +181,9 @@ export function Providers({ children }: { children: ReactNode }) {
             },
             // Menus, popovers, dialogs and toasts pop open with a spring.
             MuiPopover: {
+              styleOverrides: {
+                paper: { "& > *": { zoom: "var(--app-zoom, 1)" } },
+              },
               defaultProps: {
                 transitionDuration: { enter: 340, exit: 160 },
                 slotProps: {
@@ -171,11 +195,23 @@ export function Providers({ children }: { children: ReactNode }) {
               defaultProps: {
                 transitionDuration: { enter: 340, exit: 160 },
                 slotProps: {
-                  transition: { easing: { enter: SPRING, exit: EMPHASIZED } },
+                  transition: {
+                    easing: { enter: SPRING, exit: EMPHASIZED },
+                    onEntering: fitMenuToZoom,
+                  },
                 },
               },
             },
             MuiDialog: {
+              styleOverrides: {
+                paper: {
+                  zoom: "var(--app-zoom, 1)",
+                  "&.MuiDialog-paperFullScreen": {
+                    zoom: 1,
+                    "& > *": { zoom: "var(--app-zoom, 1)" },
+                  },
+                },
+              },
               defaultProps: {
                 slots: { transition: Grow },
                 transitionDuration: { enter: 380, exit: 180 },
@@ -185,6 +221,9 @@ export function Providers({ children }: { children: ReactNode }) {
               },
             },
             MuiDrawer: {
+              styleOverrides: {
+                paper: { "& > *": { zoom: "var(--app-zoom, 1)" } },
+              },
               defaultProps: {
                 transitionDuration: { enter: 420, exit: 240 },
                 slotProps: {
@@ -235,6 +274,9 @@ export function Providers({ children }: { children: ReactNode }) {
               },
             },
             MuiSnackbar: {
+              styleOverrides: {
+                root: { "& > *": { zoom: "var(--app-zoom, 1)" } },
+              },
               defaultProps: {
                 anchorOrigin: { vertical: "top", horizontal: "center" },
                 slotProps: {
