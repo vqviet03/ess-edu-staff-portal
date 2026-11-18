@@ -1,4 +1,5 @@
 "use client";
+import { UnitPager } from "@/shared/unit-pager";
 import { publicId } from "@/shared/public-id";
 import dynamic from "next/dynamic";
 import { useState } from "react";
@@ -6,8 +7,6 @@ import { useSearchParams } from "next/navigation";
 import Button from "@mui/material/Button";
 import MenuItem from "@mui/material/MenuItem";
 import TextField from "@mui/material/TextField";
-import Tabs from "@mui/material/Tabs";
-import Tab from "@mui/material/Tab";
 import Stack from "@mui/material/Stack";
 import useMediaQuery from "@mui/material/useMediaQuery";
 import type { Theme } from "@mui/material/styles";
@@ -233,21 +232,15 @@ export function StudentReports({
             retry={() => void units.refetch()}
           />
           {unit && (
-            <Tabs
+            <UnitPager
+              ariaLabel="Chọn Unit báo cáo"
+              items={units.currentData ?? []}
               value={unitId}
-              onChange={(_, value: string) => {
+              onChange={(value) => {
                 setSelection({ classId, studentId, unitId: value });
                 setMessage("");
               }}
-              variant="scrollable"
-              scrollButtons="auto"
-              allowScrollButtonsMobile
-              aria-label="Chọn Unit báo cáo"
-            >
-              {units.currentData?.map((u) => (
-                <Tab key={u.id} value={u.id} label={u.name} />
-              ))}
-            </Tabs>
+            />
           )}
           {student && !units.isFetching && !units.error && !unit && (
             <Feedback empty="Học sinh chưa có Unit hoặc báo cáo đã công bố trong lớp này." />
