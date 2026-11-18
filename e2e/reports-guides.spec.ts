@@ -126,7 +126,16 @@ test("Manager chỉ xem, mobile tối guide vẫn cho đổi Unit và zoom", asy
     name: "Hướng dẫn màn hình hiện tại",
   });
   await expect(guide).toBeVisible();
-  await zoom(page, "Thu nhỏ giao diện");
+  // Phones start at the smallest size; growing it keeps the guide usable.
+  await expect(page.getByTestId("application-scale")).toHaveAttribute(
+    "data-zoom",
+    "75",
+  );
+  await zoom(page, "Phóng to giao diện");
+  await expect(page.getByTestId("application-scale")).toHaveAttribute(
+    "data-zoom",
+    "85",
+  );
   await page.getByRole("combobox", { name: "Học sinh", exact: true }).click();
   await page.getByRole("option", { name: /Minh Anh/ }).click();
   await expect(
