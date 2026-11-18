@@ -150,7 +150,7 @@ export function PageHeader({
       <Stack
         ref={floatRef}
         direction="row"
-        sx={{ alignItems: "center", gap: { xs: 0.5, sm: 1 } }}
+        sx={{ alignItems: "center", gap: { xs: 1.5, sm: 2 } }}
       >
         {back && (
           <Suspense>

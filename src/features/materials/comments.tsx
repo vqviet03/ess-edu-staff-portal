@@ -370,6 +370,18 @@ export function Comments({
             pl: 1.5,
             pr: 0.5,
             py: 0.5,
+            gap: 0.25,
+            // Bell, attach and send share one compact size, also on touch
+            // screens (the theme otherwise enlarges icon buttons to 44px).
+            "& .MuiIconButton-root": {
+              width: 32,
+              height: 32,
+              minWidth: "32px !important",
+              minHeight: "32px !important",
+              p: "6px",
+              flexShrink: 0,
+            },
+            "& .MuiIconButton-root .MuiSvgIcon-root": { fontSize: 20 },
             "&:focus-within": {
               outline: "2px solid var(--post-green)",
               outlineOffset: 2,
@@ -404,9 +416,9 @@ export function Comments({
             sx={{
               display: "flex",
               alignItems: "center",
-              height: 32,
-              color: "var(--post-muted)",
-              "& .MuiIconButton-root": { width: 32, height: 32 },
+              "& .MuiIconButton-root:not(.MuiIconButton-colorWarning)": {
+                color: "var(--post-muted)",
+              },
             }}
           >
             <NotificationPrioritySelect

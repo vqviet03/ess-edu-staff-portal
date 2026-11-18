@@ -117,5 +117,6 @@ export const giftStyles = {
     "& .MuiTab-root": { minHeight: 36, borderRadius: "999px", px: 2, py: 0.75 },
     "& .Mui-selected": { bgcolor: "action.selected" },
     "& .MuiTabs-indicator": { display: "none" },
+    "& .MuiTab-root::after": { display: "none" },
   },
 } as const;

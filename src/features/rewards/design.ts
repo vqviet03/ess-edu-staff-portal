@@ -21,6 +21,7 @@ export const rewardTint = (theme: Theme) =>
 export const rewardTabs = {
   minHeight: 40,
   "& .MuiTabs-indicator": { display: "none" },
+  "& .MuiTab-root::after": { display: "none" },
   "& .MuiTabs-list": { gap: 1, flexWrap: { xs: "wrap", sm: "nowrap" } },
   "& .MuiTab-root": {
     minWidth: 0,
