@@ -399,6 +399,25 @@ export function Comments({
               },
             }}
           />
+          {/* Notification options sit inline with the other composer actions. */}
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              height: 32,
+              color: "var(--post-muted)",
+              "& .MuiIconButton-root": { width: 32, height: 32 },
+            }}
+          >
+            <NotificationPrioritySelect
+              notifyStudents={notifyStudents}
+              onNotifyStudentsChange={setNotifyStudents}
+              classId={post.classId}
+              feature={parent ? "REPLY" : "SOCIAL"}
+              value={priority}
+              onChange={setPriority}
+            />
+          </Box>
           <Tooltip title="Đính kèm ảnh / file / audio / video">
             <IconButton
               aria-label="Đính kèm ảnh / file / audio / video"
@@ -435,14 +454,6 @@ export function Comments({
           </Tooltip>
         </Box>
       </Stack>
-      <NotificationPrioritySelect
-        notifyStudents={notifyStudents}
-        onNotifyStudentsChange={setNotifyStudents}
-        classId={post.classId}
-        feature={parent ? "REPLY" : "SOCIAL"}
-        value={priority}
-        onChange={setPriority}
-      />
       <Menu anchorEl={menu?.anchor} open={!!menu} onClose={() => setMenu(null)}>
         {post.canPinComment && (
           <MenuItem
