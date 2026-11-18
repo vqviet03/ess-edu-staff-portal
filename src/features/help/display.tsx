@@ -28,6 +28,9 @@ const Display = createContext({
   },
   toggle: () => {},
 });
+/** Size used on phones when the user has not chosen one. */
+export const phoneZoom = 75;
+const phoneQuery = "(max-width: 599.95px)";
 export function AppDisplayProvider({
   children,
   storageKey,
@@ -41,6 +44,8 @@ export function AppDisplayProvider({
     try {
       const saved = Number(localStorage.getItem(storageKey));
       if ((zoomLevels as readonly number[]).includes(saved)) changeZoom(saved);
+      // Phones start at the smallest size until the user picks another one.
+      else if (matchMedia(phoneQuery).matches) changeZoom(phoneZoom);
     } catch {}
   }, [storageKey]);
   const setZoom = (value: number) => {
