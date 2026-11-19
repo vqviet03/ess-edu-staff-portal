@@ -4,7 +4,15 @@ import { Box, Paper, Stack, Typography, alpha } from "@mui/material";
 import type { QuestionGroup } from "./models";
 import { blockMedia } from "./models";
 import { AssignmentMedia, RichContent } from "./media";
-export function SharedStimulus({ group }: { group: QuestionGroup }) {
+import { AttachmentsDisclosure } from "./attachments-disclosure";
+export function SharedStimulus({
+  group,
+  collapseMedia = false,
+}: {
+  group: QuestionGroup;
+  /** Review screens fold the stimulus images/files away by default. */
+  collapseMedia?: boolean;
+}) {
   return (
     <Paper
       variant="outlined"
@@ -34,7 +42,14 @@ export function SharedStimulus({ group }: { group: QuestionGroup }) {
         <Box>
           <RichContent value={group.content} media={group.media} />
         </Box>
-        <AssignmentMedia media={blockMedia(group.content, group.media)} />
+        {collapseMedia ? (
+          <AttachmentsDisclosure
+            media={blockMedia(group.content, group.media)}
+            label="Hình / tệp của dữ kiện chung"
+          />
+        ) : (
+          <AssignmentMedia media={blockMedia(group.content, group.media)} />
+        )}
       </Stack>
     </Paper>
   );
