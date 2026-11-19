@@ -1,4 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
+import { appDialog, cancelAppDialog } from "./support/app-dialog";
 import { installHttpFixture } from "./support/http-fixture";
 import { seed, type Database } from "../src/mock/fixtures";
 const base = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
@@ -138,12 +139,13 @@ test("Mobile tối: bảo vệ MANAGER, giữ form khi version conflict và cả
       .getByText("Dữ liệu đã thay đổi.", { exact: false }),
   ).toBeVisible();
   await expect(page.getByLabel("Thời hạn · Phút")).toHaveValue("15");
-  page.once("dialog", async (dialog) => {
-    expect(dialog.message()).toContain("chưa lưu");
-    await dialog.dismiss();
-  });
   // Every page uses the single header Back control.
   await page.getByRole("link", { name: "Quay lại", exact: true }).click();
+  await expect(appDialog(page).getByRole("dialog")).toBeVisible();
+  await page.screenshot({
+    path: test.info().outputPath("unsaved-leave-mobile-dark.png"),
+  });
+  await cancelAppDialog(page, { message: /chưa lưu/ });
   await expect(page).toHaveURL(/acc-BOTH0001/);
   expect(
     await page.evaluate(

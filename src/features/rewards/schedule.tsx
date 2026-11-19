@@ -1,4 +1,5 @@
 "use client";
+import { askConfirm } from "@/shared/dialogs";
 import { useState } from "react";
 import { useMediaQuery, useTheme, IconButton } from "@mui/material";
 import Collapse from "@mui/material/Collapse";
@@ -92,10 +93,10 @@ function ScheduleEditor({
     startTime: "17:00",
     endTime: "18:30",
   });
-  const close = () => {
+  const close = async () => {
     if (
       !saving.isLoading &&
-      (!dirty || window.confirm("Bỏ lịch học chưa lưu?"))
+      (!dirty || (await askConfirm({ message: "Bỏ lịch học chưa lưu?" })))
     )
       onClose();
   };

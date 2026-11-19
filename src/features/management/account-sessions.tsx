@@ -1,4 +1,5 @@
 "use client";
+import { askConfirm } from "@/shared/dialogs";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -193,7 +194,7 @@ function SessionEditor({
       }
     })(event);
   const refresh = async () => {
-    if (!confirmLeave()) return;
+    if (!(await confirmLeave())) return;
     try {
       const next = await reload();
       version.current = next.version;
@@ -324,8 +325,16 @@ function SessionEditor({
       </Stack>
       <Dialog
         open={open}
-        onClose={() => {
-          if (!busy && (!reason || window.confirm("Bỏ lý do đã nhập?")))
+        onClose={async () => {
+          if (busy) return;
+          if (
+            !reason ||
+            (await askConfirm({
+              message: "Bỏ lý do đã nhập?",
+              confirmText: "Bỏ lý do",
+              danger: true,
+            }))
+          )
             setOpen(false);
         }}
         fullWidth

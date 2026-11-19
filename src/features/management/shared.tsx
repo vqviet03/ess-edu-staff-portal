@@ -319,7 +319,9 @@ export function PreviewDialog({
       fullWidth
       maxWidth="md"
       onClose={() => {
-        if (confirmLeave()) close();
+        void confirmLeave().then((ok) => {
+          if (ok) close();
+        });
       }}
     >
       <DialogTitle>Xem trước & xác nhận ảnh hưởng</DialogTitle>

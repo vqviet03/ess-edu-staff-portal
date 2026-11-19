@@ -1,4 +1,9 @@
 import { test, expect, type Page } from "@playwright/test";
+import {
+  appDialog,
+  cancelAppDialog,
+  confirmAppDialog,
+} from "./support/app-dialog";
 import { installHttpFixture } from "./support/http-fixture";
 import type {
   MaterialFile,
@@ -806,11 +811,21 @@ test("class thread defaults first, session materials synchronize, and authors ca
   await expect(
     page.getByRole("heading", { name: "Bài học Unit 3 cập nhật", exact: true }),
   ).toBeVisible();
-  page.once("dialog", (dialog) => dialog.accept("Không còn dùng"));
   await page
     .getByRole("button", { name: "Thao tác bài đăng", exact: true })
     .click();
   await page.getByRole("menuitem", { name: "Xóa bài", exact: true }).click();
+  // An empty reason cannot be submitted and explains why.
+  await expect(
+    appDialog(page).getByRole("button", { name: "Xóa bài", exact: true }),
+  ).toBeDisabled();
+  await expect(
+    appDialog(page).getByText("Cần nhập lý do để xóa bài đăng."),
+  ).toBeVisible();
+  await page.screenshot({
+    path: test.info().outputPath("delete-post-reason.png"),
+  });
+  await confirmAppDialog(page, { text: "Không còn dùng" });
   await expect(
     page.getByRole("heading", { name: "Bài học Unit 3 cập nhật", exact: true }),
   ).toHaveCount(0);
@@ -840,8 +855,8 @@ test("manager class thread only reads and deletes, with profile edit in the thir
   await expect(
     page.getByRole("menuitem", { name: "Sửa bài", exact: true }),
   ).toHaveCount(0);
-  page.once("dialog", (dialog) => dialog.accept("Không phù hợp"));
   await page.getByRole("menuitem", { name: "Xóa bài", exact: true }).click();
+  await confirmAppDialog(page, { text: "Không phù hợp" });
   await expect(
     page.getByRole("heading", { name: "Thông báo của lớp", exact: true }),
   ).toHaveCount(0);
@@ -990,7 +1005,9 @@ test("inline comment bubbles and attachment icon retain drafts across class tabs
   expect(await input.evaluate((el, old) => el === old, originalInput)).toBe(
     true,
   );
+  // A comment draft is unsaved work: switching tabs asks first, and staying keeps it.
   await page.getByRole("tab", { name: "Hồ sơ & quan hệ", exact: true }).click();
+  await cancelAppDialog(page, { message: /chưa lưu/ });
   await page.getByRole("tab", { name: "Thread", exact: true }).click();
   await expect(input).toHaveValue("Bản nháp giữ nguyên");
   await page.setViewportSize({ width: 390, height: 844 });
@@ -1276,3 +1293,107 @@ for (const screen of [
       .click();
   });
 }
+
+test("several selected files open a list that downloads all at once or one by one", async ({
+  page,
+}, info) => {
+  await fixture(page);
+  const cors = {
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Headers": "authorization,content-type,x-workspace",
+    "Access-Control-Allow-Methods": "GET,OPTIONS",
+  };
+  const fetched: string[] = [];
+  await page.route(`${api}/materials/*/content**`, async (route) => {
+    if (route.request().method() === "OPTIONS")
+      return route.fulfill({ status: 204, headers: cors });
+    fetched.push(new URL(route.request().url()).pathname.split("/").at(-2)!);
+    await route.fulfill({
+      status: 200,
+      headers: cors,
+      contentType: "application/pdf",
+      body: samplePdf(),
+    });
+  });
+  await login(page);
+  await page.goto(`${base}/materials/`);
+  await page.getByRole("button", { name: "Juniors", exact: true }).click();
+  await page.getByRole("checkbox", { name: "Chọn Bài học a.pdf" }).check();
+  await page.getByRole("button", { name: "Level 1", exact: true }).click();
+  await page.getByRole("checkbox", { name: "Chọn Bài học b.pdf" }).check();
+  await page
+    .getByRole("button", { name: "Tải các file đã chọn", exact: true })
+    .click();
+  // Opening the list requests nothing yet.
+  const list = page.getByRole("dialog", { name: "Tải 2 file đã chọn" });
+  await expect(list).toBeVisible();
+  expect(fetched).toEqual([]);
+  await page.screenshot({ path: info.outputPath("download-list.png") });
+  // "Download all" requests every file in parallel and starts each download.
+  const names: string[] = [];
+  page.on("download", (d) => names.push(d.suggestedFilename()));
+  await list
+    .getByRole("button", { name: "Tải toàn bộ (2)", exact: true })
+    .click();
+  await expect
+    .poll(() => names.sort())
+    .toEqual(["Bài học a.pdf", "Bài học b.pdf"]);
+  await expect(list.getByText("Đã tải", { exact: true })).toHaveCount(2);
+  expect(fetched.sort()).toEqual(["a", "b"]);
+  await expect(
+    list.getByRole("button", { name: "Đã tải toàn bộ", exact: true }),
+  ).toBeDisabled();
+  await page.screenshot({ path: info.outputPath("download-list-done.png") });
+  // A single file can still be fetched again on its own.
+  const again = page.waitForEvent("download");
+  await list.getByRole("button", { name: "Tải Bài học a.pdf" }).click();
+  expect((await again).suggestedFilename()).toBe("Bài học a.pdf");
+  expect(fetched.filter((x) => x === "a")).toHaveLength(2);
+  await list.getByRole("button", { name: "Đóng", exact: true }).click();
+  await expect(list).toHaveCount(0);
+});
+
+test("stopping a folder explains the empty-folder rule and requires a reason", async ({
+  page,
+}, info) => {
+  await fixture(page);
+  const cors = {
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Headers":
+      "authorization,content-type,x-workspace,idempotency-key,prefer",
+    "Access-Control-Allow-Methods": "DELETE,OPTIONS",
+  };
+  const removals: unknown[] = [];
+  await page.route(`${api}/material-folders/three`, async (route) => {
+    if (route.request().method() === "OPTIONS")
+      return route.fulfill({ status: 204, headers: cors });
+    removals.push(route.request().postDataJSON());
+    await route.fulfill({ headers: cors, json: { data: { id: "three" } } });
+  });
+  await login(page, "MG0001");
+  await page.goto(`${base}/materials/`);
+  await page.getByRole("button", { name: "Juniors", exact: true }).click();
+  await page.getByRole("button", { name: "Level 1", exact: true }).click();
+  await page.getByRole("button", { name: "Thao tác thư mục Unit 1" }).click();
+  await page.getByRole("menuitem", { name: "Ngừng thư mục" }).click();
+  const dialog = appDialog(page);
+  await expect(
+    dialog.getByText("Chỉ ngừng được thư mục đã trống.", { exact: false }),
+  ).toBeVisible();
+  const submit = dialog.getByRole("button", {
+    name: "Ngừng thư mục",
+    exact: true,
+  });
+  await expect(submit).toBeDisabled();
+  await expect(
+    dialog.getByText("Cần nhập lý do để ngừng thư mục."),
+  ).toBeVisible();
+  await page.screenshot({ path: info.outputPath("folder-stop-reason.png") });
+  await cancelAppDialog(page);
+  expect(removals).toEqual([]);
+  await page.getByRole("button", { name: "Thao tác thư mục Unit 1" }).click();
+  await page.getByRole("menuitem", { name: "Ngừng thư mục" }).click();
+  await confirmAppDialog(page, { text: "Gộp vào Unit 2" });
+  await expect.poll(() => removals.length).toBe(1);
+  expect(removals[0]).toMatchObject({ reason: "Gộp vào Unit 2", version: 1 });
+});

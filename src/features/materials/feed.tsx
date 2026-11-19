@@ -1,4 +1,5 @@
 "use client";
+import { askConfirm, askText } from "@/shared/dialogs";
 import { useRouteState } from "@/shared/route-state";
 import { NotificationActionPriority } from "@/features/notifications/action-priority";
 import { NotificationPrioritySelect } from "@/features/notifications/priority";
@@ -144,8 +145,15 @@ export function PostCard({
         onDelete={
           canDelete
             ? async () => {
-                const reason = window.prompt("Lý do xóa bài đăng:");
-                if (!reason?.trim()) return;
+                const reason = await askText({
+                  title: "Xóa bài đăng?",
+                  label: "Lý do xóa",
+                  requiredText: "Cần nhập lý do để xóa bài đăng.",
+                  confirmText: "Xóa bài",
+                  danger: true,
+                  maxLength: 500,
+                });
+                if (!reason) return;
                 setError(undefined);
                 try {
                   await remove({
@@ -319,10 +327,14 @@ export function SessionFeed({
               sessionId={sessionId}
               cursor={cursor}
               editable={editable}
-              edit={(post) => {
+              edit={async (post) => {
                 if (
                   dirty &&
-                  !window.confirm("Bỏ bản nháp hiện tại để sửa bài này?")
+                  !(await askConfirm({
+                    message: "Bỏ bản nháp hiện tại để sửa bài này?",
+                    confirmText: "Bỏ bản nháp",
+                    danger: true,
+                  }))
                 )
                   return;
                 setEditingId(post.id);

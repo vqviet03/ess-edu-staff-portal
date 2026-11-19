@@ -1,4 +1,5 @@
 "use client";
+import { askConfirm } from "@/shared/dialogs";
 import { useState } from "react";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
@@ -46,9 +47,9 @@ function PolicyForm({ initial }: { initial: PortalPolicy }) {
           e.preventDefault();
           if (
             draft.audit.enabled &&
-            !window.confirm(
-              `Chỉ giữ ${draft.audit.limit} nhật ký mới nhất. ${draft.audit.deleteMode === "HARD" ? "Xóa thật không thể hoàn tác." : "Nhật ký cũ sẽ ẩn khỏi giao diện."} Tiếp tục?`,
-            )
+            !(await askConfirm({
+              message: `Chỉ giữ ${draft.audit.limit} nhật ký mới nhất. ${draft.audit.deleteMode === "HARD" ? "Xóa thật không thể hoàn tác." : "Nhật ký cũ sẽ ẩn khỏi giao diện."} Tiếp tục?`,
+            }))
           )
             return;
           try {

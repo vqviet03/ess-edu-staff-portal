@@ -1,4 +1,5 @@
 "use client";
+import { askConfirm } from "@/shared/dialogs";
 import { useState } from "react";
 import { Controller, useFieldArray, useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -88,13 +89,14 @@ export function SchemaEditor({
         if (
           changed &&
           hasPoints &&
-          !window.confirm(
-            "Thay đổi schema khi đã có điểm. " +
+          !(await askConfirm({
+            message:
+              "Thay đổi schema khi đã có điểm. " +
               (impact.length
                 ? impact.join("\n")
                 : "Điểm hiện tại được giữ; phần mới sẽ để trống.") +
               "\nXác nhận lưu cấu hình?",
-          )
+          }))
         )
           return;
         try {

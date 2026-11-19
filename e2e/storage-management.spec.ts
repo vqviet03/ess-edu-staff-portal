@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { confirmAppDialog, appDialog } from "./support/app-dialog";
 import { installHttpFixture } from "./support/http-fixture";
 import type { Storage, MaterialFile } from "../src/features/materials/models";
 const api = process.env.NEXT_PUBLIC_API_BASE_URL!,
@@ -167,8 +168,8 @@ test("manager adds a private drive, browses its files and queues transfer on mob
   await transfer.getByLabel("Ổ đích cùng nhóm").click();
   await page.getByRole("option", { name: /Văn bản bổ sung/ }).click();
   await transfer.getByLabel("Lý do chuyển").fill("Cân bằng dung lượng");
-  page.on("dialog", (dialog) => void dialog.accept());
   await transfer.getByRole("button", { name: "Xác nhận chuyển" }).click();
+  await confirmAppDialog(page, { message: /Chuyển 1 file sang/ });
   await expect(
     browser.getByText("Đã xếp hàng chuyển file.", { exact: false }),
   ).toBeVisible();
@@ -295,12 +296,8 @@ test("manager configures the comment destination and a saved rule leaves no dirt
   await page
     .getByRole("option", { name: "Kho bình luận", exact: true })
     .click();
-  let confirmations = 0;
-  page.on("dialog", async (dialog) => {
-    confirmations++;
-    await dialog.accept();
-  });
   await page.getByRole("button", { name: "Lưu", exact: true }).click();
+  await confirmAppDialog(page, { message: /Đổi ổ mặc định/ });
   await expect(
     page.getByText("Đã lưu quy tắc.", { exact: true }),
   ).toBeVisible();
@@ -310,5 +307,6 @@ test("manager configures the comment destination and a saved rule leaves no dirt
   expect(writes).toBe(1);
   await page.getByRole("link", { name: "Tổng quan", exact: true }).click();
   await expect(page).toHaveURL(/\/home\//);
-  expect(confirmations).toBe(1);
+  // Saved settings are not dirty, so leaving asks nothing more.
+  await expect(appDialog(page)).toHaveCount(0);
 });

@@ -1,4 +1,5 @@
 "use client";
+import { askConfirm } from "@/shared/dialogs";
 import { NotificationPrioritySelect } from "@/features/notifications/priority";
 import { useRef, useState, type ReactNode } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
@@ -78,8 +79,11 @@ function AwardDialog({
   const dirty = Object.values(values).some((v) => v > 0),
     busy = awarding.isLoading || attending.isLoading;
   useUnsaved(dirty);
-  const close = () => {
-    if (!busy && (!dirty || window.confirm("Bỏ các ô cúp chưa lưu?")))
+  const close = async () => {
+    if (
+      !busy &&
+      (!dirty || (await askConfirm({ message: "Bỏ các ô cúp chưa lưu?" })))
+    )
       onClose();
   };
   const quickSave = async (row: RewardRow) => {
@@ -190,10 +194,14 @@ function AwardDialog({
                 label="Ngày học"
                 type="date"
                 value={date}
-                onChange={(e) => {
-                  if (!dirty || window.confirm("Bỏ các ô cúp chưa lưu?")) {
+                onChange={async (e) => {
+                  const next = e.target.value;
+                  if (
+                    !dirty ||
+                    (await askConfirm({ message: "Bỏ các ô cúp chưa lưu?" }))
+                  ) {
                     setValues({});
-                    setDate(e.target.value);
+                    setDate(next);
                   }
                 }}
                 slotProps={{
@@ -325,14 +333,15 @@ function AwardDialog({
                               variant="standard"
                               value={row.attendance}
                               disabled={busy}
-                              onChange={(e) => {
+                              onChange={async (e) => {
                                 const status = e.target.value as Attendance;
                                 if (
                                   status === "ABSENT" &&
                                   row.today.earned > 0 &&
-                                  !window.confirm(
-                                    "Bạn đã có điểm trong ngày. Báo vắng sẽ bỏ mốc biểu đồ ngày này; lịch sử điểm được giữ. Tiếp tục?",
-                                  )
+                                  !(await askConfirm({
+                                    message:
+                                      "Bạn đã có điểm trong ngày. Báo vắng sẽ bỏ mốc biểu đồ ngày này; lịch sử điểm được giữ. Tiếp tục?",
+                                  }))
                                 )
                                   return;
                                 void saveAttendance([
@@ -460,10 +469,12 @@ function AwardDialog({
                                 <IconAction
                                   label="Xem chi tiết tích thưởng"
                                   icon={<RewardIcon name="detail" />}
-                                  onClick={() => {
+                                  onClick={async () => {
                                     if (
                                       !dirty ||
-                                      window.confirm("Bỏ các ô cúp chưa lưu?")
+                                      (await askConfirm({
+                                        message: "Bỏ các ô cúp chưa lưu?",
+                                      }))
                                     ) {
                                       setValues({});
                                       onClose();

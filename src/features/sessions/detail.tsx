@@ -55,10 +55,10 @@ export function SessionDetail() {
   const router = useRouter(),
     pathname = usePathname();
   const creating = params.get("createAssessment") === "1";
-  const setCreating = (open: boolean) => {
+  const setCreating = async (open: boolean) => {
     const search = new URLSearchParams(params.toString());
     if (open) {
-      if (!confirmLeave()) return;
+      if (!(await confirmLeave())) return;
       search.delete("tab");
       search.set("createAssessment", "1");
       router.push(`/session/assessments/?${search}`, { scroll: false });
@@ -258,7 +258,9 @@ export function SessionDetail() {
       <Dialog
         open={creating && permissions.editLearning}
         onClose={() => {
-          if (confirmLeave()) setCreating(false);
+          void confirmLeave().then((ok) => {
+            if (ok) setCreating(false);
+          });
         }}
         fullWidth
         maxWidth="md"
@@ -276,7 +278,9 @@ export function SessionDetail() {
           />
           <Button
             onClick={() => {
-              if (confirmLeave()) setCreating(false);
+              void confirmLeave().then((ok) => {
+                if (ok) setCreating(false);
+              });
             }}
             sx={{ mt: 2 }}
           >

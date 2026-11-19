@@ -24,6 +24,7 @@ import { AppDisplayProvider } from "@/features/help/display";
 import { WorkspaceRuntime } from "@/features/access/hooks";
 import { AuthRuntime } from "@/features/auth/runtime";
 import { UnsavedRuntime } from "@/shared/unsaved";
+import { DialogHost } from "@/shared/dialogs";
 import { OperationsRuntime } from "@/features/operations/runtime";
 // Motion curves shared by the theme.
 const SPRING = "cubic-bezier(0.34, 1.56, 0.64, 1)";
@@ -403,6 +404,7 @@ export function Providers({ children }: { children: ReactNode }) {
                 <UnsavedRuntime />
                 <AppDisplayProvider storageKey="ess.staff.zoom">
                   {children}
+                  <DialogHost />
                 </AppDisplayProvider>
               </RealtimeBoundary>
             </ThemeProvider>

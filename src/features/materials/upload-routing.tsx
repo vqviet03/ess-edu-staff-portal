@@ -1,4 +1,5 @@
 "use client";
+import { askConfirm } from "@/shared/dialogs";
 import { useState } from "react";
 import Paper from "@mui/material/Paper";
 import Stack from "@mui/material/Stack";
@@ -113,9 +114,11 @@ export function UploadRouting() {
             disabled={state.isLoading || !(storage || current?.storageId)}
             onClick={async () => {
               if (
-                !window.confirm(
-                  "Đổi ổ mặc định cho các lượt upload mới? File cũ giữ nguyên.",
-                )
+                !(await askConfirm({
+                  message:
+                    "Đổi ổ mặc định cho các lượt upload mới? File cũ giữ nguyên.",
+                  confirmText: "Đổi ổ",
+                }))
               )
                 return;
               try {

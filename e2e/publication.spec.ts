@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { confirmAppDialog } from "./support/app-dialog";
 import { seed } from "../src/mock/fixtures";
 import { installHttpFixture } from "./support/http-fixture";
 const base = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
@@ -42,8 +43,10 @@ test("completed assessment is published explicitly, persists on reload, and must
   });
   await expect(publish).toBeEnabled();
   await expect(page.getByText(/Chưa công bố cho học sinh\./)).toBeVisible();
-  page.on("dialog", (dialog) => dialog.accept());
   await publish.click();
+  await confirmAppDialog(page, {
+    message: /điểm và nhận xét của bài này/,
+  });
   await expect(page.getByText(/Đã công bố cho học sinh · Unit/)).toBeVisible();
   await expect(
     page.getByRole("button", { name: "Chuyển về nháp", exact: true }),
@@ -53,6 +56,9 @@ test("completed assessment is published explicitly, persists on reload, and must
   await page
     .getByRole("button", { name: "Gỡ công bố báo cáo", exact: true })
     .click();
+  await confirmAppDialog(page, {
+    message: /Gỡ báo cáo này khỏi trang học sinh/,
+  });
   await expect(publish).toBeVisible();
   await expect(
     page.getByRole("button", { name: "Chuyển về nháp", exact: true }),
@@ -60,6 +66,9 @@ test("completed assessment is published explicitly, persists on reload, and must
   await page
     .getByRole("button", { name: "Chuyển về nháp", exact: true })
     .click();
+  await confirmAppDialog(page, {
+    message: "Mở lại bài đánh giá để chỉnh sửa?",
+  });
   await expect(
     page.getByRole("button", { name: "Đánh dấu hoàn thành", exact: true }),
   ).toBeVisible();

@@ -1,4 +1,5 @@
 "use client";
+import { askConfirm } from "@/shared/dialogs";
 import { NotificationPrioritySelect } from "@/features/notifications/priority";
 import { ContentViews } from "@/features/presence/views";
 import { useEffect, useRef, useState, type ReactNode } from "react";
@@ -517,7 +518,14 @@ export function Comments({
               if (!menu) return;
               const c = menu.comment;
               setMenu(null);
-              if (!window.confirm("Xóa bình luận này?")) return;
+              if (
+                !(await askConfirm({
+                  message: "Xóa bình luận này?",
+                  confirmText: "Xóa",
+                  danger: true,
+                }))
+              )
+                return;
               setError(undefined);
               try {
                 await remove({

@@ -1,4 +1,5 @@
 "use client";
+import { askConfirm } from "@/shared/dialogs";
 import { publicId } from "@/shared/public-id";
 import { useState } from "react";
 import Alert from "@mui/material/Alert";
@@ -76,13 +77,17 @@ export default function ScoreTable({
   const invalid = Object.values(drafts).some(
     (r) => Object.keys(validateResult(r, assessment.skills)).length,
   );
-  const setAttendance = (id: string, value: StudentResult["attendance"]) => {
+  const setAttendance = async (
+    id: string,
+    value: StudentResult["attendance"],
+  ) => {
     if (
       value !== "PRESENT" &&
       read(id).skillResults.some((s) => s.score !== null) &&
-      !window.confirm(
-        "Chuyển sang vắng/chưa xác định sẽ xóa điểm đã nhập. Tiếp tục?",
-      )
+      !(await askConfirm({
+        message:
+          "Chuyển sang vắng/chưa xác định sẽ xóa điểm đã nhập. Tiếp tục?",
+      }))
     )
       return;
     change(id, (r) => {
@@ -253,11 +258,12 @@ export default function ScoreTable({
                         <Alert severity="error">{rowErrors[student.id]}</Alert>
                         <Button
                           disabled={rowLocked}
-                          onClick={() => {
+                          onClick={async () => {
                             if (
-                              window.confirm(
-                                "Bỏ thay đổi dòng này và dùng dữ liệu mới nhất?",
-                              )
+                              await askConfirm({
+                                message:
+                                  "Bỏ thay đổi dòng này và dùng dữ liệu mới nhất?",
+                              })
                             ) {
                               setDrafts((old) => {
                                 const next = { ...old };

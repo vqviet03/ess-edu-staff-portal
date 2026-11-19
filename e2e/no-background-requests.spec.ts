@@ -14,7 +14,9 @@ test("background closes the socket; foreground replays saved notices without HTT
     if (
       new URL(request.url()).hostname ===
         new URL(process.env.NEXT_PUBLIC_API_BASE_URL!).hostname &&
-      request.method() !== "OPTIONS"
+      request.method() !== "OPTIONS" &&
+      // Only app-issued calls count; the browser may fetch the PWA icon late on a busy machine.
+      ["fetch", "xhr"].includes(request.resourceType())
     )
       requests.push(request.url());
   });
@@ -25,6 +27,8 @@ test("background closes the socket; foreground replays saved notices without HTT
   await expect(page).toHaveURL(/\/home\//);
   await expect.poll(() => fixture.connectionCounts().active).toBe(1);
   expect(fixture.connectionCounts().connections).toBe(1);
+  // Let the dashboard finish its initial reads; only later requests would be polling.
+  await page.waitForLoadState("networkidle");
   const before = [...requests];
   await page.evaluate(() => {
     Object.defineProperty(document, "hidden", {

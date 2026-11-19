@@ -1,4 +1,5 @@
 "use client";
+import { askConfirm } from "@/shared/dialogs";
 import { ReadOnlyNotice } from "@/features/access/hooks";
 import { useState } from "react";
 import Alert from "@mui/material/Alert";
@@ -63,12 +64,14 @@ export function AssessmentDetail() {
           }
           onClick={async () => {
             if (
-              !confirmLeave() ||
-              !window.confirm(
-                a.status === "DRAFT"
-                  ? "Hoàn thành và khóa điểm bài đánh giá?"
-                  : "Mở lại bài đánh giá để chỉnh sửa?",
-              )
+              !(await confirmLeave()) ||
+              !(await askConfirm({
+                message:
+                  a.status === "DRAFT"
+                    ? "Hoàn thành và khóa điểm bài đánh giá?"
+                    : "Mở lại bài đánh giá để chỉnh sửa?",
+                confirmText: a.status === "DRAFT" ? "Hoàn thành" : "Mở lại",
+              }))
             )
               return;
             try {

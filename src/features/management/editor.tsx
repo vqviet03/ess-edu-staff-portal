@@ -162,7 +162,9 @@ export function EntityEditor({
       fullWidth
       maxWidth="sm"
       onClose={() => {
-        if (confirmLeave()) close();
+        void confirmLeave().then((ok) => {
+          if (ok) close();
+        });
       }}
     >
       <DialogTitle>
@@ -424,7 +426,9 @@ export function EntityEditor({
             <Stack direction="row" spacing={1}>
               <Button
                 onClick={() => {
-                  if (confirmLeave()) close();
+                  void confirmLeave().then((ok) => {
+                    if (ok) close();
+                  });
                 }}
               >
                 Hủy

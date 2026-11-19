@@ -129,7 +129,9 @@ export function Scores() {
             {showTable && (
               <Button
                 onClick={() => {
-                  if (confirmLeave()) setShowTable(false);
+                  void confirmLeave().then((ok) => {
+                    if (ok) setShowTable(false);
+                  });
                 }}
                 sx={{ display: { md: "none" }, mb: 2 }}
               >

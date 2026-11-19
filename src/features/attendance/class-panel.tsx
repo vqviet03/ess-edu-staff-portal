@@ -269,7 +269,9 @@ function DayEditor({
           <Button
             size="small"
             onClick={() => {
-              if (confirmLeave()) onCancel();
+              void confirmLeave().then((ok) => {
+                if (ok) onCancel();
+              });
             }}
           >
             Hủy sửa
@@ -634,17 +636,19 @@ export function ClassAttendancePanel({ classId }: { classId: string }) {
         <AttendanceCalendar
           month={month}
           onMonth={(m) => {
-            if (confirmLeave()) {
+            void confirmLeave().then((ok) => {
+              if (!ok) return;
               setMonth(m);
               setSelected(`${m}-01`);
-            }
+            });
           }}
           selected={date}
           onSelect={(d) => {
-            if (confirmLeave()) {
+            void confirmLeave().then((ok) => {
+              if (!ok) return;
               setSelected(d);
               setMonth(d.slice(0, 7));
-            }
+            });
           }}
           items={chosen.currentData?.calendar ?? data.calendar}
           today={data.today}

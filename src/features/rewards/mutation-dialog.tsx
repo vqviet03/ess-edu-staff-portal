@@ -1,4 +1,5 @@
 "use client";
+import { askConfirm } from "@/shared/dialogs";
 import { NotificationPrioritySelect } from "@/features/notifications/priority";
 import { useRef, useState } from "react";
 import Alert from "@mui/material/Alert";
@@ -80,8 +81,11 @@ export function RewardMutationDialog({
       (!edit || (!!reason.trim() && reason.trim().length <= 2000)) &&
       !!note.trim() &&
       note.trim().length <= 2000;
-  const close = () => {
-    if (!busy && (!changed || window.confirm("Bỏ nội dung chưa lưu?")))
+  const close = async () => {
+    if (
+      !busy &&
+      (!changed || (await askConfirm({ message: "Bỏ nội dung chưa lưu?" })))
+    )
       onClose();
   };
   const save = async () => {

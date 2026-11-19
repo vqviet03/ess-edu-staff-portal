@@ -1,4 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
+import { confirmAppDialog } from "./support/app-dialog";
 import { Workbook } from "exceljs";
 import type {
   Class,
@@ -148,10 +149,10 @@ test.describe("ASP.NET + PostgreSQL integration (isolated demo backend only)", (
       .getByRole("button", { name: "Kiểm tra dữ liệu", exact: true })
       .click();
     await expect(page.getByText(/1 học sinh thay đổi · 0 lỗi/)).toBeVisible();
-    page.once("dialog", (d) => d.accept());
     await page
       .getByRole("button", { name: "Xác nhận import", exact: true })
       .click();
+    await confirmAppDialog(page, { message: /Xác nhận import 1 học sinh/ });
     await expect(
       page.getByText("Import thành công: 1 học sinh."),
     ).toBeVisible();
