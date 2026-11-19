@@ -1,4 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
+import { confirmAppDialog } from "./support/app-dialog";
 import { installHttpFixture } from "./support/http-fixture";
 import { seed } from "../src/mock/fixtures";
 import { managementSeed } from "../src/mock/management-fixtures";
@@ -102,8 +103,10 @@ test("manager creates a branding proposal without changing the current name", as
       r.method() === "POST" &&
       new URL(r.url()).pathname.endsWith("/manager/settings/proposals"),
   );
-  page.on("dialog", (d) => void d.accept());
   await page.getByRole("button", { name: "Gửi đề xuất thay đổi" }).click();
+  await confirmAppDialog(page, {
+    message: /Gửi đề xuất cho tất cả quản lý khác/,
+  });
   const payload = (await proposalRequest).postDataJSON();
   expect(payload.appName).toBe("LearnLeaf Academy");
   expect(payload.portals.student.name).toBe("LearnLeaf Học sinh");
@@ -168,8 +171,10 @@ test("manager uploads 10 MB logo, rejects larger files and proposes transparent 
       r.method() === "POST" &&
       new URL(r.url()).pathname.endsWith("/manager/settings/proposals"),
   );
-  page.on("dialog", (d) => void d.accept());
   await page.getByRole("button", { name: "Gửi đề xuất thay đổi" }).click();
+  await confirmAppDialog(page, {
+    message: /Gửi đề xuất cho tất cả quản lý khác/,
+  });
   const payload = (await request).postDataJSON();
   expect(Buffer.byteLength(payload.portals.student.iconSvg)).toBe(limit);
   expect(payload.portals.student.background).toBe("transparent");

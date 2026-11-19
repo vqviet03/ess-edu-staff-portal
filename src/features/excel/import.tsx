@@ -1,4 +1,5 @@
 "use client";
+import { askConfirm } from "@/shared/dialogs";
 import { publicId } from "@/shared/public-id";
 import { exportPrefix } from "@/features/settings/branding";
 import { useState } from "react";
@@ -208,12 +209,13 @@ export function ExcelImport() {
                 <Checkbox
                   checked={mode === "REPLACE_ALL"}
                   disabled={busy || locked}
-                  onChange={(_, value) => {
+                  onChange={async (_, value) => {
                     if (
                       value &&
-                      !window.confirm(
-                        "Chế độ thay thế sẽ xóa dữ liệu cũ tại các ô trống. Xác nhận chọn?",
-                      )
+                      !(await askConfirm({
+                        message:
+                          "Chế độ thay thế sẽ xóa dữ liệu cũ tại các ô trống. Xác nhận chọn?",
+                      }))
                     )
                       return;
                     setMode(value ? "REPLACE_ALL" : "MERGE_NON_EMPTY");
@@ -360,9 +362,9 @@ export function ExcelImport() {
                 loading={c.isLoading}
                 onClick={async () => {
                   if (
-                    !window.confirm(
-                      `Xác nhận import ${data.changes.length} học sinh${mode === "REPLACE_ALL" ? " và xóa dữ liệu ở các ô trống" : ""}?`,
-                    )
+                    !(await askConfirm({
+                      message: `Xác nhận import ${data.changes.length} học sinh${mode === "REPLACE_ALL" ? " và xóa dữ liệu ở các ô trống" : ""}?`,
+                    }))
                   )
                     return;
                   try {

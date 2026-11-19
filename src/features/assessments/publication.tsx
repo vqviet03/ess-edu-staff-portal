@@ -1,4 +1,5 @@
 "use client";
+import { askConfirm } from "@/shared/dialogs";
 import { useSearchParams } from "next/navigation";
 import { NotificationPrioritySelect } from "@/features/notifications/priority";
 import { useState } from "react";
@@ -44,7 +45,15 @@ export function PublicationPanel({
       : replaced
         ? "Unit đang có báo cáo từ bài khác. Thay báo cáo đó bằng điểm và nhận xét của bài này?"
         : "Công bố điểm và nhận xét của bài này cho học sinh trong lớp?";
-    if (!confirmLeave() || !window.confirm(question)) return;
+    if (
+      !(await confirmLeave()) ||
+      !(await askConfirm({
+        message: question,
+        confirmText: published ? "Gỡ công bố" : "Công bố",
+        danger: published,
+      }))
+    )
+      return;
     setFailure("");
     try {
       await publish({

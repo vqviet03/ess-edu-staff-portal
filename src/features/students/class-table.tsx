@@ -43,7 +43,9 @@ export function ClassStudentTable({
   if (!students.length)
     return <Feedback empty="Lớp chưa có học sinh trong phạm vi đang xem." />;
   const open = (student: Student) => {
-    if (confirmLeave()) router.push(profileHref(student));
+    void confirmLeave().then((ok) => {
+      if (ok) router.push(profileHref(student));
+    });
   };
   return (
     <>
@@ -65,9 +67,6 @@ export function ClassStudentTable({
               component={Link}
               href={profileHref(s)}
               aria-label={`Xem hồ sơ ${s.name}`}
-              onClick={(event) => {
-                if (!confirmLeave()) event.preventDefault();
-              }}
               sx={{
                 flex: 1,
                 minWidth: 0,

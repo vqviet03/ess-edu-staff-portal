@@ -1,4 +1,5 @@
 "use client";
+import { askConfirm } from "@/shared/dialogs";
 import { staffGiftNoticeHref } from "@/features/gifts/links";
 import { NotificationContent } from "@/features/notifications/content";
 import Link from "next/link";
@@ -131,11 +132,15 @@ export function DeletionPage() {
                       }
                       onClick={async () => {
                         if (
-                          !window.confirm(
-                            value === "APPROVED"
-                              ? `Xóa thật file gốc và thumbnail, xử lý ${d.usages.length} liên kết như đã chọn?`
-                              : "Từ chối yêu cầu này?",
-                          )
+                          !(await askConfirm({
+                            message:
+                              value === "APPROVED"
+                                ? `Xóa thật file gốc và thumbnail, xử lý ${d.usages.length} liên kết như đã chọn?`
+                                : "Từ chối yêu cầu này?",
+                            confirmText:
+                              value === "APPROVED" ? "Xóa file" : "Từ chối",
+                            danger: value === "APPROVED",
+                          }))
                         )
                           return;
                         setError(undefined);

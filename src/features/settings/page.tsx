@@ -1,4 +1,5 @@
 "use client";
+import { askConfirm } from "@/shared/dialogs";
 import { PortalPoliciesSettings } from "./portal-policies";
 import { PortalBrandingEditor } from "./portal-branding";
 import { defaultBranding } from "@/features/pwa/models";
@@ -114,9 +115,10 @@ function SettingsForm({ settings }: { settings: ApplicationSettings }) {
         onSubmit={async (e) => {
           e.preventDefault();
           if (
-            !window.confirm(
-              "Gửi đề xuất cho tất cả quản lý khác? Chỉ khi đủ đồng ý mới áp dụng. Nếu bạn là quản lý duy nhất, cấu hình sẽ được áp dụng sau xác nhận này.",
-            )
+            !(await askConfirm({
+              message:
+                "Gửi đề xuất cho tất cả quản lý khác? Chỉ khi đủ đồng ý mới áp dụng. Nếu bạn là quản lý duy nhất, cấu hình sẽ được áp dụng sau xác nhận này.",
+            }))
           )
             return;
           try {
@@ -281,11 +283,12 @@ function ProposalCard({
                 variant={decision === "APPROVED" ? "contained" : "outlined"}
                 onClick={async () => {
                   if (
-                    !window.confirm(
-                      decision === "APPROVED"
-                        ? "Đồng ý áp dụng tên / tiền tố khi đủ xác nhận?"
-                        : "Từ chối đề xuất này?",
-                    )
+                    !(await askConfirm({
+                      message:
+                        decision === "APPROVED"
+                          ? "Đồng ý áp dụng tên / tiền tố khi đủ xác nhận?"
+                          : "Từ chối đề xuất này?",
+                    }))
                   )
                     return;
                   try {

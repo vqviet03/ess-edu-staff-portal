@@ -1,4 +1,5 @@
 "use client";
+import { askConfirm, askText } from "@/shared/dialogs";
 import { MobileFilters } from "@/shared/mobile-filters";
 import { downloadName } from "./utils";
 import { MaterialThumbnail } from "./thumbnail";
@@ -433,6 +434,88 @@ function TreeBranch({
     </Stack>
   );
 }
+export function startDownload(url: string, file: MaterialFile) {
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = downloadName(file);
+  link.target = "_blank";
+  link.rel = "noopener noreferrer";
+  link.click();
+}
+
+function DownloadListDialog({
+  files,
+  fetchUrl,
+  onClose,
+}: {
+  files: MaterialFile[];
+  fetchUrl: (file: MaterialFile) => Promise<string>;
+  onClose: () => void;
+}) {
+  const [done, setDone] = useState<Record<string, boolean>>({}),
+    [busy, setBusy] = useState<string>(),
+    [error, setError] = useState<unknown>();
+  return (
+    <Dialog open onClose={onClose} fullWidth maxWidth="sm">
+      <DialogTitle>Tải {files.length} file đã chọn</DialogTitle>
+      <DialogContent>
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
+          Trình duyệt chỉ cho phép một lượt tải mỗi lần bấm. Bấm Tải ở từng
+          file; file đã tải được đánh dấu.
+        </Typography>
+        <Feedback error={error} />
+        <Stack
+          spacing={1}
+          component="ul"
+          sx={{ m: 0, p: 0, listStyle: "none" }}
+        >
+          {files.map((f) => (
+            <Stack
+              key={f.id}
+              component="li"
+              direction="row"
+              sx={{ alignItems: "center", gap: 1, minWidth: 0 }}
+            >
+              <Typography
+                sx={{ flex: 1, minWidth: 0, overflowWrap: "anywhere" }}
+              >
+                {f.displayName}
+              </Typography>
+              {done[f.id] && (
+                <Chip size="small" color="success" label="Đã tải" />
+              )}
+              <Button
+                size="small"
+                variant={done[f.id] ? "text" : "outlined"}
+                loading={busy === f.id}
+                disabled={!!busy && busy !== f.id}
+                aria-label={`Tải ${f.displayName}`}
+                onClick={async () => {
+                  setError(undefined);
+                  setBusy(f.id);
+                  try {
+                    startDownload(await fetchUrl(f), f);
+                    setDone((d) => ({ ...d, [f.id]: true }));
+                  } catch (e) {
+                    setError(e);
+                  } finally {
+                    setBusy(undefined);
+                  }
+                }}
+              >
+                Tải
+              </Button>
+            </Stack>
+          ))}
+        </Stack>
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={onClose}>Đóng</Button>
+      </DialogActions>
+    </Dialog>
+  );
+}
+
 function FileInformation({
   file,
   close,
@@ -625,6 +708,11 @@ export function MaterialBrowser({
     ),
     showInfo = useCallback((file: MaterialFile) => setInformation(file), []),
     showPreview = useCallback((file: MaterialFile) => setPreview(file), []);
+  const [downloadList, setDownloadList] = useState<MaterialFile[]>();
+  const downloadUrl = (f: MaterialFile) =>
+    download({ id: f.id, purpose: "download" }, false).unwrap();
+  const saveFile = async (f: MaterialFile) =>
+    startDownload(await downloadUrl(f), f);
   const action = async (fn: () => Promise<unknown>, success: string) => {
     setError(undefined);
     try {
@@ -645,9 +733,18 @@ export function MaterialBrowser({
           setFolderName(folder.name);
           setKind(folder.kind);
         }}
-        remove={(folder) => {
-          const note = window.prompt("Lý do ngừng thư mục (phải rỗng):");
-          if (note?.trim())
+        remove={async (folder) => {
+          const note = await askText({
+            title: `Ngừng thư mục “${folder.name}”?`,
+            message:
+              "Chỉ ngừng được thư mục đã trống. Thư mục được giữ trong lịch sử.",
+            label: "Lý do ngừng",
+            requiredText: "Cần nhập lý do để ngừng thư mục.",
+            confirmText: "Ngừng thư mục",
+            danger: true,
+            maxLength: 500,
+          });
+          if (note)
             void action(
               () =>
                 removeFolder({
@@ -839,6 +936,13 @@ export function MaterialBrowser({
           )}
         </MobileFilters>
       </Stack>
+      {downloadList && (
+        <DownloadListDialog
+          files={downloadList}
+          fetchUrl={downloadUrl}
+          onClose={() => setDownloadList(undefined)}
+        />
+      )}
       {transferOpen && (
         <StorageTransferDialog
           files={chosen}
@@ -868,22 +972,12 @@ export function MaterialBrowser({
             </Typography>
             <Button
               disabled={!chosen.length || downloadState.isFetching}
-              onClick={() =>
-                void action(async () => {
-                  for (const f of chosen) {
-                    const access = await download(
-                      { id: f.id, purpose: "download" },
-                      false,
-                    ).unwrap();
-                    const link = document.createElement("a");
-                    link.href = access;
-                    link.download = downloadName(f);
-                    link.target = "_blank";
-                    link.rel = "noopener noreferrer";
-                    link.click();
-                  }
-                }, "Đã mở lượt tải; trình duyệt có thể yêu cầu cho phép tải nhiều file.")
-              }
+              onClick={() => {
+                // Browsers block several downloads started by one click, so more than one
+                // file opens a list where each file is fetched by its own click.
+                if (chosen.length > 1) return setDownloadList(chosen);
+                void action(() => saveFile(chosen[0]), "Đã mở lượt tải file.");
+              }}
             >
               Tải các file đã chọn
             </Button>
@@ -907,11 +1001,12 @@ export function MaterialBrowser({
             {!picker && manager && (
               <Button
                 disabled={!chosen.length || moveState.isLoading}
-                onClick={() => {
+                onClick={async () => {
                   if (
-                    window.confirm(
-                      `Di chuyển ${chosen.length} file vào ${path.at(-1)?.name ?? "Kho chung"}?`,
-                    )
+                    await askConfirm({
+                      message: `Di chuyển ${chosen.length} file vào ${path.at(-1)?.name ?? "Kho chung"}?`,
+                      confirmText: "Di chuyển",
+                    })
                   )
                     void action(
                       () =>

@@ -1,4 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
+import { confirmAppDialog, cancelAppDialog } from "./support/app-dialog";
 import { Workbook } from "exceljs";
 import { installHttpFixture } from "./support/http-fixture";
 import { openAppearance } from "./support/display";
@@ -146,8 +147,8 @@ test("form/table dùng chung, null/0, cảnh báo rời trang, lưu dòng và x�
     page.getByRole("heading", { name: "23.1 / 35 · 66%" }),
   ).toBeVisible();
   await page.getByLabel("Số câu / điểm đạt", { exact: true }).first().fill("0");
-  page.once("dialog", (d) => d.dismiss());
   await page.getByRole("link", { name: "Quay lại", exact: true }).click();
+  await cancelAppDialog(page, { message: /chưa lưu/ });
   await expect(
     page.getByRole("heading", { name: "Nhập điểm học sinh" }),
   ).toBeVisible();
@@ -155,24 +156,27 @@ test("form/table dùng chung, null/0, cảnh báo rời trang, lưu dòng và x�
   await expect(page.getByText("Đã lưu điểm thành công.")).toBeVisible();
   await page.getByRole("link", { name: "Quay lại", exact: true }).click();
   await page.getByLabel("Điểm Từ vựng HV1001", { exact: true }).fill("1");
-  page.once("dialog", (d) => d.dismiss());
   await page.goBack();
+  await cancelAppDialog(page, { message: /chưa lưu/ });
   await expect(
     page.getByRole("heading", { name: "Nhập nhanh theo bảng" }),
   ).toBeVisible();
   await page.getByRole("button", { name: "Lưu 1 dòng đã sửa" }).click();
   await expect(page.getByText("Đã lưu 1 học sinh.")).toBeVisible();
-  page.once("dialog", (d) => d.dismiss());
   await page
     .getByRole("checkbox", { name: "Có mặt HV1001", exact: true })
     .click();
+  await cancelAppDialog(page, { message: /sẽ xóa điểm/ });
   await expect(
     page.getByRole("checkbox", { name: "Có mặt HV1001", exact: true }),
   ).toBeChecked();
-  page.once("dialog", (d) => d.accept());
   await page
     .getByRole("checkbox", { name: "Có mặt HV1001", exact: true })
-    .uncheck();
+    .click();
+  await confirmAppDialog(page, { message: /sẽ xóa điểm/ });
+  await expect(
+    page.getByRole("checkbox", { name: "Có mặt HV1001", exact: true }),
+  ).not.toBeChecked();
   await expect(
     page.getByLabel("Điểm Từ vựng HV1001", { exact: true }),
   ).toHaveValue("");
@@ -207,10 +211,10 @@ test("Excel tải mẫu thực, preview và commit; mobile không tràn màn hì
     .getByRole("button", { name: "Kiểm tra dữ liệu", exact: true })
     .click();
   await expect(page.getByText(/1 học sinh thay đổi · 0 lỗi/)).toBeVisible();
-  page.once("dialog", (d) => d.accept());
   await page
     .getByRole("button", { name: "Xác nhận import", exact: true })
     .click();
+  await confirmAppDialog(page, { message: /Xác nhận import 1 học sinh/ });
   await expect(page.getByText("Import thành công: 1 học sinh.")).toBeVisible();
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("scores/?" + context);

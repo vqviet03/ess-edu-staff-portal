@@ -94,7 +94,9 @@ function BulkEditor({
       fullWidth
       maxWidth="sm"
       onClose={() => {
-        if (confirmLeave()) close();
+        void confirmLeave().then((ok) => {
+          if (ok) close();
+        });
       }}
     >
       <DialogTitle>
@@ -196,7 +198,9 @@ function BulkEditor({
             </Button>
             <Button
               onClick={() => {
-                if (confirmLeave()) close();
+                void confirmLeave().then((ok) => {
+                  if (ok) close();
+                });
               }}
             >
               Hủy

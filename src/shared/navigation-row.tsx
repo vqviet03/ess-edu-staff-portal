@@ -11,7 +11,9 @@ export function NavigationRow({
 }: TableRowProps & { href: string }) {
   const router = useRouter();
   const open = () => {
-    if (confirmLeave()) router.push(href);
+    void confirmLeave().then((ok) => {
+      if (ok) router.push(href);
+    });
   };
   return (
     <TableRow

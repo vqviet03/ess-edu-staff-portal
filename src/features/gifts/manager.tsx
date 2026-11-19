@@ -1,4 +1,5 @@
 "use client";
+import { askConfirm } from "@/shared/dialogs";
 import { PageHeader } from "@/shared/ui";
 import { compactRadii } from "@/theme/compact";
 import { NavigationRow } from "@/shared/navigation-row";
@@ -671,9 +672,22 @@ function VisibilityPanel({
           <GiftAction
             label="Ngắt liên kết"
             disabled={!catalog.canManage || state.isLoading}
-            onClick={() =>
-              void link({ catalogId: catalog.id, classId: id, add: false })
-            }
+            onClick={async () => {
+              const name =
+                options.data?.classes.find((c) => c.id === id)?.name ??
+                "lớp này";
+              if (
+                await askConfirm({
+                  title: `Ngắt liên kết ${name}?`,
+                  message: `Học sinh ${name} sẽ không còn thấy danh mục “${catalog.name}”. Cấu hình ẩn/hiện từng món quà của lớp này cũng bị xóa; khi liên kết lại cần chọn lại.`,
+                  confirmText: "Ngắt liên kết",
+                  danger: true,
+                })
+              )
+                void link({ catalogId: catalog.id, classId: id, add: false })
+                  .unwrap()
+                  .catch(() => {});
+            }}
           >
             <Close />
           </GiftAction>

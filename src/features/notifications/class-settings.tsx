@@ -1,4 +1,5 @@
 "use client";
+import { askConfirm } from "@/shared/dialogs";
 import { useState } from "react";
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
@@ -124,8 +125,11 @@ function Editor({ classId, close }: { classId: string; close: () => void }) {
       <DialogActions>
         <Button
           disabled={saving.isLoading}
-          onClick={() => {
-            if (!draft || window.confirm("Bỏ cài đặt chưa lưu?")) {
+          onClick={async () => {
+            if (
+              !draft ||
+              (await askConfirm({ message: "Bỏ cài đặt chưa lưu?" }))
+            ) {
               setDraft(null);
               close();
             }
@@ -171,8 +175,12 @@ export function ClassNotificationSettings({ classId }: { classId: string }) {
           Cài đặt thông báo lớp
           <IconButton
             aria-label="Đóng cài đặt thông báo"
-            onClick={() => {
-              if (window.confirm("Đóng cài đặt và bỏ thay đổi chưa lưu?"))
+            onClick={async () => {
+              if (
+                await askConfirm({
+                  message: "Đóng cài đặt và bỏ thay đổi chưa lưu?",
+                })
+              )
                 setOpen(false);
             }}
             sx={{ float: "right" }}

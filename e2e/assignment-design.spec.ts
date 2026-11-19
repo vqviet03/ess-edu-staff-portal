@@ -5,6 +5,7 @@ import type {
   AssignmentWrite,
 } from "../src/features/assignments/models";
 import { openAppearance } from "./support/display";
+import { appDialog, confirmAppDialog } from "./support/app-dialog";
 const base = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
 const assignment: Assignment = {
   id: "assignment-design",
@@ -147,6 +148,27 @@ test("builder keeps the app shell, rich content, question navigation and mobile 
   await expect(input.locator(".assignment-chip-link")).toHaveText(
     "example.com",
   );
+  // Links are entered in an in-app dialog that validates before inserting.
+  await page
+    .getByRole("button", { name: "Chèn liên kết", exact: true })
+    .click();
+  const linkDialog = appDialog(page);
+  await linkDialog.getByRole("textbox").fill("ftp://files.example.com");
+  await expect(
+    linkDialog.getByText("Liên kết không hợp lệ. Dùng http:// hoặc https://."),
+  ).toBeVisible();
+  await expect(
+    linkDialog.getByRole("button", { name: "Chèn", exact: true }),
+  ).toBeDisabled();
+  await page.screenshot({
+    path: test.info().outputPath("insert-link-invalid.png"),
+  });
+  await confirmAppDialog(page, { text: "https://example.org/bai-doc" });
+  await input.press("Tab");
+  await expect(input.locator(".assignment-chip-link")).toHaveText([
+    "example.com",
+    "example.org",
+  ]);
   await page.getByRole("button", { name: "Câu 2 · 2 điểm Tự luận" }).click();
   await expect(input).toHaveText("Viết câu trả lời");
   await page.setViewportSize({ width: 390, height: 844 });

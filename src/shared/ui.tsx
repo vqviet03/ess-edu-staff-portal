@@ -50,6 +50,7 @@ import {
   useAppDisplay,
 } from "@/features/help/display";
 import { confirmLeave } from "./unsaved";
+import { askConfirm } from "./dialogs";
 export function Feedback({
   loading,
   error,
@@ -369,7 +370,7 @@ export function Shell({ children }: { children: ReactNode }) {
   const store = useStore<RootState>();
   const [logout, logoutState] = useLogoutMutation();
   const signOut = async () => {
-    if (!confirmLeave()) return;
+    if (!(await confirmLeave())) return;
     const token = store.getState().auth.session?.accessToken;
     try {
       await logout().unwrap();
@@ -389,15 +390,24 @@ export function Shell({ children }: { children: ReactNode }) {
   const [reset, { isLoading }] = useResetDemoMutation();
   const resetDemo = async () => {
     if (
-      confirmLeave() &&
-      window.confirm("Khôi phục dữ liệu demo ban đầu và đăng xuất?")
+      (await confirmLeave()) &&
+      (await askConfirm({
+        title: "Khôi phục dữ liệu demo?",
+        message: "Khôi phục dữ liệu demo ban đầu và đăng xuất?",
+        confirmText: "Khôi phục",
+        danger: true,
+      }))
     ) {
       try {
         await reset().unwrap();
         dispatch(signedOut());
         router.replace("/login/");
       } catch (e) {
-        window.alert(errorMessage(e));
+        await askConfirm({
+          title: "Không khôi phục được",
+          message: errorMessage(e),
+          confirmText: "Đóng",
+        });
       }
     }
   };
@@ -450,10 +460,12 @@ export function Shell({ children }: { children: ReactNode }) {
           value={workspace.selected ?? ""}
           sx={{ width: 145 }}
           onChange={(e) => {
-            if (confirmLeave()) {
-              workspace.choose(e.target.value as "manager" | "teacher");
+            const next = e.target.value as "manager" | "teacher";
+            void confirmLeave().then((ok) => {
+              if (!ok) return;
+              workspace.choose(next);
               if (pathname.startsWith("/manage/")) router.push("/home/");
-            }
+            });
           }}
         >
           <MenuItem value="manager">Quản lý</MenuItem>
@@ -554,10 +566,11 @@ export function Shell({ children }: { children: ReactNode }) {
                 workspaces={workspace.allowed as ("manager" | "teacher")[]}
                 workspace={workspace.selected as "manager" | "teacher" | null}
                 onWorkspace={(value) => {
-                  if (confirmLeave()) {
+                  void confirmLeave().then((ok) => {
+                    if (!ok) return;
                     workspace.choose(value);
                     if (pathname.startsWith("/manage/")) router.push("/home/");
-                  }
+                  });
                 }}
                 onSignOut={() => void signOut()}
                 signingOut={logoutState.isLoading}

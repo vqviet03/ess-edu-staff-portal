@@ -1,4 +1,5 @@
 "use client";
+import { askConfirm } from "@/shared/dialogs";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import Alert from "@mui/material/Alert";
@@ -46,8 +47,9 @@ export function SessionEditor({
     },
   });
   useUnsaved(isDirty);
-  const cancel = () => {
-    if (!isDirty || window.confirm("Bỏ thay đổi phiên học?")) close();
+  const cancel = async () => {
+    if (!isDirty || (await askConfirm({ message: "Bỏ thay đổi phiên học?" })))
+      close();
   };
   return (
     <Dialog open onClose={cancel} fullWidth maxWidth="sm">

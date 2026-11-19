@@ -1,4 +1,5 @@
 "use client";
+import { askConfirm } from "@/shared/dialogs";
 import { useState } from "react";
 import Alert from "@mui/material/Alert";
 import Button from "@mui/material/Button";
@@ -48,10 +49,14 @@ export function StorageTransferDialog({
       0,
     ),
     destination = targets.find((s) => s.id === target);
-  const tryClose = () => {
+  const tryClose = async () => {
     if (
       !(target || reason) ||
-      window.confirm("Bạn có thao tác chuyển chưa gửi. Đóng và bỏ thay đổi?")
+      (await askConfirm({
+        message: "Bạn có thao tác chuyển chưa gửi. Đóng và bỏ thay đổi?",
+        confirmText: "Bỏ thay đổi",
+        danger: true,
+      }))
     )
       close();
   };
@@ -128,9 +133,10 @@ export function StorageTransferDialog({
           }
           onClick={async () => {
             if (
-              !window.confirm(
-                `Chuyển ${files.length} file sang ${destination?.name ?? target}?`,
-              )
+              !(await askConfirm({
+                message: `Chuyển ${files.length} file sang ${destination?.name ?? target}?`,
+                confirmText: "Chuyển",
+              }))
             )
               return;
             try {

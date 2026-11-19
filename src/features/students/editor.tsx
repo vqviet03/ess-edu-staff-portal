@@ -1,4 +1,5 @@
 "use client";
+import { askConfirm } from "@/shared/dialogs";
 import { publicId } from "@/shared/public-id";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -42,8 +43,12 @@ export function StudentEditor({
     },
   });
   useUnsaved(isDirty);
-  const cancel = () => {
-    if (!isDirty || window.confirm("Bỏ thay đổi thông tin học sinh?")) close();
+  const cancel = async () => {
+    if (
+      !isDirty ||
+      (await askConfirm({ message: "Bỏ thay đổi thông tin học sinh?" }))
+    )
+      close();
   };
   return (
     <Dialog open onClose={cancel} fullWidth maxWidth="sm">

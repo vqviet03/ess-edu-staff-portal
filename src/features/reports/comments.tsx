@@ -1,4 +1,5 @@
 "use client";
+import { askConfirm } from "@/shared/dialogs";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -65,7 +66,10 @@ export function CommentEditor({
   });
   useUnsaved(form.formState.isDirty);
   const close = () => {
-    if (!state.isLoading && confirmLeave()) onClose();
+    if (state.isLoading) return;
+    void confirmLeave().then((ok) => {
+      if (ok) onClose();
+    });
   };
   const submit = form.handleSubmit(async (fields) => {
     setFailure(undefined);
@@ -107,7 +111,9 @@ export function CommentEditor({
             <Button
               onClick={async () => {
                 if (
-                  window.confirm("Tải nhận xét mới nhất và bỏ bản đang sửa?")
+                  await askConfirm({
+                    message: "Tải nhận xét mới nhất và bỏ bản đang sửa?",
+                  })
                 ) {
                   try {
                     const latest = await onReload();

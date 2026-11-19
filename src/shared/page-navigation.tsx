@@ -51,7 +51,10 @@ export function usePageBack(fallback: string) {
     const previous = safeReturnTo(history.state?.[entryKey]);
     // UnsavedRuntime validates native popstate once, just like the browser Back button.
     if (previous) router.back();
-    else if (confirmLeave()) router.push(fallback);
+    else
+      void confirmLeave().then((ok) => {
+        if (ok) router.push(fallback);
+      });
   };
 }
 /** Small view state belongs in the URL, not in a second copy of local state. */
@@ -64,8 +67,8 @@ export function usePageTab<const T extends string>(
     router = useRouter();
   const candidate = params.get("tab");
   const tab = values.includes(candidate as T) ? (candidate as T) : fallback;
-  const setTab = (next: T) => {
-    if (next === tab || !confirmLeave()) return;
+  const setTab = async (next: T) => {
+    if (next === tab || !(await confirmLeave())) return;
     const search = new URLSearchParams(params.toString());
     search.set("tab", next);
     router.push(`${pathname}?${search}`, { scroll: false });
@@ -90,8 +93,8 @@ export function useSectionTab<const T extends string>(
         .at(-1)
     : undefined;
   const tab = values.includes(segment as T) ? (segment as T) : queryTab;
-  const setTab = (next: T) => {
-    if (next === tab || !confirmLeave()) return;
+  const setTab = async (next: T) => {
+    if (next === tab || !(await confirmLeave())) return;
     const search = new URLSearchParams(params.toString());
     search.delete("tab");
     const path =

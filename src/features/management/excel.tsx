@@ -1,4 +1,5 @@
 "use client";
+import { askConfirm } from "@/shared/dialogs";
 import { exportPrefix } from "@/features/settings/branding";
 import { useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
@@ -348,9 +349,10 @@ function InputGrid({ group }: { group: ProfileGroup }) {
             value={mode}
             disabled={p.isLoading}
             sx={{ mb: 2, width: "100%" }}
-            onChange={(e) => {
-              if (!confirmLeave()) return;
-              setMode(e.target.value as GridMode);
+            onChange={async (e) => {
+              const next = e.target.value as GridMode;
+              if (!(await confirmLeave())) return;
+              setMode(next);
               setData(null);
               setMessage("");
             }}
@@ -421,12 +423,14 @@ function InputGrid({ group }: { group: ProfileGroup }) {
                               color="error"
                               aria-label={`Xóa dòng ${i + 1}`}
                               disabled={p.isLoading}
-                              onClick={() => {
+                              onClick={async () => {
                                 if (
                                   nonemptyRow(row) &&
-                                  !window.confirm(
-                                    `Xóa dữ liệu chưa lưu ở dòng ${i + 1}?`,
-                                  )
+                                  !(await askConfirm({
+                                    message: `Xóa dữ liệu chưa lưu ở dòng ${i + 1}?`,
+                                    confirmText: "Xóa dòng",
+                                    danger: true,
+                                  }))
                                 )
                                   return;
                                 setRowKeys((old) =>

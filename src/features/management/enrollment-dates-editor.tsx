@@ -164,7 +164,9 @@ function DatesForm({
         <Button
           disabled={state.isLoading}
           onClick={() => {
-            if (confirmLeave()) reload();
+            void confirmLeave().then((ok) => {
+              if (ok) reload();
+            });
           }}
         >
           Tải lại lịch sử
@@ -172,7 +174,9 @@ function DatesForm({
         <Button
           disabled={state.isLoading}
           onClick={() => {
-            if (confirmLeave()) close();
+            void confirmLeave().then((ok) => {
+              if (ok) close();
+            });
           }}
         >
           Hủy
@@ -197,7 +201,9 @@ export function EnrollmentDatesEditor({
       fullWidth
       maxWidth="md"
       onClose={() => {
-        if (confirmLeave()) close();
+        void confirmLeave().then((ok) => {
+          if (ok) close();
+        });
       }}
     >
       <DialogTitle>Sửa ngày nhập học / nghỉ học</DialogTitle>

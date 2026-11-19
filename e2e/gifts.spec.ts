@@ -1,5 +1,10 @@
 import { test, expect } from "@playwright/test";
 import { installHttpFixture } from "./support/http-fixture";
+import {
+  appDialog,
+  cancelAppDialog,
+  confirmAppDialog,
+} from "./support/app-dialog";
 const catalog = {
   id: "catalog-test",
   name: "Quà động viên",
@@ -38,6 +43,7 @@ for (const viewport of [
     await page.setViewportSize(viewport);
     await installHttpFixture(page);
     const writes: unknown[] = [];
+    const unlinks: string[] = [];
     await page.route(/\/v1\/reward-gifts(?:\/|\?|$)/, async (route) => {
       const request = route.request(),
         path = new URL(request.url()).pathname.split("/reward-gifts")[1];
@@ -65,7 +71,10 @@ for (const viewport of [
           : [];
       } else if (path === "")
         data = { items: [gift], total: 1, page: 1, pageSize: 20 };
-      else if (path === `/catalogs/${catalog.id}`) data = catalog;
+      else if (path === `/catalogs/${catalog.id}/classes/class-green`) {
+        unlinks.push(request.method());
+        data = { ...catalog, classIds: [] };
+      } else if (path === `/catalogs/${catalog.id}`) data = catalog;
       else if (path === "/catalogs")
         data = { items: [catalog], total: 1, page: 1, pageSize: 20 };
       return route.fulfill({ headers, json: { data } });
@@ -92,6 +101,25 @@ for (const viewport of [
     await expect.poll(() => writes.length).toBe(1);
     await expect(check).toBeChecked();
     expect(writes[0]).toEqual([{ classId: "class-green", visible: true }]);
+    // Unlinking erases the class's per-gift visibility, so it must be confirmed.
+    await page
+      .getByRole("button", { name: "Ngắt liên kết", exact: true })
+      .click();
+    await expect(
+      appDialog(page).getByText(
+        /Cấu hình ẩn\/hiện từng món quà của lớp này cũng bị xóa/,
+      ),
+    ).toBeVisible();
+    await page.screenshot({
+      path: info.outputPath(`gift-unlink-confirm-${viewport.width}.png`),
+    });
+    await cancelAppDialog(page);
+    expect(unlinks).toEqual([]);
+    await page
+      .getByRole("button", { name: "Ngắt liên kết", exact: true })
+      .click();
+    await confirmAppDialog(page, { message: /Ngắt liên kết EES20-A1/ });
+    await expect.poll(() => unlinks).toEqual(["DELETE"]);
     expect(
       await page.evaluate(
         () => document.documentElement.scrollWidth <= innerWidth,

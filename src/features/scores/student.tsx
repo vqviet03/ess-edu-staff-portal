@@ -1,4 +1,5 @@
 "use client";
+import { askConfirm } from "@/shared/dialogs";
 import { publicId } from "@/shared/public-id";
 import { ReadOnlyNotice } from "@/features/access/hooks";
 import { Controller, useForm, useWatch } from "react-hook-form";
@@ -90,15 +91,18 @@ function StudentForm({
         label="Học sinh"
         value={student.id}
         disabled={state.isLoading}
-        onChange={(e) => {
+        onChange={async (e) => {
+          const studentId = e.target.value;
           if (
             !isDirty ||
-            window.confirm("Bỏ thay đổi chưa lưu để chọn học sinh khác?")
+            (await askConfirm({
+              message: "Bỏ thay đổi chưa lưu để chọn học sinh khác?",
+            }))
           )
             router.push(
               route("/student-score/", {
                 ...context,
-                studentId: e.target.value,
+                studentId,
               }),
             );
         }}
@@ -116,8 +120,12 @@ function StudentForm({
           {errorMessage(state.error)}
           {
             <Button
-              onClick={() => {
-                if (window.confirm("Bỏ thay đổi và tải lại điểm mới nhất?"))
+              onClick={async () => {
+                if (
+                  await askConfirm({
+                    message: "Bỏ thay đổi và tải lại điểm mới nhất?",
+                  })
+                )
                   location.reload();
               }}
             >
@@ -140,16 +148,17 @@ function StudentForm({
             disabled={locked}
             error={!!errors.attendance}
             helperText={errors.attendance?.message}
-            onChange={(e) => {
+            onChange={async (e) => {
               const attendance = e.target.value as StudentResult["attendance"];
               if (
                 attendance !== "PRESENT" &&
                 getValues("skillResults").some((s) => s.score !== null)
               ) {
                 if (
-                  !window.confirm(
-                    "Chuyển sang vắng/chưa xác định sẽ xóa điểm. Tiếp tục?",
-                  )
+                  !(await askConfirm({
+                    message:
+                      "Chuyển sang vắng/chưa xác định sẽ xóa điểm. Tiếp tục?",
+                  }))
                 )
                   return;
                 getValues("skillResults").forEach((_, i) =>

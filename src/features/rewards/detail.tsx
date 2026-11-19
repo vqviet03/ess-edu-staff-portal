@@ -364,7 +364,9 @@ export function StudentRewards({
           <Tabs
             value={valid}
             onChange={(_, id: string) => {
-              if (confirmLeave()) setSelected(id);
+              void confirmLeave().then((ok) => {
+                if (ok) setSelected(id);
+              });
             }}
             variant="scrollable"
             aria-label="Lớp tích luỹ điểm"

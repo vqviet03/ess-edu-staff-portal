@@ -1,4 +1,5 @@
 "use client";
+import { askConfirm, askText } from "@/shared/dialogs";
 import { useState } from "react";
 import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
@@ -187,10 +188,16 @@ export function StorageManagerPage() {
                     s.usedBytes + s.reservedBytes > 0
                   }
                   onClick={async () => {
-                    const reason = window.prompt(
-                      `Ngừng sử dụng ${s.name ?? s.id}. Giữ lịch sử; không xóa bucket Neon. Nhập lý do:`,
-                    );
-                    if (!reason?.trim()) return;
+                    const reason = await askText({
+                      title: `Ngừng sử dụng ${s.name ?? s.id}?`,
+                      message: "Giữ lịch sử; không xóa bucket Neon.",
+                      label: "Lý do ngừng",
+                      requiredText: "Cần nhập lý do để ngừng ổ.",
+                      confirmText: "Ngừng sử dụng",
+                      danger: true,
+                      maxLength: 500,
+                    });
+                    if (!reason) return;
                     try {
                       await remove({
                         id: s.id,
@@ -259,11 +266,19 @@ export function StorageManagerPage() {
                   <Button
                     color="warning"
                     disabled={cancelState.isLoading}
-                    onClick={() => {
-                      const reason = window.prompt(
-                        "Hủy chuyển, dọn bản đích dở dang và giữ file nguồn. Nhập lý do:",
-                      );
-                      if (reason?.trim())
+                    onClick={async () => {
+                      const reason = await askText({
+                        title: "Hủy lượt chuyển?",
+                        message:
+                          "Dọn bản đích dở dang và giữ nguyên file nguồn.",
+                        label: "Lý do hủy",
+                        requiredText: "Cần nhập lý do để hủy lượt chuyển.",
+                        confirmText: "Hủy chuyển",
+                        cancelText: "Đóng",
+                        danger: true,
+                        maxLength: 500,
+                      });
+                      if (reason)
                         void cancel({ id: j.id, version: j.version, reason });
                     }}
                   >
@@ -338,10 +353,14 @@ function StorageEditor({
       setDirty(true);
       setTested(false);
     };
-  const tryClose = () => {
+  const tryClose = async () => {
     if (
       !dirty ||
-      window.confirm("Bạn có cấu hình chưa lưu. Đóng và bỏ thay đổi?")
+      (await askConfirm({
+        message: "Bạn có cấu hình chưa lưu. Đóng và bỏ thay đổi?",
+        confirmText: "Bỏ thay đổi",
+        danger: true,
+      }))
     )
       close();
   };

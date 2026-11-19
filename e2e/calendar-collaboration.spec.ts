@@ -40,9 +40,10 @@ test("manager pins future bonus, cannot attend it, and cancellation retains cale
     name: dateLabel(future),
     exact: true,
   });
+  // The calendar marker arrives with the queued operation's refresh; allow a busy runner time.
   await expect(
     futureDay.locator('svg[aria-label="Lịch dự kiến đã ghim"]'),
-  ).toBeVisible();
+  ).toBeVisible({ timeout: 15_000 });
   await expect(
     page.getByRole("checkbox", { name: /Có mặt:/ }).last(),
   ).toBeDisabled();

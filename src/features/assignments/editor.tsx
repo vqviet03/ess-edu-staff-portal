@@ -1,4 +1,5 @@
 "use client";
+import { askText } from "@/shared/dialogs";
 import { PageHeader } from "@/shared/ui";
 import { RichInput, type RichInputHandle } from "./rich-input";
 import { useRef, useState } from "react";
@@ -987,11 +988,20 @@ export function AssignmentEditor({
                       <Tooltip title="Chèn liên kết">
                         <IconButton
                           aria-label="Chèn liên kết"
-                          onClick={() => {
-                            const url = window.prompt("Liên kết http/https:");
-                            if (url && validLink(url)) insert(url);
-                            else if (url)
-                              setError(new Error("Liên kết không hợp lệ."));
+                          onClick={async () => {
+                            const url = await askText({
+                              title: "Chèn liên kết",
+                              label: "Liên kết http/https",
+                              requiredText:
+                                "Nhập liên kết bắt đầu bằng http:// hoặc https://.",
+                              validate: (value) =>
+                                validLink(value)
+                                  ? undefined
+                                  : "Liên kết không hợp lệ. Dùng http:// hoặc https://.",
+                              confirmText: "Chèn",
+                              maxLength: 2000,
+                            });
+                            if (url) insert(url);
                           }}
                         >
                           <AssignmentIcon name="link" />
@@ -1349,6 +1359,7 @@ export function AssignmentEditor({
           <DialogTitle>
             Chọn tài liệu
             <IconButton
+              aria-label="Đóng chọn tài liệu"
               sx={{ float: "right" }}
               onClick={() => {
                 inlineInsertion.current = null;

@@ -1,4 +1,5 @@
 "use client";
+import { askConfirm } from "@/shared/dialogs";
 import { useState } from "react";
 import Alert from "@mui/material/Alert";
 import Button from "@mui/material/Button";
@@ -53,9 +54,10 @@ function RetentionForm({
           if (
             mode === "HARD" &&
             initial.deleteMode !== "HARD" &&
-            !window.confirm(
-              "Thông báo bị dọn sau này sẽ bị xóa thật khỏi DB. Áp dụng?",
-            )
+            !(await askConfirm({
+              message:
+                "Thông báo bị dọn sau này sẽ bị xóa thật khỏi DB. Áp dụng?",
+            }))
           )
             return;
           try {
