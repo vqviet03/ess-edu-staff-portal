@@ -21,9 +21,9 @@ Không có timer, polling hay request mới; hộp thoại chỉ tồn tại khi
 
 ## Ảnh
 
-| | |
-|---|---|
+|                                                                             |                                                                                   |
+| --------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
 | ![Ngắt liên kết quà](in-app-dialogs-review/01-gift-unlink-confirm-1440.png) | ![Ngắt liên kết quà mobile](in-app-dialogs-review/02-gift-unlink-confirm-390.png) |
-| ![Lý do xóa bài](in-app-dialogs-review/03-delete-post-reason.png) | ![Ngừng thư mục](in-app-dialogs-review/04-folder-stop-reason.png) |
-| ![Danh sách tải](in-app-dialogs-review/05-download-list.png) | ![Đã tải](in-app-dialogs-review/06-download-list-done.png) |
-| ![Chèn liên kết](in-app-dialogs-review/07-insert-link-invalid.png) | ![Rời trang chưa lưu](in-app-dialogs-review/08-unsaved-leave-mobile-dark.png) |
+| ![Lý do xóa bài](in-app-dialogs-review/03-delete-post-reason.png)           | ![Ngừng thư mục](in-app-dialogs-review/04-folder-stop-reason.png)                 |
+| ![Danh sách tải](in-app-dialogs-review/05-download-list.png)                | ![Đã tải](in-app-dialogs-review/06-download-list-done.png)                        |
+| ![Chèn liên kết](in-app-dialogs-review/07-insert-link-invalid.png)          | ![Rời trang chưa lưu](in-app-dialogs-review/08-unsaved-leave-mobile-dark.png)     |
