@@ -28,7 +28,9 @@ import {
   useAssignmentQuery,
   useGradeAssignmentMutation,
   usePublishAssignmentGradeMutation,
+  usePublishAssignmentGradesMutation,
 } from "@/api/assignment-api";
+import { askConfirm } from "@/shared/dialogs";
 import { Feedback } from "@/shared/ui";
 import { useUnsaved } from "@/shared/unsaved";
 import { errorMessage } from "@/api/base-query";
@@ -36,6 +38,7 @@ import { ReopenSubmissionButton } from "./acceptance";
 import { AssignmentPlayer } from "./player";
 import { SharedStimulus } from "./group-view";
 import { AssignmentMedia, RichContent } from "./media";
+import { AttachmentsDisclosure } from "./attachments-disclosure";
 import {
   numberLabel,
   blockMedia,
@@ -43,14 +46,87 @@ import {
   type Assignment,
   type Submission,
 } from "./models";
+/** Publishes one graded result straight from the list, without opening the grading page. */
+function PublishRowButton({
+  assignment,
+  submission,
+  onDone,
+}: {
+  assignment: Assignment;
+  submission: Submission;
+  onDone: (message: string, error?: unknown) => void;
+}) {
+  const [publish, state] = usePublishAssignmentGradeMutation();
+  if (!assignment.canEdit || submission.status !== "GRADED") return null;
+  return (
+    <Button
+      size="small"
+      variant="outlined"
+      loading={state.isLoading}
+      aria-label={`Công bố kết quả của ${submission.studentName}`}
+      onClick={async () => {
+        try {
+          await publish({
+            id: assignment.id,
+            submissionId: submission.id,
+            version: submission.version,
+          }).unwrap();
+          onDone(`Đã công bố kết quả của ${submission.studentName}.`);
+        } catch (e) {
+          onDone("", e);
+        }
+      }}
+    >
+      Công bố
+    </Button>
+  );
+}
 export function SubmissionList({ assignment }: { assignment: Assignment }) {
   const mobile = useMediaQuery(useTheme().breakpoints.down("md"));
   const [cursor, setCursor] = useState<string>(),
     [status, setStatus] = useState("ALL"),
+    [message, setMessage] = useState(""),
+    [failure, setFailure] = useState<unknown>(),
+    [publishAll, publishingAll] = usePublishAssignmentGradesMutation(),
     q = useAssignmentSubmissionsQuery({ id: assignment.id, cursor });
   const rows = q.currentData?.items ?? [],
     filtered = rows.filter((s) => status === "ALL" || s.status === status);
   const summary = q.currentData?.summary;
+  const rowDone = (text: string, error?: unknown) => {
+    setFailure(error);
+    setMessage(text);
+  };
+  const releaseAll = async () => {
+    setFailure(undefined);
+    setMessage("");
+    if (
+      !(await askConfirm({
+        title: "Công bố tất cả bài đã chấm?",
+        message:
+          "Học sinh có bài đã chấm đủ điểm sẽ thấy kết quả và nhận thông báo. Bài còn chờ chấm được giữ lại; bài đã công bố không đổi.",
+        confirmText: "Công bố tất cả",
+      }))
+    )
+      return;
+    try {
+      const r = await publishAll({ id: assignment.id }).unwrap();
+      setMessage(
+        [
+          r.published
+            ? `Đã công bố ${r.published} bài.`
+            : "Không có bài đã chấm nào chờ công bố.",
+          r.awaitingGrading ? `${r.awaitingGrading} bài còn chờ chấm.` : "",
+          r.remaining
+            ? "Còn bài chưa xử lý trong lượt này; bấm Công bố tất cả lần nữa."
+            : "",
+        ]
+          .filter(Boolean)
+          .join(" "),
+      );
+    } catch (e) {
+      setFailure(e);
+    }
+  };
   return (
     <Stack spacing={1.5}>
       <Feedback
@@ -58,6 +134,14 @@ export function SubmissionList({ assignment }: { assignment: Assignment }) {
         error={q.error}
         retry={() => void q.refetch()}
       />
+      {failure != null && (
+        <Alert severity="error">{errorMessage(failure)}</Alert>
+      )}
+      {message && (
+        <Alert severity="success" onClose={() => setMessage("")}>
+          {message}
+        </Alert>
+      )}
       <Box
         component="section"
         aria-label="Tổng hợp bài nộp"
@@ -102,21 +186,37 @@ export function SubmissionList({ assignment }: { assignment: Assignment }) {
           </Paper>
         ))}
       </Box>
-      <TextField
-        select
-        label="Trạng thái bài nộp (trang hiện tại)"
-        size="small"
-        sx={{ width: "100%", maxWidth: 360 }}
-        value={status}
-        onChange={(e) => setStatus(e.target.value)}
+      <Stack
+        direction={{ xs: "column", sm: "row" }}
+        sx={{ gap: 1, alignItems: { sm: "center" } }}
       >
-        <MenuItem value="ALL">Tất cả trạng thái</MenuItem>
-        {[...new Set(rows.map((s) => s.status))].map((s) => (
-          <MenuItem key={s} value={s}>
-            {statusLabels[s] ?? s}
-          </MenuItem>
-        ))}
-      </TextField>
+        <TextField
+          select
+          label="Trạng thái bài nộp (trang hiện tại)"
+          size="small"
+          sx={{ width: "100%", maxWidth: 360 }}
+          value={status}
+          onChange={(e) => setStatus(e.target.value)}
+        >
+          <MenuItem value="ALL">Tất cả trạng thái</MenuItem>
+          {[...new Set(rows.map((s) => s.status))].map((s) => (
+            <MenuItem key={s} value={s}>
+              {statusLabels[s] ?? s}
+            </MenuItem>
+          ))}
+        </TextField>
+        {assignment.canEdit && (
+          <Button
+            variant="contained"
+            sx={{ ml: { sm: "auto" }, whiteSpace: "nowrap" }}
+            loading={publishingAll.isLoading}
+            disabled={!summary?.graded}
+            onClick={() => void releaseAll()}
+          >
+            Công bố tất cả bài đã chấm
+          </Button>
+        )}
+      </Stack>
       {rows.length === 0 ? (
         <Alert severity="info">Chưa có học sinh nộp bài.</Alert>
       ) : (
@@ -185,6 +285,11 @@ export function SubmissionList({ assignment }: { assignment: Assignment }) {
                       </Typography>
                     </Box>
                   </ButtonBase>
+                  <PublishRowButton
+                    assignment={assignment}
+                    submission={s}
+                    onDone={rowDone}
+                  />
                   <ReopenSubmissionButton
                     assignment={assignment}
                     submission={s}
@@ -277,6 +382,11 @@ export function SubmissionList({ assignment }: { assignment: Assignment }) {
                           direction="row"
                           sx={{ alignItems: "center", gap: 0.5 }}
                         >
+                          <PublishRowButton
+                            assignment={assignment}
+                            submission={s}
+                            onDone={rowDone}
+                          />
                           <ReopenSubmissionButton
                             assignment={assignment}
                             submission={s}
@@ -309,6 +419,47 @@ export function SubmissionList({ assignment }: { assignment: Assignment }) {
         </Stack>
       )}
     </Stack>
+  );
+}
+/** One labelled line of options: what the student picked, or the right answer when it was wrong. */
+function ChosenOptions({
+  label,
+  options,
+  correct,
+}: {
+  label: string;
+  options: Assignment["questions"][number]["options"];
+  correct: boolean;
+}) {
+  return (
+    <Box
+      sx={{
+        borderLeft: 3,
+        borderColor: correct ? "var(--a-green)" : "error.main",
+        pl: 1.25,
+        minWidth: 0,
+      }}
+    >
+      <Typography
+        variant="caption"
+        sx={{
+          fontWeight: 700,
+          color: correct ? "var(--a-green)" : "error.main",
+        }}
+      >
+        {label}
+      </Typography>
+      {options.length ? (
+        options.map((option) => (
+          <Box key={option.id}>
+            <RichContent value={option.content} />
+            <AssignmentMedia media={option.media} />
+          </Box>
+        ))
+      ) : (
+        <Typography color="text.secondary">Không chọn đáp án</Typography>
+      )}
+    </Box>
   );
 }
 export function SubmissionGrading({
@@ -483,21 +634,34 @@ function GradeForm({
                 >
                   {group && firstInSection && (
                     <Box sx={{ gridColumn: "1 / -1" }}>
-                      <SharedStimulus group={group} />
+                      <SharedStimulus group={group} collapseMedia />
                     </Box>
                   )}
-                  <Typography>Câu {index + 1}</Typography>
-                  <Box>
-                    {answer?.optionIds.map((id) => {
-                      const option = q.options.find((o) => o.id === id);
-                      return option ? (
-                        <Box key={id}>
-                          <RichContent value={option.content} />
-                          <AssignmentMedia media={option.media} />
-                        </Box>
-                      ) : null;
-                    })}
-                  </Box>
+                  <Typography sx={{ fontWeight: 700 }}>
+                    Câu {index + 1}
+                  </Typography>
+                  <Stack spacing={1} sx={{ minWidth: 0 }}>
+                    <Typography component="div" sx={{ fontWeight: 600 }}>
+                      <RichContent value={q.content} media={q.media} />
+                    </Typography>
+                    <AttachmentsDisclosure
+                      media={blockMedia(q.content, q.media)}
+                    />
+                    <ChosenOptions
+                      label="Học sinh chọn"
+                      options={(answer?.optionIds ?? []).flatMap(
+                        (id) => q.options.find((o) => o.id === id) ?? [],
+                      )}
+                      correct={grade.score === q.maxScore}
+                    />
+                    {grade.score !== q.maxScore && (
+                      <ChosenOptions
+                        label="Đáp án đúng"
+                        options={q.options.filter((o) => o.isCorrect)}
+                        correct
+                      />
+                    )}
+                  </Stack>
                   <Typography
                     sx={{
                       gridColumn: { xs: "2", sm: "auto" },
@@ -534,7 +698,9 @@ function GradeForm({
                     ) &&
                   assignment.groups
                     ?.filter((g) => g.id === q.groupId)
-                    .map((g) => <SharedStimulus key={g.id} group={g} />)}
+                    .map((g) => (
+                      <SharedStimulus key={g.id} group={g} collapseMedia />
+                    ))}
                 <Typography sx={{ fontWeight: 700 }}>
                   Câu {index + 1} ·{" "}
                   {q.type === "TEXT"
@@ -547,7 +713,7 @@ function GradeForm({
                 <Typography variant="body2" color="text.secondary">
                   <RichContent value={q.content} media={q.media} />
                 </Typography>
-                <AssignmentMedia media={blockMedia(q.content, q.media)} />
+                <AttachmentsDisclosure media={blockMedia(q.content, q.media)} />
                 <Box>
                   <Typography
                     sx={{ whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}

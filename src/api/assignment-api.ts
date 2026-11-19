@@ -299,6 +299,22 @@ export const assignmentApi = api
             ? []
             : [{ type: "AssignmentSubmissions", id: q.id }, "AssignmentReport"],
       }),
+      publishAssignmentGrades: b.mutation<
+        { published: number; awaitingGrading: number; remaining: boolean },
+        { id: string; submissionIds?: string[] }
+      >({
+        query: ({ id, ...body }) =>
+          write(`/assignments/${id}/submissions/publish`, body),
+        transformResponse: unwrap<{
+          published: number;
+          awaitingGrading: number;
+          remaining: boolean;
+        }>,
+        invalidatesTags: (r, e) =>
+          e || !r?.published
+            ? []
+            : ["AssignmentSubmissions", "AssignmentReport"],
+      }),
       publishAssignmentGrade: b.mutation<
         Submission,
         { id: string; submissionId: string; version: number }
@@ -458,6 +474,7 @@ export const {
   useReopenSubmissionMutation,
   useGradeAssignmentMutation,
   usePublishAssignmentGradeMutation,
+  usePublishAssignmentGradesMutation,
   useAssignmentReportQuery,
   useClassAssignmentReportQuery,
   useStartAssignmentRecordingMutation,
