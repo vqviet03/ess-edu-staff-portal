@@ -37,7 +37,6 @@ import DialogContent from "@mui/material/DialogContent";
 import DialogActions from "@mui/material/DialogActions";
 import Alert from "@mui/material/Alert";
 import {
-  useLazyContentQuery,
   useLazyFolderPathQuery,
   useFoldersQuery,
   useFilesQuery,
@@ -47,7 +46,9 @@ import {
   useSaveFolderMutation,
   useRemoveFolderMutation,
   useAuditFileQuery,
+  libraryApi,
 } from "@/api/library-api";
+import { useAppDispatch } from "@/store";
 import { useWorkspace } from "@/features/access/hooks";
 import { Feedback } from "@/shared/ui";
 import { MaterialViewer } from "./viewer";
@@ -443,6 +444,9 @@ export function startDownload(url: string, file: MaterialFile) {
   link.click();
 }
 
+/** Parallel requests for "download all"; enough to be quick without flooding the API or memory. */
+export const DOWNLOAD_ALL_CONCURRENCY = 6;
+
 function DownloadListDialog({
   files,
   fetchUrl,
@@ -453,15 +457,46 @@ function DownloadListDialog({
   onClose: () => void;
 }) {
   const [done, setDone] = useState<Record<string, boolean>>({}),
-    [busy, setBusy] = useState<string>(),
+    [failed, setFailed] = useState<Record<string, boolean>>({}),
+    [busy, setBusy] = useState<Record<string, boolean>>({}),
     [error, setError] = useState<unknown>();
+  const working = Object.values(busy).some(Boolean);
+  const fetchOne = async (f: MaterialFile) => {
+    setBusy((b) => ({ ...b, [f.id]: true }));
+    setFailed((x) => ({ ...x, [f.id]: false }));
+    try {
+      startDownload(await fetchUrl(f), f);
+      setDone((d) => ({ ...d, [f.id]: true }));
+      return true;
+    } catch (e) {
+      setFailed((x) => ({ ...x, [f.id]: true }));
+      setError(e);
+      return false;
+    } finally {
+      setBusy((b) => ({ ...b, [f.id]: false }));
+    }
+  };
+  const downloadAll = async () => {
+    setError(undefined);
+    const queue = files.filter((f) => !done[f.id]);
+    // A few workers pull from one queue so the whole list downloads in parallel, then ends.
+    await Promise.all(
+      Array.from(
+        { length: Math.min(DOWNLOAD_ALL_CONCURRENCY, queue.length) },
+        async () => {
+          for (let f = queue.shift(); f; f = queue.shift()) await fetchOne(f);
+        },
+      ),
+    );
+  };
+  const remaining = files.filter((f) => !done[f.id]).length;
   return (
-    <Dialog open onClose={onClose} fullWidth maxWidth="sm">
+    <Dialog open onClose={() => !working && onClose()} fullWidth maxWidth="sm">
       <DialogTitle>Tải {files.length} file đã chọn</DialogTitle>
       <DialogContent>
         <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
-          Trình duyệt chỉ cho phép một lượt tải mỗi lần bấm. Bấm Tải ở từng
-          file; file đã tải được đánh dấu.
+          Bấm Tải toàn bộ để tải tất cả cùng lúc; lần đầu trình duyệt có thể hỏi
+          cho phép tải nhiều file. Hoặc bấm Tải ở từng file.
         </Typography>
         <Feedback error={error} />
         <Stack
@@ -484,33 +519,42 @@ function DownloadListDialog({
               {done[f.id] && (
                 <Chip size="small" color="success" label="Đã tải" />
               )}
+              {failed[f.id] && !busy[f.id] && (
+                <Chip size="small" color="error" label="Lỗi" />
+              )}
               <Button
                 size="small"
                 variant={done[f.id] ? "text" : "outlined"}
-                loading={busy === f.id}
-                disabled={!!busy && busy !== f.id}
+                loading={!!busy[f.id]}
+                disabled={!!busy[f.id]}
                 aria-label={`Tải ${f.displayName}`}
-                onClick={async () => {
+                onClick={() => {
                   setError(undefined);
-                  setBusy(f.id);
-                  try {
-                    startDownload(await fetchUrl(f), f);
-                    setDone((d) => ({ ...d, [f.id]: true }));
-                  } catch (e) {
-                    setError(e);
-                  } finally {
-                    setBusy(undefined);
-                  }
+                  void fetchOne(f);
                 }}
               >
-                Tải
+                {failed[f.id] ? "Thử lại" : "Tải"}
               </Button>
             </Stack>
           ))}
         </Stack>
       </DialogContent>
       <DialogActions>
-        <Button onClick={onClose}>Đóng</Button>
+        <Button onClick={onClose} disabled={working}>
+          Đóng
+        </Button>
+        <Button
+          variant="contained"
+          loading={working}
+          disabled={!remaining}
+          onClick={() => void downloadAll()}
+        >
+          {!remaining
+            ? "Đã tải toàn bộ"
+            : remaining === files.length
+              ? `Tải toàn bộ (${files.length})`
+              : `Tải ${remaining} file còn lại`}
+        </Button>
       </DialogActions>
     </Dialog>
   );
@@ -661,7 +705,8 @@ export function MaterialBrowser({
     ),
     [saveFolder, folderState] = useSaveFolderMutation(),
     [removeFolder] = useRemoveFolderMutation(),
-    [download, downloadState] = useLazyContentQuery(),
+    [savingFile, setSavingFile] = useState(false),
+    dispatch = useAppDispatch(),
     [loadPath] = useLazyFolderPathQuery(),
     navigationId = useRef(0),
     [renameFile, renameState] = useRenameFileMutation(),
@@ -709,10 +754,29 @@ export function MaterialBrowser({
     showInfo = useCallback((file: MaterialFile) => setInformation(file), []),
     showPreview = useCallback((file: MaterialFile) => setPreview(file), []);
   const [downloadList, setDownloadList] = useState<MaterialFile[]>();
-  const downloadUrl = (f: MaterialFile) =>
-    download({ id: f.id, purpose: "download" }, false).unwrap();
-  const saveFile = async (f: MaterialFile) =>
-    startDownload(await downloadUrl(f), f);
+  // Each file holds its own cache entry (a blob URL) until the browser has read it; a shared
+  // lazy query would revoke one file's blob as soon as the next request started.
+  const downloadUrl = async (f: MaterialFile) => {
+    const request = dispatch(
+      libraryApi.endpoints.content.initiate(
+        { id: f.id, purpose: "download" },
+        { forceRefetch: true },
+      ),
+    );
+    try {
+      return await request.unwrap();
+    } finally {
+      setTimeout(() => request.unsubscribe(), 60_000);
+    }
+  };
+  const saveFile = async (f: MaterialFile) => {
+    setSavingFile(true);
+    try {
+      startDownload(await downloadUrl(f), f);
+    } finally {
+      setSavingFile(false);
+    }
+  };
   const action = async (fn: () => Promise<unknown>, success: string) => {
     setError(undefined);
     try {
@@ -971,7 +1035,7 @@ export function MaterialBrowser({
                 : ""}
             </Typography>
             <Button
-              disabled={!chosen.length || downloadState.isFetching}
+              disabled={!chosen.length || savingFile}
               onClick={() => {
                 // Browsers block several downloads started by one click, so more than one
                 // file opens a list where each file is fetched by its own click.

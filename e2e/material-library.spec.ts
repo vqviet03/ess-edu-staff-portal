@@ -1294,7 +1294,7 @@ for (const screen of [
   });
 }
 
-test("several selected files download one per click from a list", async ({
+test("several selected files open a list that downloads all at once or one by one", async ({
   page,
 }, info) => {
   await fixture(page);
@@ -1324,19 +1324,31 @@ test("several selected files download one per click from a list", async ({
   await page
     .getByRole("button", { name: "Tải các file đã chọn", exact: true })
     .click();
-  // Nothing starts until each file is clicked: one browser download per gesture.
+  // Opening the list requests nothing yet.
   const list = page.getByRole("dialog", { name: "Tải 2 file đã chọn" });
   await expect(list).toBeVisible();
   expect(fetched).toEqual([]);
   await page.screenshot({ path: info.outputPath("download-list.png") });
-  for (const name of ["Bài học a.pdf", "Bài học b.pdf"]) {
-    const download = page.waitForEvent("download");
-    await list.getByRole("button", { name: `Tải ${name}` }).click();
-    expect((await download).suggestedFilename()).toBe(name);
-  }
+  // "Download all" requests every file in parallel and starts each download.
+  const names: string[] = [];
+  page.on("download", (d) => names.push(d.suggestedFilename()));
+  await list
+    .getByRole("button", { name: "Tải toàn bộ (2)", exact: true })
+    .click();
+  await expect
+    .poll(() => names.sort())
+    .toEqual(["Bài học a.pdf", "Bài học b.pdf"]);
   await expect(list.getByText("Đã tải", { exact: true })).toHaveCount(2);
   expect(fetched.sort()).toEqual(["a", "b"]);
+  await expect(
+    list.getByRole("button", { name: "Đã tải toàn bộ", exact: true }),
+  ).toBeDisabled();
   await page.screenshot({ path: info.outputPath("download-list-done.png") });
+  // A single file can still be fetched again on its own.
+  const again = page.waitForEvent("download");
+  await list.getByRole("button", { name: "Tải Bài học a.pdf" }).click();
+  expect((await again).suggestedFilename()).toBe("Bài học a.pdf");
+  expect(fetched.filter((x) => x === "a")).toHaveLength(2);
   await list.getByRole("button", { name: "Đóng", exact: true }).click();
   await expect(list).toHaveCount(0);
 });

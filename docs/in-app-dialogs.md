@@ -10,7 +10,7 @@ Staff Portal dùng `window.confirm`/`window.prompt` ở khoảng 40 chỗ. Hộp
 - Ô lý do bắt buộc: nút xác nhận bị khóa và có dòng giải thích khi còn trống; Enter để gửi. Có giới hạn độ dài và kiểm tra riêng (ví dụ liên kết chỉ nhận http/https).
 - Cảnh báo rời trang khi chưa lưu (`confirmLeave`) dùng cùng hộp thoại cho link, nút quay lại, đổi tab, đổi không gian và nút Back của trình duyệt. Đóng/tải lại trang vẫn dùng cảnh báo `beforeunload` của trình duyệt (bắt buộc theo chuẩn web).
 - **Ngắt liên kết lớp khỏi danh mục quà** giờ hỏi xác nhận và nói rõ cấu hình ẩn/hiện từng quà của lớp sẽ bị xóa.
-- **Tải nhiều file đã chọn**: trình duyệt chặn nhiều lượt tải từ một lần bấm, nên chọn từ 2 file sẽ mở danh sách; mỗi file tải bằng một lần bấm và được đánh dấu "Đã tải". Một file vẫn tải ngay.
+- **Tải nhiều file đã chọn**: chọn từ 2 file sẽ mở danh sách. "Tải toàn bộ" gọi API tải song song (tối đa 6 file cùng lúc, hết hàng đợi thì dừng) và bắt đầu tải từng file ngay khi nhận được; lần đầu trình duyệt có thể hỏi cho phép tải nhiều file. Vẫn có nút Tải/Thử lại cho từng file, file đã tải được đánh dấu. Một file vẫn tải ngay. Mỗi file giữ blob riêng đến khi trình duyệt đọc xong rồi mới giải phóng.
 - Nút đóng hộp "Chọn tài liệu" trong soạn bài tập có nhãn cho trình đọc màn hình.
 
 Không có timer, polling hay request mới; hộp thoại chỉ tồn tại khi đang hỏi. Không cần đổi backend, biến môi trường hay workflow.
